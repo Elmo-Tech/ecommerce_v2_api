@@ -129,9 +129,13 @@ This is a **logical design**, not a required class diagram, disk configuration o
 
 The taxonomy is a **classification policy**, not an authorization to implement every example. No file is public merely because it was uploaded under Catalog or because it has a predictable URL.
 
-Support may involve Central operators and merchant requests. Its cross-context workflows must use explicit contracts; **FS does not decide** the primary Support database or grant universal merchant-data access to Platform Admin.
+**FBR-02-08/19 now decides** the authoritative Support ticket/attachment metadata location as Central Support with trusted Tenant/ticket ownership. Cross-context access remains explicit, least-privilege and audited; this does not grant Platform Admin universal merchant-data access.
 
 ---
+
+### FBR-02-08/19 — Central Support Ticket and Screenshot Ownership
+
+Support tickets and the metadata associating private screenshot attachments to those tickets are authoritative in **Central Support**, with a verified originating Tenant, actor and ticket reference; this is a controlled **Support-owned Central resource**, not an unrestricted Central archive of Tenant Orders/Customers/Refunds. The initial Support attachment allowlist is **JPG, PNG and WebP raster images**, stored privately under opaque storage references. Central Platform Support may retrieve only the exact authorized ticket files; Merchant-side access requires verified membership, role and ticket scope. Each new upload/download rechecks authority; unsafe formats, direct public URLs and guessable IDs never grant access. Processing, size/count budgets and retention remain Feature/security specifications.
 
 ## 5. Tenant Isolation, Environment Boundaries & Storage Keys — FS-02
 
@@ -214,6 +218,10 @@ Do **not** enable unrestricted SVG, HTML, executable scripts, active documents o
 - Public media may be cached by browsers or intermediaries. Replacing/unpublishing an asset changes the authoritative publication state, but cannot guarantee instant removal of every previously cached public copy. Feature-defined versioning, cache policy and withdrawal expectations require testing.
 - Public URLs are **not secrets**. Do not reuse public links for sensitive attachments or order/export documents.
 
+### FBR-02-13 — No MVP Guest Private Order/Document Self-Service
+
+Guest Checkout may proceed without mandatory email/account creation, but the MVP does **not** authorize Guest self-service download/track/list of private orders, exports, receipts or claimable documents by guessed order IDs, phone or stale checkout sessions. When required and lawful, an explicitly authorized Merchant workflow supplies order documentation through approved channels; the platform must not introduce an unapproved Guest private capability.
+
 ### 7.2 Private files
 
 - Private order artifacts, import sources, exports, customer materials and support attachments must reside outside directly reachable public file routes.
@@ -267,6 +275,10 @@ Use **Laravel Scheduler and Horizon where warranted** for bounded cleanup; inclu
 - On download, **recheck current authorization again**. A completed export is not permission to retrieve it indefinitely.
 - Generate into a non-public temporary artifact; only mark **ready** after a complete, verified output has been finalized atomically or through an equivalent failure-safe process.
 - Store the final artifact privately using a portable logical storage reference; expose only an authorized download workflow.
+
+### FBR-02-20 — Financial Export Data As Of and Snapshot Integrity
+
+Use **the start of actual report execution/read** as the data-as-of boundary, not the time the request entered Horizon. Persist/communicate meaningful requested, read/as-of and completed instants. A multi-query financial export must use a **transactionally consistent PostgreSQL snapshot or equivalent proven technique** for both rows and totals; ordinary chunking, repeated READ COMMITTED page queries and a mere timestamp do not prove a consistent snapshot. Avoid prolonged/unbounded holding of MVCC transactions: choose measured bounded techniques per Feature. Operational cached dashboards may use disclosed freshness; never report stale aggregates as current authoritative stock or financial state. D-176 late-recorded sales remain attributed to actual sale dates with traceable corrections; one Platform summary spanning multiple DBs is **not a cross-DB atomic snapshot**.
 
 ### 9.2 Retries, fairness and failure states
 
@@ -436,7 +448,7 @@ Approving FS-07 does **not** mark any test as passed. Record actual test results
 | File metadata schema, logical keys, status fields and unique constraints | Data/Feature specs respecting Central versus Tenant databases |
 | Publication, versioned media URLs, stale public cache and unpublish semantics | Catalog / Merchant Settings Feature and CDN/browser-cache testing |
 | Customer/guest document access proof and optional expiring URLs | Orders/Customer access feature specifications, with security review |
-| Support ticket/attachment authoritative metadata placement and allowed Central access | **Support Feature specification — OPEN**, not decided by FS |
+| Support ticket/attachment authoritative metadata placement and allowed Central access | **FBR-02-08/19 APPROVED:** Central Support metadata, ticket-scoped approved access and limited private image attachments; exact tables, retention and UX in Support Feature. |
 | Historical legal retention, privacy erasure, upload/import/export retention periods | Owning Features with Egypt-specific legal/privacy review |
 | Export status schema, streaming/chunk size, concurrency, limits, retry/backoff/timeouts | Reporting & Exports Feature, QJ and load testing |
 | Laravel 13 / Stancl v3.10.1 filesystem + Horizon integration | Actual package/runtime integration tests; **conditional** |

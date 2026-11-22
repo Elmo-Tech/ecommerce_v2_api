@@ -265,6 +265,10 @@ Horizon retries/backoff/timeout and Redis retry_after relationships follow **QJ 
 
 ---
 
+### FBR-02-04/18 — Pending Intent and Suspended Tenant Delivery
+
+A committed Tenant-local notification/event intent stays durable if Tenant state or commercial entitlement changes after commit. Do not delete it or treat queue acceptance as successful delivery. During **Commercial Suspension**, only separately approved, scoped processing of an earlier **confirmed business obligation** is eligible, subject to current Tenant/receiver/privacy/legal checks; new marketing or commerce effects are not implicitly enabled. Security/legal suspension is separately fail-closed. Hold, visibly reconcile, or resume by original event identity, never blindly replay or grant blanket Platform Tenant access.
+
 ## 7. Tenant-Local In-App Notifications — INT-05
 
 ### 7.1 Delivery model

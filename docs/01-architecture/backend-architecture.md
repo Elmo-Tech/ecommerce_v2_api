@@ -467,6 +467,12 @@ An implementation-specific capacity report and infrastructure configuration belo
 
 ---
 
+### FBR-02-01…20 — Cross-Cutting Decision Reconciliation
+
+The approved FBR-02 gap-review register (see [FBR-02 review](../reviews/FBR-02-architecture-gap-review.md)) refines **existing** security, money/API, tenancy, queue, Support, Owner-recovery, SaaS obligations, tax input-mode and reporting decisions. In particular: protected current Central membership/DB-backed permissions, safe 403 CSRF mismatch, exact decimal-string Money and BIGINT-ID wire values, compatible per-Tenant rollouts, high-risk 503 on lost rate-limit enforcement, financial timezone/tax input-mode locks, no private shared SSR cache/guest private self-service, explicit discount-approver ceilings, Central ticket/limited private screenshot ownership, obligations-only commercial suspension, and execution-time consistent financial reports.
+
+This **does not** assert code implementation, passing test results, selected Redis session driver, legal/tax approval, Production provisioning or any BA-30 gate. D-201 remains open, BA-16 remains deferred and BA-30 G3 blocked. When details are separately owned by a Feature, do not silently invent types/thresholds or business policy.
+
 ## 17. Mandatory Pilot Readiness Gates — BA-30 B
 
 **Architecture acceptance** and **permission to activate live merchant data/workflows** are separate decisions. A Closed Pilot can only start for merchants whose enabled commercial journeys are fully supported and legally eligible. The following gates must have owned, recorded evidence:

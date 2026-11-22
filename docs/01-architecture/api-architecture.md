@@ -127,6 +127,12 @@ Content-Type: application/json
 X-Request-ID: 01KAB7M82FQ6
 ```
 
+### FBR-02-05/06/07 — API Error and Serialization Refinements (2026-11-22)
+
+The final protected API contract maps **identified CSRF-token mismatches to HTTP 403 with `CSRF_TOKEN_MISMATCH`**, distinguishing unauthenticated 401, ordinary forbidden 403 and true throttling 429. Laravel's internal 419 must be mapped and proven with the selected Sanctum/Next.js integration; no unsafe automatic retry of uncertain commits.
+
+JSON Money inputs/outputs use **exact decimal strings of integer currency minor units** plus authoritative currency context; BigInt DB identifiers and relevant references use **canonical decimal strings**, not unsafe JSON Numbers. PostgreSQL BIGINT, cross-DB UUIDv7 exceptions, exact calculations and Feature-specific OpenAPI continue unchanged. Existing numeric example payloads are nonbinding illustrations and must not be copied into final contracts.
+
 ## 6. Request Validation, Error Codes and Localization — API-04
 
 Use **Laravel Form Requests** and the framework's native validation, authentication and authorization exceptions. Centralize exception-to-response mapping; business modules define only their necessary business errors. Do not build a custom validation rules engine or send internal exception traces to browser clients.
@@ -228,6 +234,10 @@ Use **Laravel native security and named rate limiters with Redis-backed state**.
 - Next.js must not perform unlimited retries, particularly for non-idempotent or money/stock-impacting requests.
 - Validate request/upload sizes, restrict private file downloads, preserve CSRF/origin protection, prevent over-posting, use safe DB bindings/least-privilege roles and keep secrets, passwords, session IDs and sensitive customer/payment data out of logs.
 - High-risk monitoring is proportionate and privacy-limited. A paid WAF, CAPTCHA service, dedicated gateway, SIEM or bespoke abuse framework is **not mandatory** for this MVP; reassess against observed abuse and infrastructure risk.
+
+### FBR-02-10 — Lost Rate-Limiter Protection
+
+A genuine exceeded quota is 429 / RATE_LIMIT_EXCEEDED. When the Redis limiter required for a security-sensitive route cannot protect it, **fail secure with 503** and a stable service-unavailable contract (unless independently proven equivalent protection is available). Bounded public read degradation may be separately permitted. Do not treat a Redis outage as proof the account exceeded its quota.
 
 ## 12. OpenAPI, Versioning and Backward Compatibility — API-06
 

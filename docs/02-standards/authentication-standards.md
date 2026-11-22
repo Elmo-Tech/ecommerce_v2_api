@@ -330,11 +330,19 @@ Explicitly configure and test Trusted Hosts, Trusted Proxies, canonical domain m
 
 Prefer same-origin calls so browser credential CORS complexity is minimized. Do **not** enable wildcard credentialed CORS or disable CSRF for convenience.
 
-Invalid CSRF may surface as Laravel 419 or a relevant origin refusal (such as 403) depending on verified Laravel configuration. Document and test how these map to **safe ApiResponse-compatible frontend behavior**. A 419 is not a standard HTTP status; maintain suitable client compatibility rather than pretending it is a normal JSON contract automatically.
+Laravel may initially surface a CSRF mismatch as framework HTTP 419 or an origin rejection; **FBR-02-05 approves the external API mapping of an identified CSRF-token mismatch to 403 / `CSRF_TOKEN_MISMATCH`**. Distinguish this from an unauthenticated 401 and other forbidden 403; verify actual Laravel 13 behavior, handle the response safely in Next.js, and never treat a framework 419 as an already compliant JSON response.
 
 Next.js may recover CSRF context according to the documented flow, but **never blindly retry a possibly committed financial/stock write**. Use the separately approved Idempotency-Key/business-state checks.
 
 ---
+
+### FBR-02-01/05/12 — Session Compatibility, CSRF Error and Private SSR
+
+**FBR-02-01:** Laravel 13 + selected Stancl tenancy + Sanctum browser guards + actual PostgreSQL/Redis/Horizon configuration remain a **conditional integration choice**. Test Central, Tenant A and Tenant B sessions, host/cookie and CSRF isolation, reused worker cleanup, exception paths, logout/revocation and Redis outage behavior. Neither Redis as the Session driver nor package compatibility is silently assumed approved or proven.
+
+**FBR-02-05:** Classify a genuine CSRF mismatch and normalize its final API response to **HTTP 403 + \`CSRF_TOKEN_MISMATCH\`**, preserving \`X-Request-ID\`, safe message and the normal error envelope; Laravel can produce an internal 419 before the explicit mapping. Unauthorized authentication remains 401; authorization failure remains 403/\`ACCESS_DENIED\`. Verify actual Laravel 13 exception behavior through browser/proxy integration tests; never disable CSRF or auto-retry an uncertain committed mutation.
+
+**FBR-02-12:** Personalized/private Next.js SSR fetches and results **must not enter shared/CDN/static caches**, including cross-request Next.js fetch or route caches. Bind each private request to verified browser session/Tenant/actor scope; use nonshared or no-store handling as appropriate. Deliberately public pages may use only correctly isolated **Tenant + locale + visibility** cache dimensions and tested invalidation. Cookies, tokens and private content never enter public HTML artifacts or shared caches.
 
 ## 7. Login Abuse Protection and Redis Rate Limits — AUTH-05
 
@@ -446,6 +454,10 @@ Guest Checkout may collect necessary order/fulfillment data. **Guest email is no
 A Guest's cart/session or possession of an **Order Number or phone number** does not automatically authorize opening a private Order, addresses, refunds or reports.
 
 If a later Feature enables Guest order tracking, require a **separate reviewed proof mechanism** such as a time-bound signed capability with appropriate secret handling, limited scope and revocation/expiry, or other verified ownership proof. This standard does **not** automatically introduce such a route/token.
+
+### FBR-02-13 — No Guest Private Self-Service in MVP
+
+Guest checkout remains allowed under the approved D/OV rules, without a required registered Customer profile. However, the MVP exposes **no guest-authenticated self-service endpoints** for private order tracking, documents, financial evidence or order history: neither an order number, phone, temporary checkout session nor guessed file reference supplies ownership proof. Required post-checkout access is **merchant-mediated by a currently authorized employee** and must respect privacy, applicable legal delivery duties and audit. Do not invent a Guest claim token, auto-link historical orders to later registrations or treat Guest coupons as eligible. A future self-service/claim route requires a separate Feature approval and strong proof.
 
 ### 9.4 No automatic Guest account linking
 

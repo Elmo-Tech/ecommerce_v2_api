@@ -135,6 +135,10 @@ The concrete Laravel Store Prefix, Stancl tags and physical Redis key compositio
 
 A public storefront view can share a Tenant-scoped entry **only** when genuinely public to that audience. A dashboard/customer/private-file/export read must enforce actor and resource scope first, and may require actor/Location-specific cache variants or no cache.
 
+### FBR-02-12/18 — SSR Privacy and Subscription State
+
+Private/person-specific SSR output, authenticated responses and documents must **never** enter shared Next.js fetch/route/CDN caches. Public catalog/branding caches require verified **Tenant + locale + visibility/context** partitioning, with invalidation on publication and **commercial/security Tenant suspension** when relevant. Even stale public product display must never authorize a new checkout; authoritative Tenant lifecycle and Entitlement validation governs every protected action.
+
 ### 5.4 Invalidation scope
 
 No global `Cache::flush()` to clear one Tenant's data. Invalidate exact affected entries or carefully verified scoped tags. Laravel Cache flush behavior may ignore the configured prefix; verify Store/Stancl semantics before relying on bulk operations.
@@ -204,6 +208,10 @@ Tenant membership revocation is scoped to that merchant and must not silently re
 
 Potentially cache stable Permission Registry definitions and UI/menu display hints, appropriately scoped and invalidated. These hints are **not** API authorization. Avoid broad effective-permission caching or versioned revocation-barrier infrastructure in the first Pilot without a measured need and separately validated safe design.
 
+### FBR-02-02/03 — PostgreSQL-Backed Authorization and Revocation
+
+Every protected Merchant request checks current Central workforce account and membership; sensitive effects revalidate current high-risk conditions near commit. PostgreSQL is authoritative for Central status and Tenant-local Role/Location/delegation. Redis may cache *selected*, scoped permission hints/snapshots only with current authoritative PostgreSQL-backed status/version verification and measured benefit; no stale positive grant can bypass revocation. A unavailable authorizer **denies** rather than falling back to previously cached permissions. This does not require a universal Redis grant-cache engine.
+
 ### 8.4 Background work
 
 User-initiated deferred sensitive work (for example private exports) rechecks the initiating actor's current relevant permissions and scope before execution. A valid **system-owned obligation from an already committed business event** is not cancelled solely because the original actor later lost permission; apply QJ's scoped system authority and current Tenant/business/privacy rules instead.
@@ -245,6 +253,10 @@ Exact TTLs, lock leases, retry/wait bounds, jitter ranges and refresh strategies
 | Membership/permission/entitlement check | Use trusted current source; if verification fails, **fail closed**. |
 | Security-sensitive rate limiter | Never silently fail open; exact endpoint-specific behavior belongs to Security Standards. |
 | Horizon transport | Follow QJ: PostgreSQL Outbox retains durable work intent; queue recovery and idempotent consumers handle later progress. |
+
+### FBR-02-10 — Rate-Limit Failure Separation
+
+When the required Redis limiter is unavailable on authentication/privileged/financial writes, **fail securely** with a validated equivalent guard or **503**; only a proven actual throttle is **429**. Do not reinterpret a Redis failure as an exceeded account quota or permit fail-open high-risk writes. Bounded public read fallback must be separately protected and measured. This is distinct from SQL fallback for ordinary cache misses.
 
 ### 10.2 Prevent a fallback storm
 

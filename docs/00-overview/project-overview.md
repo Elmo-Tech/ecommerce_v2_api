@@ -397,6 +397,12 @@ The following list documents the **explicit approvals provided in the Project Ov
 
 ---
 
+### FBR-02 — Approved Architecture Refinements (2026-11-22)
+
+The architecture-gap review **FBR-02-01 through FBR-02-20** has **20 owner-approved Option A decisions**. It clarifies existing MVP technical contracts: current membership/permission authority, CSRF and exact JSON Money/IDs, safe Tenant migration, caching/queues, locked financial timezone/tax input mode, private Guest/SSR access, discount ceilings, Central scoped Support/screenshots, exceptional protected Owner recovery, obligations-only commercial suspension and consistent execution-time reporting. The canonical review and owner decisions are recorded in [FBR-02 Architecture Gap Review](../reviews/FBR-02-architecture-gap-review.md), with relevant rules integrated into governing Architecture/Standards files.
+
+This **does not** approve new unrelated commercial features, silently settle **D-201**, select **BA-16** backups, waive **BA-30 G3**, prove real Laravel/Stancl compatibility or authorize live merchant activation. Source D-series and OV decisions retain their own authority. Unspecified subscriptions, legally valid tax choices, legal retention, numeric resource limits, Feature schema/UX and deploy measurements remain separately reviewed.
+
 ## 14. Open decisions, module dependencies and launch gates
 
 This document does not quietly settle the following questions:

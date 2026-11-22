@@ -127,6 +127,12 @@ Provisioning must be **idempotent and retry-safe**:
 
 Cross-database provisioning does not assume a distributed ACID transaction.
 
+### FBR-02-09/18 — Per-Tenant Schema and Lifecycle Gating (approved 2026-11-22)
+
+Each Tenant has a recorded, verifiable schema version and compatibility state. During a bounded partial schema rollout, a failed/incompatible Tenant is **denied unsafe operations** rather than receiving code expecting a missing schema. Compatible tenants may continue when that is independently proven safe; otherwise stop global promotion. Do not claim Central+Tenant migration atomicity, automatic down-migration or successful activation based only on Central `Ready` state. Preserve rollback/recovery evidence.
+
+**Commercial suspension** is not Tenant deletion. Tenant resolution and applicable Entitlement gates prevent new commerce actions; narrowly eligible existing **confirmed obligations** may be processed only through explicit permitted-operations policy and current authorization. Security/legal suspension must fail closed independently. Never let a suspended Tenant be reactivated implicitly by worker context reuse, cached state or a stale Host mapping.
+
 ## 6. Central and Tenant Migrations
 
 Central and Tenant migrations remain separate.

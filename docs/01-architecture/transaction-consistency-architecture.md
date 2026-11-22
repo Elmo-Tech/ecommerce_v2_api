@@ -197,6 +197,10 @@ Consumers must:
 
 A received event is not permission to bypass a module's normal stock, money or authorization invariants.
 
+### FBR-02-04/18 — Durable Event Retention Under Suspension
+
+A committed event remains in its originating PostgreSQL Outbox even if the Tenant is suspended or unavailable. Unauthorized execution is **held and surfaced**, not marked delivered, deleted or silently rerouted. Commercial suspension may allow only expressly enumerated *prior confirmed obligation* continuations after current Tenant, business and permission checks; security/legal suspension is more restrictive. Redis/Horizon may redeliver events, so resume must preserve original operation identity, local idempotency and audit. This is not permission to confirm Pending Stock or create new business effects.
+
 ### 8.2 Appropriate asynchronous effects
 
 Email intentions, in-app notifications, reporting projections and noncritical downstream synchronization may follow successful commits. Critical eligibility, order confirmation, inventory reservation/consumption and verified financial collection **must remain synchronous authoritative checks** in their owning business workflows.
@@ -232,6 +236,12 @@ Central workforce membership is distinct from Tenant-local role/Location assignm
 ### 9.4 Other cross-context operations
 
 SaaS entitlement propagation and authorized Central reporting use owning-module contracts, explicit scope and durable coordination where **linked writes** can partially succeed. A read-only cross-context query does not require a workflow state machine merely because it reads two databases. Never move Tenant-owned business data into Central by default.
+
+### FBR-02-09/17 — Version Compatibility and Exceptional Owner Recovery
+
+Partial Tenant schema rollouts require **per-Tenant compatibility gates**: isolate failed upgrades when safe but deny incompatible code paths until the owning schema version is usable. An incomplete release/migration cannot mark a Tenant healthy solely because neighboring Tenants passed.
+
+Exceptional Last Owner recovery is an **authorized cross-context orchestration**, not a single Central+Tenant ACID transaction. Verify merchant-ownership evidence and operator scope independently; create or restore correct Tenant-local owner grants, then activate verified Central membership only once corresponding local state is valid. Recover crashes from durable stages without duplicating active Owners or permitting Platform impersonation.
 
 ## 10. Failure Recovery, Retries & Reconciliation — TC-06
 

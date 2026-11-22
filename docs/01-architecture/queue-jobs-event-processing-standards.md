@@ -147,6 +147,14 @@ This is a **conceptual contract**, not a final field list or JSON schema. Do not
 
 Cross-context lifecycle steps use the durable workflow's authority and independently approved operator permissions where a new operator action is requested.
 
+### FBR-02-04/18 — Tenant Lifecycle-Aware Outbox and Obligation Recovery
+
+Suspension does **not** delete previously committed Tenant-local Outbox intent or erase confirmed business history. **FBR-02-04:** a scheduled relay/consumer encountering a Tenant suspended/unavailable for the intended effect must retain/hold its durable pending event, avoid automatic unauthorized side effects, expose the reason/backlog and retry only when verified state and policy permit. Never treat a queued event as an authorization bypass.
+
+**FBR-02-18:** distinguish **Commercial Suspension** (no new orders/sales or new entitlement-dependent activity; narrowly enumerated actions to complete previously confirmed obligations may remain available under current permissions) from **Security/Legal Suspension**, which fails closed unless a separately authorized lawful recovery process is approved. A valid system-owned already-committed obligation is not cancelled merely because the originating employee lost permission, but it still needs Tenant lifecycle, obligation eligibility, consent/privacy, business state and idempotency validation. An older Manual Pending Stock is **not** a confirmed obligation or automatic stock reservation. Resume/cancel decisions are module-owned and audited, not a blind bulk replay after renewal.
+
+The SaaS Subscription Feature must publish a versioned **allowed-operations-by-suspension-reason matrix** before enabling commercial suspension. No new workflow engine, blanket exceptional Platform access, or duration/grace-period default is approved here.
+
 ### 6.3 Cleanup and retry
 
 Clear Stancl Tenant Context, DB connections and mutable authorization/cache scope after each attempt, including exceptions. A killed process cannot run its own `finally`: the **next attempt/worker must initialize cleanly**, and any stale lease must recover safely.

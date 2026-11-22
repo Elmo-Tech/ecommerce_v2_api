@@ -172,6 +172,10 @@ X-XSRF-TOKEN: <verified-token>
 
 Define a safe frontend response for framework CSRF rejection (often Laravel 419 or reviewed 403). **419 is nonstandard**; do not assume the framework automatically produces approved JSON. Never blindly retry an uncertain committed order/payment/refund based on a token or network failure; reconcile business outcome and use approved idempotency mechanisms.
 
+### FBR-02-05 — CSRF Failure Contract
+
+An identified token-mismatch failure must be normalized at the Laravel API boundary to **403 / CSRF_TOKEN_MISMATCH**, with the approved safe response envelope and correlation header, while missing authentication remains 401 and ordinary denied authorization remains 403 / ACCESS_DENIED. Laravel's internal 419 requires actual framework integration testing and explicit exception translation; neither CORS nor disabling CSRF is a substitute. Do not automatically re-submit uncertain committed writes after a token refresh.
+
 ### 4.4 Trusted Hosts, Origins and CORS
 
 - Use explicit trusted domain/Tenant mappings, correct proxy forwarded-header trust and Laravel stateful origins.
@@ -290,6 +294,10 @@ Core technical Storage uses Laravel native filesystem on appropriate **VPS-mount
 7. Preserve previous good file on replacement failure; use bounded, idempotent cleanup/reconciliation for staging/orphans.
 
 **Candidate MVP allowlist:** JPG/PNG/WebP images, CSV/XLSX catalog imports, PDFs only for approved document workflows; Support attachments need Feature approval. Unrestricted SVG, HTML, executable files and arbitrary archives are not generic MVP formats. Numeric file size/dimension/count limits and a scanner vendor remain TO SPECIFY by Feature and risk, not made up here.
+
+### FBR-02-19 — Support Screenshot Allowlist and Isolation
+
+Support-ticket attachment uploads are **limited to JPG, PNG and WebP raster screenshots** in MVP. Central Support owns ticket/attachment metadata under the prior FBR-02-08 decision; storage bytes are private with opaque, non-web-public references. Authorize the exact ticket, actor, Tenant and permitted purpose before accepting or serving; verify extension, detected image content, bounded size/count and safe re-encoding/processing. Revalidate authorization before every new download; neither Platform Super Admin status nor a Ticket/File ID confers unrestricted Merchant data access. Do not enable PDF/XLSX/ZIP/HTML/SVG as generic Support uploads without separate approval. Numeric limits, scanning risk evaluation and retention remain Feature/security decisions, not invented here.
 
 ### 6.3 Tenant namespaces and path safety
 
@@ -456,6 +464,10 @@ Tampered/unexpected lockfile change, known relevant dependency advisory, workflo
 
 A Log/Redis queue message is not the authoritative proof a Refund was executed or stock moved. An audit table is **not automatically cryptographically tamper-proof against database administrators**. Avoid duplicating every financial ledger row into Security Audit.
 
+### FBR-02-17 — Exceptional Owner Recovery Trust Boundary
+
+Only separately authorized Platform operators may process an exceptional **last protected Owner recovery**, following independent merchant-ownership evidence review and detailed Central/Tenant audit. Ordinary staff cannot self-promote or remove the last active Owner. No Platform impersonation, temporary universal Tenant access, bypass of customer privacy or activation before valid Central membership and local Role coordination. If evidence is insufficient or cross-DB steps are incomplete, fail closed and support auditable recovery. A compromised Owner's old sessions/authorization remain denied.
+
 ### 9.2 High-value security events
 
 | Category | Scope/ownership |
@@ -573,6 +585,10 @@ Approved API error code is `RATE_LIMIT_EXCEEDED` with valid envelope/status. Do 
 
 If Redis rate limiting fails, **do not silently fail open** for authentication, privileged operations or sensitive financial writes. Define risk-specific bounded fail-secure behavior; permit degraded public read-only traffic only with a proven alternate protection and budget. Authorization failure itself always fails closed.
 
+### FBR-02-10 — Fail-Secure Limiter Outage
+
+A **genuine exceeded quota** returns HTTP 429 with RATE_LIMIT_EXCEEDED. For authenticated security-critical, privileged or money/stock mutation routes, inability to enforce the required limiter **must not fail open**: use a validated equivalent protection or return **503** with an explicit unavailable-service contract, not false 429. Only separately bounded and proven-safe public read fallbacks may degrade. Verify Redis outage, reconnection, concurrency, trusted rate-limit keys and critical idempotency independently.
+
 ### 10.5 SEC-08 tests
 
 Exact AUTH-05 5/20/100 counter dimensions, 15-min recovery, shared office NAT false-positive review, Host/forwarded-IP spoof denial, Tenant A/B key separation, atomic concurrent burst behavior, expensive single-request containment, bulk Tenant fairness, Redis outage behavior, duplicate checkout, safe 429/retry and no financial double effect.
@@ -592,6 +608,10 @@ Exact AUTH-05 5/20/100 counter dimensions, 15-min recovery, shared office NAT fa
 | **Secrets** | Passwords, tokens, service keys, DB credentials | Secret/Hash policy; never ordinary telemetry |
 
 Classification helps select controls but **does not itself grant access**. Product visibility does not imply staff can export all customers; Platform Admin is not universal Tenant private-data reader.
+
+### FBR-02-12/13 — Private SSR and Guest Access Boundaries
+
+Private SSR/API responses cannot be placed in shared Next.js/CDN/edge caches; sessions, tokens, order/customer/employee records and financial data remain per verified actor/Tenant and private response scope. Public cached responses require correct Tenant/locale/visibility keys and state-aware invalidation. The MVP allows approved **Guest Checkout**, but **no Guest private self-service** for orders, documents, customer records or refunds. Order number, phone or checkout state never substitutes for a reviewed ownership proof; required guest communications/access are mediated by authorized Merchant workflows. Future private Guest claims require independent product/security approval.
 
 ### 11.2 Data minimization and independent identities
 

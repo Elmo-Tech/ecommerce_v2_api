@@ -59,6 +59,10 @@ The `public` schema name does **not** make data publicly accessible. Enforce app
 
 Cross-database references require explicit context and application-level validation; PostgreSQL cannot enforce a foreign key between separate Central and Tenant databases in the approved design.
 
+### FBR-02-07 — Global References and Exact Public ID Format
+
+BIGINT remains the physical default for local relational identifiers; selective UUIDv7 is reserved for justified globally stable integration/cross-DB references. Since Tenant-local BIGINTs can repeat, every access must resolve trusted Tenant context. API JSON serializes BIGINT IDs as **canonical decimal strings**, preserving precision above the JavaScript safe-integer boundary; database constraints and permissions still govern actual relationships.
+
 ## 5. Relationships and Integrity — DA-03
 
 Use PostgreSQL-native integrity rules where appropriate:
@@ -83,6 +87,10 @@ Exact relationships, constraint expressions, and delete actions belong in the re
 - Do not use FLOAT or DOUBLE for monetary calculations.
 - Use appropriately precise decimal arithmetic for intermediate prices, discounts, tax, and calculations, then apply the feature-approved rounding rules before persisting finalized amounts.
 - Preserve currency context and financially significant calculation snapshots where required.
+
+### FBR-02-06/15 — Canonical Money Wire and Exact Approval Arithmetic
+
+Final amounts are currency-aware BIGINT **minor units** in PostgreSQL and exact **decimal-string minor units plus currency code** in application JSON. Calculation intermediates may retain appropriate precision, with tax/discount rounding only at the governing Feature-approved boundary. Manual discount percentage authorization compares exact values **before display rounding** and rejects a positive discount if eligible merchandise base is zero. D-086/D-087/D-088 govern denominator, tax and shipping exclusion.
 
 ### 6.2 Time
 
@@ -116,6 +124,10 @@ Adopt **PostgreSQL-first, query-driven indexing**:
 - Use bounded Horizon jobs for heavy CSV/Excel exports and reporting, preserving tenant and Location authorization.
 
 Do **not** add speculative indexes, upfront table partitioning, read replicas, or specialized search infrastructure without measured need. No fixed performance guarantee is asserted before validation.
+
+### FBR-02-09/20 — Per-Tenant Version Gates and Export Consistency
+
+Controlled partial Tenant migrations require verified schema compatibility and fail-closed routing for incompatible Tenant code/schema states; do not mark a failed migration healthy. Financial exports must reflect a consistent **execution-time** PostgreSQL snapshot or proven equivalent, with explicit data-as-of/freshness and bounded transaction cost. Pagination/chunking alone does not establish a common read point; cross-Tenant platform aggregates do not have a single atomic multi-DB snapshot.
 
 ## 8. Data Lifecycle and Safe Changes — DA-06
 

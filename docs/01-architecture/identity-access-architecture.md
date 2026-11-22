@@ -118,6 +118,10 @@ Use simple **RBAC**, with predefined Permission Registry entries provided throug
 
 No general-purpose user-configurable ABAC/authorization engine is required. Do not impose universal multi-person approvals where the governing business rule does not require them.
 
+### FBR-02-02/03 — Current Central Membership and Authoritative Tenant Grants
+
+Each Merchant request checks the **current** Central workforce identity, current active Tenant Membership, Tenant lifecycle/entitlement and Tenant-local Role/Location/resource authority; high-risk effects recheck current relevant authority close to commit. Central and Tenant databases have **no shared ACID transaction**. PostgreSQL-backed versions/status checks govern any selectively cached permission hints; no Redis stale positive grant can override revocation. Fail closed on missing authoritative checks and clean Context after use.
+
 ## 7. Workforce Invitations and Access Lifecycle — IA-05
 
 **Simple invited-membership process:**
@@ -135,6 +139,10 @@ The first merchant owner's access is bootstrapped through the authorized merchan
 **Revocation:** block new requests against the affected Tenant immediately through authoritative membership checks; invalidate or refresh stale permission/cache data and revalidate sensitive queued jobs before effects. Suspension/revocation of Merchant A must not delete a Central workforce identity or revoke its independent valid access to Merchant B. A security disablement of the **Central identity** can instead block all workforce access, including Platform access where applicable.
 
 Central and Tenant PostgreSQL databases do not share one ACID transaction. Invitation acceptance, local role initialization and membership activation require an explicit retry-safe cross-context orchestration. Deny access while coordination is incomplete; do not treat an asynchronous cache cleanup as sufficient revocation enforcement.
+
+### FBR-02-17 — Protected Owner Exceptional Recovery
+
+No ordinary Role/Employee operation can remove the last active protected Owner. When normal password recovery is not enough, an explicitly authorized Platform-assisted process may verify independent Merchant ownership evidence and restore or transfer the Owner relationship under a bounded, auditable Central/Tenant workflow. No public self-registration as Owner, automatic Platform impersonation, unscoped private-data access or partial activation is authorized. Previously compromised credentials and sessions remain denied; duplicate/concurrent requests require safe durable reconciliation.
 
 ## 8. Passwords, Recovery and Session Management — IA-06
 
@@ -160,6 +168,10 @@ Guest Online Checkout remains available where the business flow permits it. Save
 Do not auto-link an old guest order to a newly registered customer based on matching phone/email. Any future claim/link workflow requires explicit proof of ownership and feature approval. A guest order number or phone number alone is not sufficient to disclose private order details.
 
 Coupon redemption in MVP is restricted to registered, signed-in customers of that Tenant and follows the approved one-use-per-customer-per-coupon rule and coupon hold/confirmation policies (D-050/D-051 and subsequent decisions). A guest is not automatically upgraded into a registered shopper to redeem a code. Normal walk-in Direct Sales require no fabricated Customer Profile (D-169).
+
+### FBR-02-13 — Guest Checkout Without Private Guest Self-Service
+
+Approved Guest Checkout does **not** introduce a Guest Customer account or private Guest order tracking, document download, refund-history or order-claim self-service in MVP. Order number, telephone, temporary checkout state or an old URL is not proof of ownership. Merchant staff may handle allowed customer communication/documents through an independently authorized operational process; legal delivery obligations and confirmed history are preserved. Registered customer access stays Tenant-local. Any future Guest claim route requires a separate scoped proof/consent/security decision.
 
 ## 10. Focused Security Audit and Data Ownership — IA-08
 

@@ -124,6 +124,10 @@ A Tenant migration failure is reported and isolated where safely compatible; it 
 
 Tenant A and Tenant B may each have local `id = 100`. Identical numeric values do **not** identify the same resource. Avoid duplicating both BIGINT and UUID on every table without a reviewed use case.
 
+### FBR-02-07 — Public BIGINT and Selective UUIDv7 Identity
+
+The physical key strategy remains **BIGINT by default** with selective UUIDv7 when a genuine cross-database/integration identity is needed. At every JSON API boundary, BIGINT IDs and related references are **canonical base-10 decimal strings**, never JS-unsafe JSON Numbers. Reject overflow, noncanonical or cross-Tenant identifiers; Tenant-local numeric collisions are expected and do not confer global identity. Add wire-contract serialization tests independently of FK/index tests.
+
 ### 4.2 Relational integrity
 
 Use PostgreSQL `PRIMARY KEY`, `FOREIGN KEY`, `NOT NULL`, `UNIQUE` and `CHECK` for stable invariants where appropriate; complement them with Domain and authorization checks.
@@ -193,6 +197,12 @@ PostgreSQL **does not have `TINYINT`**. Use `SMALLINT` for project state Enums a
 Final financial amounts use BIGINT minor units with a stored/authoritative currency context. EGP is the initial Egypt Pilot currency, **not a universal two-decimal assumption**. Use precise intermediate calculations and approved rounding before final persistence. Preserve necessary item, price, discount/tax and collection history per owning Feature.
 
 Use `created_at` and `updated_at` where appropriate. When physical event time differs from recording time and the workflow requires evidence, model `occurred_at` vs `recorded_at` intentionally; do not add both to every table.
+
+### FBR-02-06/15 — Money Wire and Exact Discount Ceilings
+
+PostgreSQL stores finalized Money as **BIGINT currency minor units**, while the JSON contract exposes those values as **decimal strings** with currency context. Never round or cast through binary floats or JS Number. Intermediate percentages, proportional allocation and tax calculations remain exact until the approved Feature-specific final rounding point.
+
+Discount authorization uses **exact monetary comparison against the effective percentage ceiling**, without rounding the percentage for policy decisions. D-086 eligible base excludes shipping/tax and reflects earlier discounts; reject positive discounts where the eligible base is zero, and handle zero discount as a no-op. Use safe overflow-aware arithmetic and versioned state checks; no default discount ceiling is invented.
 
 ### 5.4 Nullability and defaults
 
@@ -365,6 +375,10 @@ A simple safe additive migration does **not** require all stages. Destructive ty
 - Provisioning reuses the current Tenant migrations; no `Ready` after partial initialization.
 - Validate mixed schema versions, worker compatibility and rollback behavior before shifting traffic.
 
+### FBR-02-09 — Compatibility-Gated Partial Tenant Rollouts
+
+Central and Tenant migrations remain independently versioned. A failed Tenant migration is **not** counted as success, and does not force unrelated compatible Tenants to stop; it **does** block incompatible application operations for the affected Tenant until an approved compatible schema/code pairing is restored. A release gate tracks per-Tenant target version, actual version, failure, canary/batch status, old/new reader-writer compatibility and safe recovery/rollback. Use expand/backfill/contract when justified; never assume cross-database atomic migration or blindly roll back destructive DDL. These are approved rollout semantics, not verified migrator code or permission to launch.
+
 ### 8.3 Large PostgreSQL changes
 
 - Review PostgreSQL `ALTER TABLE` locks, scan/rewrite behavior, `lock_timeout` and `statement_timeout` in representative conditions.
@@ -427,6 +441,10 @@ This assumes an already verified Tenant and Location list. Real policies, custom
 **DB-07 acceptance:** bounded list/extract tests, N+1 measurements, appropriate pagination contract, authorized aggregate counts, safe A/B/Central connection/job cleanup and measured total connections.
 
 ---
+
+### FBR-02-20 — Consistent Export Read Boundary
+
+For financial exports, \`queued\` time is **not** the report data cutoff. The governing data viewpoint starts at actual **execution-time read**; capture meaningful request time, read/as-of point, completion time and freshness meaning. Multi-query/streamed financial totals and details must observe **one consistent PostgreSQL snapshot or a proven equivalent**, without unbounded long transactions or assuming cursor/chunk iteration implies repeatable-read. A cross-Tenant Platform aggregate is not one shared ACID snapshot across independent databases. Operational eventually-consistent read models must disclose freshness and never replace current stock, order or collection truth. Preserve D-176 original-sale-date/late-entry semantics and reauthorize before execution/download.
 
 ## 10. DB-08 — Historical Records, Corrections and Safe Deletion
 

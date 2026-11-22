@@ -162,6 +162,10 @@ No global Eventual Consistency rule overrides an immediate order/stock/collectio
 
 ---
 
+### FBR-02-16 — Store Tax Input Mode Cannot Change After Confirmed Sales
+
+The approved D-089/D-090 **single Tenant Tax-Inclusive or Tax-Exclusive merchandise price-input mode** may be changed during setup with a review of affected Product/Variant entered prices. After the first **confirmed sale**, normal Merchant Settings edits must lock this input mode. A rare separately authorized, audited correction requires explicit price-impact review, controlled conversion and outstanding Draft/Manual Pending Stock re-evaluation/consent; never silently rewrite historical Confirmed Orders/invoices. This input-mode lock does **not** prohibit D-094 rate changes or override D-097 gross-price preservation when a Tax-Inclusive rate changes. Exact UI/default selection, legally valid profiles and workflow details remain Merchant Settings/Pricing/Tax Feature responsibilities.
+
 ## 5. Online Checkout and Confirmation — CW-02
 
 ### 5.1 Backend-authoritative preflight
@@ -262,6 +266,10 @@ The Orders-owned confirm use case checks Tenant authorization, source order vers
 Failed validation, insufficient full-order stock, expired incompatible coupon or missing required customer consent **must not** commit a successful reservation/confirmation.
 
 ---
+
+### FBR-02-15 — Exact Discount Authority on Eligible Merchandise
+
+Manual discount approval thresholds use exact monetary comparison, **before any display rounding**. A positive discount against zero eligible remaining Merchandise Base is invalid, while zero discount is a no-op. Preserve D-075…D-088 including tax/shipping exclusion, stacking, self-approval restrictions and reapproval after material financial change; do not treat display percentage or a manually overridden product unit price as authorization.
 
 ## 7. Simplified Direct Sales — CW-04
 
@@ -522,6 +530,12 @@ Corrections must use the owning Module's public contract, with authorization, re
 The approved design intentionally uses **module-owned records and ordinary short local transactions**. A purpose-built durable status for a genuinely prolonged process may be introduced by Feature Spec, but a universal commerce Workflow Engine, event-sourced all-state rebuild, cross-Tenant distributed transaction manager or automatic money compensation framework is **not approved**.
 
 ---
+
+### FBR-02-13/18 — Guest Scope and Commercial Suspension
+
+Guest Checkout remains a supported sales path, but a Guest is **not** granted MVP private self-service over historical orders/files using phone, order number or checkout cookie. Merchant-mediated lawful communication is separate from Customer Account access.
+
+A **Commercial Subscription Suspension** blocks new Online Checkout, Manual Order confirmation and Direct Sale, while allowing only an explicitly listed and currently authorized set of operations necessary to complete **previously confirmed** commitments (e.g., permitted fulfillment, reconciliation, customer-rightful return/refund). Unconfirmed Manual Pending Stock is not a reserved or confirmed commitment. Security/legal suspension is separately fail-closed, and renewal does not auto-confirm/execute previously denied operations. Honor customer rights and no duplicate financial/stock effects.
 
 ## 12. Security, Authorization, Location and Audit
 

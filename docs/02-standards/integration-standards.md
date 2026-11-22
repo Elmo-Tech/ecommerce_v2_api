@@ -450,6 +450,10 @@ Existing **D-118/D-119** decisions govern exception handling and authorized manu
 
 ---
 
+### FBR-02-04/18 — Durable Subscription-Sensitive Notifications
+
+Event/message intents already committed to the proper Central/Tenant Outbox survive Tenant commercial suspension; they are **not** silently discarded, reported delivered or automatically retried to bypass Tenant policy. Process an eligible previously confirmed obligation only through explicit current Tenant/actor/system scope, consent/privacy and appropriate allowed-operation checks. Security/legal suspension fails closed absent a reviewed exception. Preserve distinct queued, provider-accepted and trusted-delivered outcomes and idempotent recovery by original message/operation identity.
+
 ## 9. INT-ST-06 — Bilingual Templates, Safe Variables and Merchant Branding
 
 ### 9.1 Platform-managed template library

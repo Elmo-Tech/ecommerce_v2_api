@@ -785,6 +785,35 @@ Create one canonical Feature specification; do not maintain competing independen
 
 ---
 
+### FBR-02-01…20 — Focused Decision Regression Coverage (approved policy, not executed tests)
+
+The following are **future required targeted tests**, not claims of passed CI or installed Laravel code. Apply the appropriate risk tier and actual PostgreSQL/Redis/Horizon/Next.js boundaries; preserve existing TEST-01…TEST-10 and BA-30 gates.
+
+| FBR-02 | Minimum regression / negative evidence |
+| --- | --- |
+| 01 | Laravel 13/Stancl/Sanctum/session-driver compatibility; Tenant A → B → Central worker/session cleanup, failures and Redis outage |
+| 02 | Current Central membership denied immediately after revoke; precommit high-risk authority recheck; no false cross-DB ACID |
+| 03 | Stale Redis positive grant and Redis outage cannot bypass PostgreSQL status/version; Tenant/Role/Location cache isolation |
+| 04 | Suspended Tenant retains durable pending Outbox; no unauthorized new side effect; safe eligible resumption, duplicate delivery and state transitions |
+| 05 | Actual Laravel CSRF 419 internally mapped to HTTP 403/CSRF_TOKEN_MISMATCH; 401, 403/ACCESS_DENIED and 429 distinct; no unsafe auto-retry |
+| 06 | JSON finalized minor-unit decimal strings/currency, JS > MAX_SAFE_INTEGER, EGP/JPY/KWD exponent, exact intermediate rounding |
+| 07 | BIGINT ID as decimal string, max/overflow/canonical validation, Tenant A/B duplicate local IDs, selective UUIDv7 |
+| 08 | Central Support ticket visibility scoped by Tenant and explicit ticket permissions; no Platform-to-Tenant business impersonation |
+| 09 | Mixed compatible/incompatible Tenant migration states; failed batch isolation, activation gate, rollback/expand-contract checks |
+| 10 | Real limiter 429 versus Redis outage high-risk 503; bounded public fallback and recovered limiter state |
+| 11 | Post-financial-activity timezone lock; permitted exceptional audited correction; midnight/DST and refund-day attribution |
+| 12 | Private SSR no-store/shared-cache cross-user/Tenant bleed; public tenant/locale/visibility keys, suspension invalidation |
+| 13 | Guest checkout succeeds; guest private order/file self-service denied with guessed order ID, phone or cart cookie |
+| 14 | Missing personal ceiling fail closed; correct min(personal, configured Role ceiling), no self approval, tenant scope and revoke |
+| 15 | Below/exactly/above discount cap without display rounding; eligible base 0 positive rejected; 0 discount no-op; stacking edits |
+| 16 | Tax input mode locked after first confirmed sale; exceptional reviewed change preserves historical invoice/sale snapshots |
+| 17 | Last Owner cannot be removed concurrently; exceptional ownership proof, denied operator bypass, crash-safe Central/Tenant recovery |
+| 18 | Commercial suspension rejects new sale, permits only enumerated prior obligations; security/legal suspension denied; resumption idempotent |
+| 19 | Safe JPG/PNG/WebP support images only, MIME spoof, private download, revoked access, Tenant A/B collision, orphan cleanup |
+| 20 | Financial export single consistent execution-time read point; totals=details despite concurrent Refund/Collection; as-of/freshness, retry/revoke/partial output |
+
+Per-Feature OpenAPI, fixtures and final thresholds remain separately specified; no routine test requires unbounded load or touches Production merchant data.
+
 ## 13. Consolidated Critical Acceptance Test Matrix
 
 **This is a required *future* set of representative cases when the related Features exist. No test result is claimed.**

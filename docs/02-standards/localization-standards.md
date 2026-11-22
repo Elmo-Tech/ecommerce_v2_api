@@ -287,6 +287,10 @@ Platform email templates follow INT-ST-06: Arabic/RTL and English/LTR, accessibl
 
 Illustrative values are **not** final API field/schema contracts. In JS, represent values beyond Number.MAX_SAFE_INTEGER with compatible exact integer/decimal strings or other reviewed safe representation before formatting. Select wire representation in Feature OpenAPI; never silently downcast **BIGINT** to imprecise Number. Apply Intl/locale libraries for display **without first losing precision**.
 
+### FBR-02-06 — Exact Public Money Representation (approved 2026-11-22)
+
+Final financial Money uses PostgreSQL BIGINT minor units with its currency exponent, and API **decimal-string minor-unit values plus currency context**. Only parse validated canonical values into precise decimal/integer math; never use browser Number for amounts outside exact safe range or depend on localized separators to prove a financial amount. Display formatting must not change the authoritative amount.
+
 ### 6.2 Numeric input parsing and normalization
 
 | User entry class | Rule |
@@ -314,6 +318,10 @@ The browser can provide friendly immediate validation, but the **owning Laravel 
 | Language/locale | Formats month names/order/digits only; does not modify actual instant, duration or business state |
 
 Use a reliable **IANA timezone identifier**, e.g. Africa/Cairo for a store that has been approved with that zone, rather than assuming a fixed UTC+02 offset. Some regional offsets/DST rules change; a local calendar day is not universally 24 hours. Exact store timezone selection/change governance is **OPEN** beyond current approved business rules and belongs to Merchant Settings/Finance Feature Spec.
+
+### FBR-02-11 — Financial Merchant Timezone Governance
+
+An authorized Merchant may select a valid IANA financial timezone **before** finance-impacting activity starts. After the first relevant financial activity, the timezone becomes **locked for ordinary Merchant Settings changes**. Any exceptional correction requires independently authorized review, reason/audit, and explicit assessment of historical financial day limits, reports, refunds and regulatory records; never silently reinterpret past financial events. UTC/TIMESTAMPTZ remain authoritative instants; business-day boundaries are derived using the trusted IANA zone and date-specific DST rules, not browser timezone or a fixed offset. Exact configuration workflow, legal exceptions and UI belong to Merchant Settings/Finance Features.
 
 ### 6.4 Date filters, reporting and refund-day rules
 
@@ -767,7 +775,7 @@ Do not invent blanket 90% coverage, universal visual screenshot baseline, arbitr
 | Arabic numeral glyph choice per page/field | **TO SPECIFY AS DISPLAY DETAIL** | Design System/UI, not business representation |
 | Exact accepted numeric separators per Form input | **TO SPECIFY** | Feature DTO/Input validation + QA |
 | Money wire precision/schema at large values | **TO SPECIFY BY OPENAPI** | Money/API Feature, avoiding JS Number loss |
-| Merchant timezone selection/change policy | **OPEN DETAIL** | Merchant Settings + finance owners; preserve D-129/D-130 |
+| Merchant timezone selection/change policy | **FBR-02-11 APPROVED:** normal change locked after financial activity; exceptional audited correction workflow and UI remain Merchant Settings/Finance Feature-owned. Preserve D-129/D-130. |
 | Email recipient unknown-language fallback matrix | **FEATURE-OWNED** | Notifications/Orders etc.; do not presume Arabic in every case |
 | Template history/rendered snapshot retention | **TO SPECIFY WITH PRIVACY REVIEW** | Notifications/SEC |
 | Translation key registry, i18n extractor/checker | **TO IMPLEMENT/VERIFY** | Backend/Frontend Foundation |

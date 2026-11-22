@@ -382,6 +382,10 @@ The table below defines the approved responsibility baseline.
 
 **Key boundary:** An entitled feature still requires user permission and any applicable Location/business authorization.
 
+### FBR-02-18 — Commercial Entitlements Versus Preexisting Obligations
+
+SaaS Subscriptions owns authoritative Central entitlement state and its **commercial suspension reason**. In a Commercial Suspension, normal new commerce actions are disabled; only business-owner-approved previously confirmed obligations can proceed under a finite, audited allowed-operations policy and current staff/Location/resource authorization. Security/legal suspension is a distinct stricter gate; no automatic Tenant DB deletion or replay of queued business effects. Prices, trial/grace length, renewal and specific entitlements remain separately owned business decisions.
+
 ### 7.3 Identity & Access
 
 **Owns:**
@@ -402,6 +406,10 @@ The table below defines the approved responsibility baseline.
 **Dependencies:** Tenant Context, Sanctum authentication infrastructure, subscription entitlement contracts and tenant-local persistence.
 
 **Key boundary:** Staff identity, tenant membership and tenant authorization are separate checks. Storefront customer authentication uses isolated tenant customer identity.
+
+### FBR-02-17 — Owner Protection / Recovery Ownership
+
+Identity & Access protects the **last active Owner** from ordinary staff removal. Platform & Tenants plus Central Identity facilitate a narrow, independently verified, audited **Platform-assisted recovery** when all current Owners lose legitimate access; Tenant Identity validates local Owner grants, and Central membership activation occurs only after the correct Tenant role state is established. Platform roles never gain blanket access to Tenant data; recovery survives partial Central/Tenant progress without inventing cross-DB ACID.
 
 ### 7.4 Merchant Settings & Content
 
@@ -663,6 +671,10 @@ The detailed separation between post-sale refund workflow and financial movement
 
 **Key boundary:** Reporting data may be eventually consistent, but critical current stock, collection and order facts require authoritative transactional sources.
 
+### FBR-02-20 — Reporting Execution-Time Consistency
+
+Reporting & Exports uses a defined **execution-time read boundary** for requested reports, not a fictional immutable state at enqueue time. Financial totals and detail must represent one proven consistent PostgreSQL snapshot (or equivalent). Read models may be eventually consistent only with visible freshness and without replacing authoritative live stock/money/order checks. Preserve D-176 original business-sale attribution, late-entry and correction evidence. Cross-Tenant Platform summaries are not a single atomic snapshot across separate Tenant databases. Export jobs and files retain current user/Tenant/Location permissions at request, execution and download, with bounded resource use.
+
 ### 7.16 Support
 
 **Owns at the business-capability level:**
@@ -680,11 +692,15 @@ The detailed separation between post-sale refund workflow and financial movement
 
 **Dependencies:** Central identity, merchant membership/context, authorization and storage.
 
-**Open data-ownership decision:** The authoritative location of support ticket records, attachment metadata and selected platform access projections must be determined in the Support feature specifications.
+**FBR-02-08/19 APPROVED:** Authoritative Support ticket and screenshot attachment metadata belong to Central Support with trusted Tenant keys and ticket-scoped access. Support Feature Specs still define schema, retention, view projections and audited authorization without general Tenant-data access.
 
 The MVP includes basic support requests, not a full enterprise helpdesk or live-chat platform.
 
 ---
+
+### FBR-02-08/19 — Support Central Data and Private Screenshots
+
+**Support** is a Central-owned ticket conversation/status capability with trusted Tenant references and explicit ticket-scoped Platform/Merchant roles. Authoritative Ticket and Attachment metadata belong to the Central Support domain rather than copying each Tenant's commerce records into Central. MVP attachments are **only validated private raster screenshots (JPG, PNG, WebP)** tied to an eligible Support Ticket; Storage owns file bytes and safe private retrieval, not business permission. Do not grant Platform Support generic Tenant impersonation, unrestricted Commerce data or File access. Support Feature Specs own UI, retention, sizes/counts, safe processing and current ticket permission contracts.
 
 ## 8. Shared Kernel and Cross-Cutting Technical Capabilities
 
@@ -1574,7 +1590,7 @@ The following matters remain explicitly unresolved or require later specificatio
 | --- | --- | --- |
 | **BA-16 — Backup & Restore** | DEFERRED | Select and test recoverable off-VPS backups of Central/Tenant databases and local files; establish RPO/RTO before live Pilot. |
 | **D-201 — Alternative-location follow-up** | OPEN | Decide dedicated internal marker versus ordinary communication notes within Orders/Fulfillment. |
-| **Support data ownership** | OPEN DETAIL | Decide authoritative ticket/attachment storage and controlled Platform Admin access. |
+| **Support data ownership** | **FBR-02-08/19 APPROVED** | Central authoritative ticket/attachment metadata, private limited screenshots, strict per-ticket Platform/Merchant access. Concrete schema and retention remain Feature details. |
 | **Exact physical module grouping** | PLANNING DETAIL | Finalize only when concrete feature boundaries and contracts justify grouping. |
 | **Spec Kit canonical path** | IMPLEMENTATION CONVENTION OPEN | Choose one authoritative structure during Foundation setup. |
 | **SaaS commercial lifecycle** | OPEN DETAIL | Plan prices, trials, grace periods, suspension and reinstatement behavior. |
@@ -1595,6 +1611,10 @@ A deferred item is not an approved choice.
 The open details above are not permission to invent default business behavior during feature implementation.
 
 ---
+
+### FBR-02 Documentation Reconciliation (2026-11-22)
+
+FBR-02-01…20 are approved **architecture gap-review refinements** for this MVP, recorded in [the FBR-02 decision register](../reviews/FBR-02-architecture-gap-review.md). They refine component contracts and ownership but are **not code, deployed controls or legal/Pilot sign-off**. Historic D-series authority remains unchanged. **D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED**. Exact Feature schemas, retention windows, numeric budgets and client/provider contracts remain TO SPECIFY/TEST in the owning module.
 
 ## 20. Pilot Readiness and Release Boundaries
 

@@ -281,6 +281,19 @@ Use owning Module Public Contracts; do not introduce a universal audit-writing s
 
 This matrix establishes classes. Every Feature's `spec.md` identifies **exact** affected records, fields, reasons, permission names, capture rules, retention and tests. A rejected 403 may deserve a bounded security signal without a durable row for every attempt; do not silently write every failed Login or UI click to PostgreSQL.
 
+### FBR-02-08/14/17/18/19/20 — Decision-Specific Audit and Traceability
+
+The approved FBR-02 architectural review (see ../reviews/FBR-02-architecture-gap-review.md) refines **which evidence must remain attributable**, without imposing one global table or audit retention count:
+
+- Named Manual Discount Approver grants/ceiling changes, approvals, self-approval denials, amount/basis, and reapproval after financial changes: owning Tenant audit and Pricing business record.
+- Exceptional final-Owner recovery: Central initiating operator, independently verified ownership evidence reference, intended Tenant, reason and durable Central/Tenant workflow stages; no raw secret/evidence dump in generic logs.
+- Commercial subscription suspension/reinstatement: Central subscription/lifecycle authority and scoped Tenant business actions under the obligations-only boundary, including denied new orders and eligible previous obligations.
+- Support ticket/screenshot grants, upload, permitted download and revocation: Central-owned ticket evidence; do not copy private Tenant business data into Platform telemetry.
+- Financial export: initiating actor and authorized scope, request/read/as-of/completion points, output readiness/failure and current download authorization; avoid sensitive row-level contents in generic logs.
+- Private SSR isolation, CSRF mapping, rate-limiter outage and Tenant authorization failures: privacy-safe security signals and correlation rather than uncontrolled unfiltered content capture.
+
+Preserve **same-owning-DB transactionally correct business audit** and honest cross-DB orchestration; logging alone is not authority for a financial effect or successful restore.
+
 ### 5.4 Logical audit entry — not an approved table
 
 A material event records proportional: event type, owning Module, safe actor and subject references, verified Tenant or Central scope, Location if relevant, original business operation, timestamp, observed/committed outcome, relevant previous/new state or delta (minimized), authorized reason/approval reference, correlation/request reference and correction/reversal lineage.

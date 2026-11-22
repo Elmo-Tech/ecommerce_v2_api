@@ -333,6 +333,10 @@ Exact runner technology, operator workflow, batch/concurrency count, timeout and
 
 ---
 
+### FBR-02-09 — Mixed Tenant-Schema Rollout Eligibility
+
+For controlled partial Tenant migrations, release/readiness checks must distinguish **schema-compatible** from **incompatible** Tenant states. A migration failure does not automatically halt unrelated compatible Tenants, but incompatible operations fail closed per Tenant; if compatibility cannot be proved, halt rollout globally rather than serving unsafe code. Preserve per-Tenant schema/version/error evidence, old/new code compatibility and retry/resume traceability. Expand/backfill/contract is preferred for risky schema changes, with no assumption of safe destructive down migrations.
+
 ## 11. Readiness, Deployment and Blue-Green Safety — INF-09
 
 ### 11.1 Liveness vs readiness vs business progress
@@ -447,6 +451,10 @@ Documentation can define gates without asserting that an on-call team or alert p
 This document does **not** authorize enabling production tenancy, publishing merchant applications, creating live databases, adding external services, running destructive migrations or activating payment/notification integrations without their own approved scope, tests and gates.
 
 ---
+
+### FBR-02-10/12 — Redis Failure and Next.js Shared Cache Infrastructure
+
+For protected routes, Redis-backed rate-limit protection lost without proven equivalent enforcement returns **503** rather than failing open or claiming 429 throttling. Private SSR/API responses must never reach public/shared cache layers; public cache is Tenant/locale/visibility scoped and must respond correctly to commercial/security Tenant suspension. Actual Next.js/Coolify/reverse-proxy behavior needs integration and failure tests, not merely configured headers.
 
 ## 15. Architecture Risks, Constraints and Explicitly Deferred Decisions
 

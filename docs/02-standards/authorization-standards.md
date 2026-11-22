@@ -70,7 +70,7 @@ The owner approved **Option A**: permit an **explicitly delegated, audited indiv
 
 This is a **small business-specific exception**, not a second Role, a generic direct allow/deny framework, or permission to assign Refund authority. It is subject to all D-084/D-085 conditions: different approver from requester when approval is required; valid approval permission; correct Tenant/Location and current Membership; role/individual ceiling behavior as explicitly specified; hard discount stacking ceiling and Order rules; authorized delegation and revocation.
 
-**Important unapproved detail:** D-085 defines **optional Role approval percentage ceilings**, but does not specify how a directly delegated individual's cap should be inherited, configured or limited. This must be resolved in the Pricing/Authorization Feature Spec before activating the individual exception. Do not interpret a missing cap as an unintended unlimited new permission.
+**FBR-02-14 APPROVED:** The individually delegated approver has an explicit personal maximum percentage; effective authorization uses the lower of that ceiling and any configured applicable Role ceiling. Missing personal ceiling fails closed. Exact calculation and zero-base semantics are in FBR-02-15; the Pricing Feature specifies schema/UI and tests.
 
 ---
 
@@ -166,6 +166,10 @@ Deleting/demoting/revoking the **last active protected Owner** through ordinary 
 
 First Owner's access is bootstrapped under approved Platform/Merchant onboarding. Protected Owner is **not** a universal Platform-to-Tenant access bypass.
 
+### FBR-02-17 — Exceptional Last Owner Recovery (approved 2026-11-22)
+
+Ordinary employee operations still cannot remove the final active protected Owner. If no protected Owner can legitimately regain access by normal password recovery, **only an authorized, audited Platform-assisted exceptional recovery workflow** may restore the original Owner or validate a lawful replacement. Require independent evidence of merchant ownership, reason and scoped operator authority, verified current Tenant identity, and a durable retry-safe Central-membership / Tenant-role coordination path. The workflow must never create public self-assignment, hidden Platform impersonation, arbitrary Tenant data access or partial active ownership. Block compromised/revoked identities and stale sessions; preserve evidence and test concurrent owner transfer/recovery attempts. Concrete evidence documents and operational review steps belong to the Identity Feature/Security plan.
+
 ### 4.4 Role updates and deletion
 
 A Role edit changes effective grants for **all current assignees**. New requests must reflect the change, including when Redis still holds a prior permission set. Impact Preview is helpful UX but is not authorization.
@@ -178,7 +182,7 @@ Only **Approve Manual Discounts** may be delegated directly to one named member 
 - Verified authorized grantor and target, correct Tenant and membership.
 - Recorded grant/revocation, explicit scope and appropriate audit.
 - No self-approval of the recipient's own over-limit request.
-- Approval maximum and optional Role ceiling remain subject to **D-085** and unresolved per-user inheritance semantics.
+- **FBR-02-14 approved:** explicit personal approval ceiling is mandatory; enforce the lesser of it and any configured applicable Role ceiling. Missing/invalid individual ceiling fails closed.
 - Cannot bypass D-075…D-077 hard stacking ceilings or other Pricing rules.
 - Does not automatically confer ability to create discounts, Refunds, manage other Roles or gain All Locations.
 - Must be revoked/fail closed when relevant current membership or scope becomes invalid.
@@ -271,6 +275,12 @@ The Identity/Authorization layer reports which actor is entitled to request or a
 - **D-087/D-088:** Exclude shipping and tax from the relevant Manual Discount limit base.
 
 No approval can bypass a hard combined discount ceiling under D-075…D-077 or approved stacking/status rules. No platform-default numeric 10%/20%/30% cap is approved merely because a document uses it as an example. Paid/confirmed Order changes require separate Feature rules; this standard does not silently approve them.
+
+### FBR-02-14/15 — Named Discount Approver Ceilings and Exact Comparison
+
+**FBR-02-14:** An individual exception granting **Approve Manual Discounts** requires an **explicit positive maximum approval percentage** for that named person in the Tenant; missing/invalid ceiling **fails closed**. The enforceable maximum is the **minimum of** that personal ceiling and any applicable configured Role approval ceiling. This delegation does not grant general user permissions, a second Role or authority to self-approve, waive discount stacking limits, expand Location scope, override pricing/tax or auto-confirm Orders. All current membership, delegate permission, Location and business restrictions must be verified at approval and protected effect boundaries.
+
+**FBR-02-15:** Compare discount amount to allowed percentage through **precise Decimal or equivalent exact integer cross-multiplication**, not through a rounded displayed effective percentage. The denominator is the eligible remaining merchandise amount **after earlier permitted discounts and before the manual discount** per D-086, excluding tax and shipping per D-087/D-088. If eligible base is zero, a **positive** manual discount must be rejected; zero discount is a no-op with no divide-by-zero. Enforce D-075…D-077 stacking ceilings, D-083 financial-edit invalidation, no-self approval and proper audited state/permission checks. Test exactly at, below and just above caps, including large values and zero-eligible-base cases.
 
 ### 6.3 Refund Authorization — D-126…D-135
 
@@ -386,6 +396,10 @@ A safe design may use Role-level Version plus member assignment and Location-spe
 - Redis workload namespaces separate environment/Central/Tenant/actor/Role/version; no global Cache::flush for a local permission change.
 - Avoid contaminating shared Horizon queue transport with Tenant Cache prefixes.
 
+### FBR-02-02/03 — Authoritative Revocation and Selective Caching
+
+Check **current Central membership on each protected Merchant request**, plus correct Tenant, current status/entitlement and Tenant-local effective authority. Recheck mutable high-risk authority before committing a protected stock/financial/business effect; Central and Tenant PostgreSQL do **not** share one ACID transaction. PostgreSQL remains the source of truth: Redis may cache only carefully selected scoped grants/hints with **current PostgreSQL-backed status/version validation**. Cached positive grants, TTL, remembered active Tenant or asynchronous invalidation must never restore revoked permissions. If authoritative checking is unavailable, **deny**, not last-known-good positive access. Exact selective cache structure remains subject to measured design and integration tests.
+
 ### 8.4 Runtime considerations
 
 Measure auth query counts, snapshot recomputation, actual Redis hits, memory and effect of invalidations. Verify outages/concurrency, worker reuse and recovery. Do not claim auth cache is always faster than PostgreSQL without benchmarks.
@@ -408,6 +422,10 @@ if ($user->isPlatformAdmin()) {
 ~~~
 
 Similarly, a Tenant Owner or Employee does not become a Platform Admin via their Tenant Role.
+
+### FBR-02-08/19 — Scoped Central Support and Private Screenshots
+
+Support Tickets and their authoritative ticket/attachment metadata belong to the **Central Support capability**, keyed by a trusted Tenant identity and restricted ticket-scoped roles. Platform Support may manage authorized ticket conversation and explicitly submitted supporting screenshots, **not** browse Tenant Orders/Customers/Collections/Refunds/Inventory or impersonate an Owner. The MVP supports only narrowly validated **JPG/PNG/WebP** screenshots, stored privately via the approved storage abstraction. Recheck current ticket, actor, Tenant and resource authority on every upload/download; no public URL or guessable File ID is permission. Image-size/count limits, retention and workflow UX remain Support Feature details; wider documents and privileged Tenant diagnostics require separate approval.
 
 ### 9.2 No support-ticket-as-tenant-login
 
@@ -669,7 +687,7 @@ BAD: The standard's publication claimed to prove running Laravel tests.
 | Exact Default Roles and ownership recovery workflows | Feature Spec |
 | Exact Tenant DB Role/grant/Location/delegation tables and indexes | Feature Schema |
 | Exact delegation matrix and safe Self-change rules | Identity & Access Feature |
-| Named approver D-084 optional ceiling inheritance and fallback semantics | **Requires explicit Feature decision before enabling** |
+| Named approver D-084 ceiling inheritance | **FBR-02-14 APPROVED:** mandatory personal percentage ceiling; effective minimum with applicable Role ceiling. Schema/UI and tests remain Feature-owned. |
 | Default financial limits per Role, currency rules, approver workflows | No values invented; owning Feature / Merchant settings |
 | Redis key composition, role versions, TTL and version reads | TO DESIGN/MEASURE/TEST |
 | Support data access, grant duration, merchant consent and UX | Separate approval, NOT implemented |

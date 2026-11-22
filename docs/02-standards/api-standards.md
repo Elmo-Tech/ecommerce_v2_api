@@ -257,6 +257,16 @@ Approved **CS-05**: all project-defined PHP Enums are **int-backed**, with Postg
 
 ---
 
+### FBR-02-05/06/07 — Canonical CSRF, Money and Identifier Wire Contract (approved 2026-11-22)
+
+**FBR-02-05:** A CSRF-token mismatch on an applicable protected browser mutation is returned by the API boundary as HTTP **403** with stable \`errorCode: CSRF_TOKEN_MISMATCH\`, the normal safe error envelope and \`X-Request-ID\`. The Laravel/Sanctum framework may initially raise a 419; explicitly classify and map that exception after actual integration validation rather than disabling CSRF. Keep unauthenticated requests **401**, ordinary forbidden operations **403/ACCESS_DENIED**, and genuine throttling **429/RATE_LIMIT_EXCEEDED**. Never blindly replay an uncertain money/stock mutation while repairing CSRF context.
+
+**FBR-02-06:** Finalized monetary fields in **application-owned JSON request/response contracts** are exact **decimal strings representing integer minor units**, accompanied by an unambiguous ISO currency code/context. PostgreSQL uses currency-aware BIGINT minor units; precise decimal/rational intermediates and approved Feature-specific rounding precede finalization. Never pass final Money through an unsafe JavaScript Number or display-formatted decimal; currency exponent varies.
+
+**FBR-02-07:** Database-backed BIGINT identifiers are **canonical base-10 strings in JSON**, including relationship IDs and relevant request references, and must be validated as bounded positive integers without JS precision loss. Ordinary same-DB keys remain BIGINT; use selective UUIDv7 where truly cross-database/integration-stable identity is justified. Do not treat a Tenant-local ID as globally unique.
+
+**Compatibility:** These FBR approvals supersede inconsistent illustrative numeric-ID/financial JSON examples and older \`TO SPECIFY\` statements **only for the canonical wire types**. Feature OpenAPI still owns exact names, optional fields, resource shape and versioning. Changing an already-consumed contract requires an explicit compatibility review and tests.
+
 ## 5. Request Validation, Error Codes and Localization — AS-03
 
 ### 5.1 Responsibility map
@@ -506,6 +516,10 @@ Numeric limits/lockout periods are **not approved yet**; define them with real t
 
 On throttle: **HTTP 429**, standard errorCode **RATE_LIMIT_EXCEEDED**, meaningful **Retry-After** when available, and **X-Request-ID**. Next.js must not retry high-risk writes without the established idempotency contract.
 
+### FBR-02-10 — Rate-Limiter Availability Is a Security Dependency
+
+For designated high-risk endpoints (authentication, privileged actions and sensitive money/stock writes), failure of the required Redis-backed rate limiter **must not fail open**. Where no independently verified equivalent guard is available, reject safely with **503 Service Unavailable** and a stable service-unavailable error contract, not with an invented throttling count. Return **429** only for an actual exceeded limit. Public, non-sensitive read traffic may use a separately verified bounded degradation strategy. Retry/idempotency semantics must not fabricate transaction success.
+
 ### 9.5 Additional safeguards
 
 Validate upload/request sizes, private file access, content types, allowed fields, bounded query work and CSRF/Origin controls. Use least-privilege PostgreSQL roles and safe SQL binding. Never expose session secrets, passwords, private customer/payment data or raw stack traces in logs/API responses. No mandatory WAF, CAPTCHA, SIEM or paid gateway from day one.
@@ -558,9 +572,10 @@ Where possible deploy additive backend support first, update Next.js consumers, 
   "success": true,
   "message": "تم جلب المنتج",
   "data": {
-    "id": 10,
+    "id": "10",
     "name": "Samsung A55",
-    "price": 1500000,
+    "price": "1500000",
+    "currency": "EGP",
     "sku": "SAM-A55"
   }
 }
