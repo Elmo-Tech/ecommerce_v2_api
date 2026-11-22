@@ -1,4 +1,4 @@
-name: One-time Spec Kit initialization (feature branch only)
+name: One-time agent-neutral Spec Kit initialization (feature branch only)
 
 on:
   push:
@@ -40,10 +40,10 @@ jobs:
           set -euo pipefail
           uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@980b3d027f4bd7958c35f97f618d854b41320e3f
           specify version
-          specify init --here --force --integration copilot --non-interactive --ignore-agent-tools
+          specify init --here --force --integration none --non-interactive --ignore-agent-tools
           test -d .specify
           test -f .specify/memory/constitution.md
-          test -d .github/skills
+          test ! -d .github/skills || { echo 'Unexpected Copilot integration files present' >&2; exit 1; }
           echo "Generated files:"
           git status --short
 
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add -A .specify .github/skills
+          git add -A .specify
           paths="$(git diff --cached --name-only)"
           if [ -z "$paths" ]; then
             echo "No generated Spec Kit files staged" >&2
@@ -59,7 +59,7 @@ jobs:
           fi
           while IFS= read -r path; do
             case "$path" in
-              .specify/*|.github/skills/*)
+              .specify/*)
                 ;;
               *)
                 echo "Refusing to commit unexpected file: $path" >&2

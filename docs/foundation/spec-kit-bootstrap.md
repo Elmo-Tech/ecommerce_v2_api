@@ -11,39 +11,39 @@ Adopt the **official GitHub Spec Kit** within the existing `Elmo-Tech/ecommerce_
 Official sources checked before drafting:
 - https://github.github.io/spec-kit/how-to/existing-projects.html
 - https://github.github.io/spec-kit/installation.html
-- https://github.github.io/spec-kit/integrations/copilot.html
+- https://github.github.io/spec-kit/integrations/none.html
 - https://github.github.io/spec-kit/reference/agentic-sdd.html
 
-## One-time setup, to run in GitHub Codespaces
+## One-time setup, to run with GitHub Actions (Codespaces is an optional fallback)
 
 Use `feature/f0-spec-kit-setup`, created from `development`; **do not** initialize in `main`.
 
-Prerequisites: internet-connected Codespaces terminal, Python 3.11+, `uv`, Git, and an appropriate coding-agent integration. GitHub Copilot is the **provisional integration** used in this command; selecting a different supported agent needs its correct integration key. Verify the working tree and review generated files; `--force` can overwrite conflicting managed paths.
+The execution model is **ChatGPT + connected GitHub repository** for writing/reviewing files, branch and PR management, and **GitHub Actions** for terminal tasks and real CI tests. Neither Codex nor Copilot is selected as the coding agent. Use official Spec Kit `--integration none` for its agent-neutral shared scaffolding, requiring only Python 3.11+, `uv`, Git and network-capable GitHub runner. Codespaces is an optional manual fallback if the Action cannot start. Verify the working tree and review generated files: `--force` may overwrite conflicting managed paths.
 
 ```bash
 git status --short
 uv tool install specify-cli
 specify version
-specify init --here --force --integration copilot --non-interactive --ignore-agent-tools
+specify init --here --force --integration none --non-interactive --ignore-agent-tools
 git status --short
 git diff --stat
 ```
 
-**Important:** The commands above are instructions for a future Codespaces run; they have **not** been run or verified by ChatGPT. A local execution environment available to this conversation cannot resolve external package hosts, so it cannot install Specify CLI. Do not claim the official `.specify/` and `.github/skills/speckit-*` integration is installed until Codespaces output and Git diff prove it. Do not overwrite the proposed constitution/spec without comparing with generated artifacts.
+**Important:** The GitHub Actions job is an attempted execution, **not** proof that `specify init` succeeded: check the run conclusion and generated `.specify/` files. The agent-neutral `none` integration **does not generate** Codex/Copilot Skills or dispatch `/speckit-*` / `$speckit-*` agent commands. Draft and review the equivalent `spec.md`, `plan.md` and `tasks.md` directly through GitHub using the official templates and approved SDD process, while using Actions for actual CLI setup, tests and validation. Never claim an agent-specific Spec Kit command ran when none was installed. Do not overwrite the proposed constitution/spec without comparing with generated artifacts.
 
-After init, verify the generated shared `.specify/` assets and the Copilot `.github/skills/speckit-*` skill files, and review for accidental changes to existing documents. Keep the CLI-generated assets source-controlled. Review and commit only the intended changes in this feature branch; open a PR to `development`. Never run Laravel migrations or deploy merely to initialize Spec Kit.
+After init, verify the generated shared `.specify/` assets (no agent-specific Skills) and review for accidental changes to existing documents. Keep the CLI-generated assets source-controlled. Review and commit only intended changes on this branch, in a Draft PR to `development`. Never run Laravel migrations or deploy merely to initialize Spec Kit.
 
 ## Constitution approval before implementation
 
-Review [proposed project constitution](constitution-proposal.md) with the owner, then use the coding agent's `/speckit-constitution` process (inside the agent chat, **not** terminal) to create/update canonical `.specify/memory/constitution.md`. Do **not** claim this proposal has been ratified. Approval of FND-01 concerns folder organization, not every future implementation detail.
+Review [proposed project constitution](constitution-proposal.md) with the owner, then use the already-approved project rules to create/update canonical `.specify/memory/constitution.md` through the GitHub repository workflow. Agent-specific `/speckit-constitution` or `$speckit-constitution` commands are **not available** in `none` mode. Do **not** claim this proposal has been ratified. Approval of FND-01 concerns folder organization, not every future implementation detail.
 
 Constitution must preserve the hierarchy and existing decisions, not invent new defaults. The official setup is considered **ready only after** CLI initialization and integration are verified, the Constitution is approved, and the resulting diff/PR has been reviewed.
 
 ## First vertical slice
 
 - **F0-01** Laravel Bootstrap + Explicit Module Registry. A [draft specification](../../specs/001-laravel-bootstrap-module-registry/spec.md) is available for owner review, **not yet** a generated or approved Spec Kit plan.
-- Next, after the selected agent is installed and this bootstrap PR is reviewed: run `/speckit-specify` or reconcile its output with the approved draft, then `/speckit-clarify`, `/speckit-plan`, `/speckit-checklist`, `/speckit-tasks` and `/speckit-analyze`.
-- Only after the owner approves `spec.md` and `plan.md`: a separate, reviewable implementation branch with code and actual tests; then `/speckit-implement` and `/speckit-converge`.
+- Next, after the agent-neutral official setup and review: collaboratively review and refine the draft `spec.md`, resolve clarifications, produce and review `plan.md` / optional checklist / `tasks.md` / consistency analysis as normal repository files. The **methodology** is Spec Kit SDD; no agent slash-command execution is claimed.
+- Only after the owner approves `spec.md` and `plan.md`: a separate implementation branch with code authored through GitHub, CI test execution via GitHub Actions, and review/convergence against the approved spec. This is not a Codex/Copilot execution.
 
 ## Explicitly not changed
 
