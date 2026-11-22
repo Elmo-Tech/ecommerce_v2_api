@@ -1,0 +1,74 @@
+name: One-time Spec Kit initialization (feature branch only)
+
+on:
+  push:
+    branches:
+      - feature/f0-spec-kit-setup
+    paths:
+      - .github/workflows/f0-spec-kit-bootstrap.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spec-kit-init-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  init:
+    if: github.ref == 'refs/heads/feature/f0-spec-kit-setup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/f0-spec-kit-setup
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install pinned official Spec Kit and initialize in place
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@980b3d027f4bd7958c35f97f618d854b41320e3f
+          specify version
+          specify init --here --force --integration copilot --non-interactive --ignore-agent-tools
+          test -d .specify
+          test -f .specify/memory/constitution.md
+          test -d .github/skills
+          echo "Generated files:"
+          git status --short
+
+      - name: Stage only official generated Spec Kit files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A .specify .github/skills
+          paths="$(git diff --cached --name-only)"
+          if [ -z "$paths" ]; then
+            echo "No generated Spec Kit files staged" >&2
+            exit 1
+          fi
+          while IFS= read -r path; do
+            case "$path" in
+              .specify/*|.github/skills/*)
+                ;;
+              *)
+                echo "Refusing to commit unexpected file: $path" >&2
+                exit 1
+                ;;
+            esac
+          done <<< "$paths"
+          git diff --cached --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "chore(spec-kit): initialize official Spec Kit v1.4.3 assets"
+          git push origin HEAD:feature/f0-spec-kit-setup
