@@ -3,13 +3,14 @@
 **Last verified:** 2026-11-24 (T010–T016 in progress; no test completion claimed yet)  
 **Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
-**Current milestone:** **Laravel 13 bootstrap + committed Composer lock + DB-free Foundation smoke validated by successful GitHub Actions**. T001–T009 COMPLETE, T010–T026 PENDING; PR #1/#2 Draft/unmerged.
+**Current milestone (2026-11-24):** **Explicit Module Registry + FoundationDemo verified by actual GitHub Actions**. T001–T016 COMPLETE (16/26), T017–T026 PENDING; PR #1/#2 Draft/unmerged. No Codespaces, merge or deployment.
 
-**Current live work:** Implementing F0-01 T010–T016 explicit Module Registry. See the [dated work-in-progress checkpoint](F0-01_MODULE_REGISTRY_WORK_IN_PROGRESS_2026-11-24.md), and check current branch + test runs before treating anything new as complete. No Codespaces; do not merge/deploy.
+**Last implemented milestone:** T010–T016 verified by CI; see [final registry handoff](F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md) for exact next read order. Next is T017–T020 production route and architecture isolation. No Codespaces; do not merge/deploy.
 
 ## Read first — current source of truth
 
-1. **[CURRENT WIP: F0-01 Module Registry T010–T016 — 2026-11-24](F0-01_MODULE_REGISTRY_WORK_IN_PROGRESS_2026-11-24.md)** — active implementation scope, exact files to read, checklist and safe continuation. **NOT yet verified completed.**
+1. **[LATEST VERIFIED: F0-01 Module Registry T010–T016 — 2026-11-24](F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md)** — **19 tests / 63 assertions passed** in GitHub Actions [#45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273), source inventory, decisions, required read order and T017 next step.
+2. [Historical module registry WIP checkpoint](F0-01_MODULE_REGISTRY_WORK_IN_PROGRESS_2026-11-24.md) — do not treat earlier WIP statuses as current.
 2. **[LAST PASSED: F0-01 Bootstrap Validated — 2026-11-23](F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md)** — verified green baseline before registry changes.
 2. [Task ledger T001–T009 complete](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved Spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [approved Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [Research](../../specs/001-laravel-bootstrap-module-registry/research.md).
 3. [Separate T005 authorization](../reviews/F0-01-implementation-authorization.md) and [No-Codespaces workflow](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
@@ -17,17 +18,17 @@
 
 ## Current verified project state — 2026-11-23
 
-- **T001–T009 COMPLETE (9/26); T010–T026 PENDING.** F0-01 Spec + Plan Option A and separate implementation approval already recorded.
+- **T001–T016 COMPLETE (16/26); T017–T026 PENDING.** F0-01 Spec + Plan Option A and separate implementation approval recorded. Native explicit Module Registry, FoundationDemo and negative fresh-app tests passed in real GitHub Actions Run [#45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273) — **19 tests / 63 assertions, zero failures**. This was only in `APP_ENV=testing`; production/non-testing and route-cache isolation still T018/T020.
 - [GitHub Actions Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994) **PASSED** at tested source SHA `a446e0be`. Real Ubuntu runner PHP `8.4.28`, Composer `2.11.2`, Laravel `13.43.0`; committed lockfile validated, locked install (no scripts/plugins), platform checks, `composer audit --locked` (no advisories reported), `php artisan about`, `php artisan route:list --json` (`[]`), and DB-free Pest Foundation smoke **1 passed, 9 assertions, no warnings**. Tracked-file diff check passed.
 - `composer.lock` generated from a real GitHub Actions artifact, verified and committed (`5d334ecd`, 118 packages). CI installs **pinned dependencies** rather than running `composer update` each time.
 - Test failures were real and fixed: missing `tests/Unit` directory, Laravel's default private Storage GET/PUT routes disabled via local `serve=false`, and missing dotenv PHPUnit warning resolved by an **empty, ignored, ephemeral CI-only `.env`**. No production credentials, default User/Auth, Sanctum, tenancy, migrations or data access.
 - Owner reported former GitHub Actions limit on private repositories was lifted; subsequent CI runs actually executed. The historical runner blocker [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3) is **CLOSED**; the assistant did not inspect billing amounts.
 - [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) remains Draft/unmerged → `development`; [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remains Draft/unmerged → `feature/f0-spec-kit-setup`. No merges/deployment. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
-- **Important limit:** Foundation success does not prove the unimplemented explicit Module Registry, FoundationDemo, missing/duplicate/unlisted provider rejection, production test-probe route/cache isolation or final architectural/security reviews.
+- **Updated scope limit:** Registry and Demo with duplicate/invalid/unlisted providers **have been proven in tests**. **Not yet proven:** absence of the test-only route in non-testing or production-generated route caches, architecture boundaries, complete security/static checks and merge gates (T017–T026). Source files to inspect: `app/Core/Modules/ModuleRegistry.php`, `config/modules.php`, `app/Providers/ModuleRegistryServiceProvider.php`, `app/Modules/FoundationDemo/`, `bootstrap/providers.php`, `tests/Unit/Core/`, `tests/Feature/Foundation/`, `tests/Fixtures/` and the existing GitHub Actions workflow.
 
-## Next exact action — T010 (no Codespaces)
+## Next exact action — T017–T020 (no Codespaces)
 
-Continue F0-01 **T010–T026** under the approved Option A plan: start with negative unit tests for Module Registry configuration/provider validation; implement minimal native Laravel explicit Module Registry and test-only FoundationDemo; verify unlisted/invalid/duplicate providers, test-only route availability, absence under production routing **and production route cache**, and source/module ownership. Keep GitHub Actions green and log actual outputs. Do **not** implement Auth/Sanctum/Tenancy, migrations or business APIs, merge or deploy without their separate gates.
+**First T017**: author focused architecture tests detecting forbidden module directory scanning, implicit activation and forbidden cross-module internal writes. **Then T018**: prove FoundationDemo probe route appears in testing but is absent in production/non-testing and production-generated route cache, with separate process/actual Laravel CLI; never deploy testing cache artifacts. **T019**: update Foundation module overview with actual paths/contracts. **T020**: run full architecture/probe tests on GitHub Actions and record run/commit/logs. T021–T026 follow. **No Auth/Sanctum/Tenancy, migrations, deployment, merge or owner Codespaces commands**.
 
 ## Product and decision continuity
 
