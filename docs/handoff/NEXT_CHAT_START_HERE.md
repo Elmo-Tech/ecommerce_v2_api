@@ -5,40 +5,37 @@
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
 **Current milestone:** F0-01 Specification and Technical Plan **APPROVED (Option A)**; implementation has **NOT** started.
 
-## Read first (current, authoritative)
+## Read first (authoritative, newest to oldest)
 
-1. [Latest dated F0-01 handoff: 2026-11-23 preflight](F0-01_preflight_2026-11-23.md).
-2. [F0-01 Task Ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [Technical Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Specification](../../specs/001-laravel-bootstrap-module-registry/spec.md).
-3. [F0-01 owner approval review](../reviews/F0-01-spec-review.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).
-4. [Architecture and workflow conventions](../WORKFLOW.md) and [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
-5. [Full Business Discovery Handoff v5.48](ecommerce_saas_handoff_v5_48_2026-11-16.md) and [decision register D-152 onward](../decisions/ecommerce_saas_decision_register_D152_onward_2026-11-15.md).
+1. [LATEST: F0-01 T002 VERIFIED — 2026-11-23](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md) — exact Codespaces PHP/Composer evidence, task ledger, T003 next step and gates.
+2. [F0-01 Task Ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [T003 temporary Composer probe](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [updated dependency research](../../specs/001-laravel-bootstrap-module-registry/research.md).
+3. [Approved Technical Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Specification](../../specs/001-laravel-bootstrap-module-registry/spec.md), [owner approval review](../reviews/F0-01-spec-review.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).
+4. [Older preflight snapshot](F0-01_preflight_2026-11-23.md) — historical partial environment observations only; do **not** override newer actual Codespaces evidence.
+5. [Project workflow](../WORKFLOW.md), [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md), [Business Discovery Handoff v5.48](ecommerce_saas_handoff_v5_48_2026-11-16.md) and [decision register](../decisions/ecommerce_saas_decision_register_D152_onward_2026-11-15.md).
 
-## Verified status — do not assume more
+## Latest verified project status — 2026-11-23
 
-- **T001 completed** (F0-01 Option A approved, commit `e730a5c`). **T002–T026 pending**.
-- In an isolated assistant container, **PHP 8.4.24** was found but **Composer was absent**, as were required PHP extensions **curl, dom, mbstring, xml**. **This was not the project's Codespace**. Codespaces runtime is still unverified.
-- Laravel 13 requires PHP >=8.3. PHPUnit ^12 and Pest ^4 are documented upgrade guidance, **not a tested Composer resolution**.
-- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) Draft/unmerged; [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) Draft/unmerged and stacked on PR #1.
-- No Laravel skeleton (`composer.json`/`artisan`) existed at original commit `e730a5c`; no migrations, implementation tests, CI passing proof or deployment.
-- Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED**. Approved architecture/decisions remain authoritative; no silent choice changes.
+- F0-01 Specification + Technical Plan **APPROVED, Option A** (owner decision `e730a5c`).
+- **T001 and T002 COMPLETE**. **T003–T026 pending**, including T004 whose clean-branch check is partially evidenced but production secret/rollback checks remain open.
+- Owner provided actual **project Codespaces terminal output**: `PHP 8.4.27 CLI`, `Composer 2.10.3`, **13/13 Laravel-required extensions OK**; clean worktree on `feature/f0-01-laravel-bootstrap` at local `accbe34`. Earlier assistant-container environment issues are irrelevant to the Codespace.
+- Xdebug 3.5.3 tried `localhost:9003` without a debugging client; diagnostic only, not Composer solver failure. Use `XDEBUG_MODE=off` for package probes.
+- Upstream research in November 2026 indicates **Pest 5 + PHPUnit 13** is the newer candidate test stack on PHP 8.4, with patch-level compatibility caveats. **No real Composer dry-run or package graph has run yet**; versions are not pinned/approved.
+- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) **still Draft / unmerged**, stacked as planned.
+- No Laravel skeleton, Composer install, DB migrations, application tests, green CI proof or deployment. **Separate authorization required before T005.**
+- Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED** remain unchanged.
 
-## Current Codespaces evidence & exact next step (2026-11-23)
+## Exact next action: Composer T003 compatibility resolution, without installing
 
-**Owner-provided terminal output confirms successful switch to `feature/f0-01-laravel-bootstrap`:** `Already on` the correct branch, and it was up to date with `origin` at command time. A partial `php -m` tail shows `xml`, `xmlreader`, `xmlwriter`, `zlib`, and `Xdebug` among Zend Modules.
-
-**Remaining gates:** Target Codespace PHP version, Composer version and full required extension checks have **not** been provided. Clean `git status --short` and current `git log -1 --oneline` **on F0-01** remain outstanding. Earlier clean status was from the separate upstream Spec Kit branch. T001 alone is complete; T002/T004 are partially evidenced but open, T003 unresolved, and T005–T026 unstarted.
-
-Read-only commands to run **in project Codespaces** and return output:
+The project Codespace local SHA was `accbe34` at the runtime check; GitHub has since received documentation-only commits. First confirm a clean working tree, then fast-forward safely:
 
 ```bash
-php -v
-composer --version
-php -r '$r=["ctype","curl","dom","fileinfo","filter","hash","mbstring","openssl","pcre","pdo","session","tokenizer","xml"]; foreach($r as $x){echo $x,": ",extension_loaded($x)?"OK":"MISSING",PHP_EOL;}'
 git status --short
+git fetch origin
+git pull --ff-only
 git log -1 --oneline
 ```
 
-Remote head will advance after handoff updates; if needed, fetch and fast-forward only from a confirmed clean worktree. **Do not begin T005**, install Laravel, run migrations, use production credentials or merge either PR before verified gates and separate implementation authorization. See [dated snapshot](F0-01_preflight_2026-11-23.md) for full evidence.
+Then run the **fully specified /tmp-only dry-run Composer probe** in [F0-01 quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md#t003-dependency-resolution-probe-pending--run-in-codespaces-only). Return the Composer solver output and `T003_COMPOSER_EXIT`; do not ignore platform/security constraints, install dependencies, scaffold Laravel, run migrations or merge PRs yet.
 
 ## Product/decision continuity
 
