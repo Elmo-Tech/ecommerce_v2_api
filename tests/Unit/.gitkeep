@@ -1,0 +1,2 @@
+F0-01 placeholder: preserve the Unit suite directory declared in phpunit.xml.
+Future unit tests will replace this placeholder as modules are implemented.
