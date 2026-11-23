@@ -5,13 +5,13 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 # Tasks: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Input**: [spec.md](spec.md) (F0-01 Option A owner-approved), [plan.md](plan.md) (F0-01 Option A owner-approved), [research.md](research.md), [test-only contract](contracts/foundation-probe.md), [quickstart](quickstart.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).  
-**Status:** **SPEC + PLAN APPROVED (F0-01 Option A, 2026-11-23); T001 COMPLETE; T002–T026 PENDING.** No Laravel scaffold, code, Composer install, runtime test or CI execution. Separate permission to begin implementation and real runtime compatibility checks remain pending.  
+**Status:** **SPEC + PLAN APPROVED (F0-01 Option A, 2026-11-23); T001–T002 COMPLETE; T003–T026 PENDING.** Codespaces runtime prerequisites checked via owner-provided terminal output (PHP 8.4.27, Composer 2.10.3, 13/13 required Laravel extensions); Composer dependency solving, Laravel scaffold/code, framework tests and CI remain unperformed. Separate implementation authorization remains pending.  
 **Format**: `[ID] [P?] [US#?] Description (file/path)`; `[P]` means independent files and no ordering dependency. All unchecked boxes represent future work.
 
 ## Phase 0 — Approval and runtime preflight (BLOCKING)
 
 - [x] **T001** Obtain explicit owner approval for revised `spec.md` and `plan.md` (review record: `docs/reviews/F0-01-spec-review.md`).
-- [ ] **T002** In an authorized isolated development environment, capture `php -v`, `php -m`, `composer --version`, and installed extensions; confirm Laravel 13 PHP >=8.3 and the selected exact runtime (record in `specs/001-laravel-bootstrap-module-registry/quickstart.md`).
+- [x] **T002** In authorized project Codespaces, verified `php -v` = PHP **8.4.27** CLI, `composer --version` = Composer **2.10.3**, and all **13 Laravel 13 required extensions** via explicit `extension_loaded()` probe; owner also shared a partial `php -m` tail. Evidence and source provenance recorded in `quickstart.md` and dated handoff. No dependency graph, framework install or Laravel boot tested.
 - [ ] **T003** Resolve and record supported Laravel 13 + Pest/PHPUnit/Composer versions using genuine Composer checks, or stop and escalate incompatible versions; do not silently downgrade or force dependencies (record in `research.md` and implementation PR evidence).
 - [ ] **T004** Verify the existing Git tree/branch, a non-destructive patch approach, a clean worktree and safe Git rollback route; explicitly confirm no production credentials and no migrations (`docs/reviews/F0-01-spec-review.md`; `quickstart.md`).
 
@@ -91,4 +91,4 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 4. Add focused architectural/production-route isolation proof for US3; do not infer that passing this proves Tenancy, Auth or financial safety.
 5. Record reproducible command/commit evidence, stop on blockers, review and merge only under the approved workflow.
 
-**Only T001 (owner approval) is complete. No PHP/Composer commands, code installations, framework tests, deployments or merges in T002–T026 have been performed by this approval.**
+**T001 (owner approval) and T002 (Codespaces PHP/Composer/extensions prerequisite verification) are complete. T003–T026 are pending.** No Composer dependency solve or package installation, Laravel code/bootstrap, framework tests, deployments or PR merges have been performed. The T002 terminal evidence is owner-supplied, not an independently executed Codespaces session.
