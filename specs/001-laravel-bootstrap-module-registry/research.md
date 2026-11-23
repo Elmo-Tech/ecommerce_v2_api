@@ -53,7 +53,13 @@
 
 ### Remaining T003 checks
 
-Resolve `laravel/framework:^13.0`, `pestphp/pest:^4.0`, `pestphp/pest-plugin-laravel:^4.0` and `phpunit/phpunit:^12.0` using real Composer **in a temporary directory outside the repository**, with no plugins or scripts and `--dry-run`. These are **candidate version constraints, not verified results**. Record exact output and exit status; keep failed resolution as an explicit blocker, never override platform requirements, ignore security blocks, or silently downgrade. Actual lockfile-based platform checks are deferred to the approved implementation stage. See `quickstart.md` for preflight commands.
+**Current published candidate (verified via upstream documentation/Packagist on 2026-11-23):** `laravel/framework:^13.0`, `pestphp/pest:^5.0`, `pestphp/pest-plugin-laravel:^5.0` on **PHP 8.4.27**. Pest 5 requires PHP 8.4 and is built on PHPUnit 13, while Pest Laravel Plugin 5.0.1 declares a Laravel 13 framework constraint beginning at `^13.23.0`. **These are external metadata facts, not proof of a Composer-resolvable set in this project.** A root PHPUnit pin is deliberately omitted from the temporary probe so Pest may select its compatible PHPUnit version. Pest 5.3.7 has an explicit conflict with PHPUnit `>13.4.7`, even though Packagist lists PHPUnit 13.4.8 separately; real resolution may choose an allowed patch or fail under security policy, and neither situation should be hidden.
+
+**Historical candidate:** Older F0-01 research mentioned Pest 4 + PHPUnit 12 per Laravel upgrade guidance. That guidance remains historically accurate for upgrading certain older projects, but **does not fix the test tool versions for this new Laravel 13 project**. Do not automatically pin the old combination or treat the new combination as approved without Composer results.
+
+**Safe T003 requirement:** run a real `composer update --dry-run --no-install --no-scripts --no-plugins` inside a **temporary directory outside the repository**, record actual exit status/solver output, do not install packages, execute plugins/scripts, skip extension checks, ignore security policy or silently downgrade. See `quickstart.md` for a reproducible probe.
+
+External sources: [Pest 5 upgrade guidance](https://pestphp.com/docs/upgrade-guide), [Pest 5 release](https://pestphp.com/docs/pest5-now-available), [Pest Laravel Plugin on Packagist](https://packagist.org/packages/pestphp/pest-plugin-laravel), [Pest on Packagist](https://packagist.org/packages/pestphp/pest), [PHPUnit on Packagist](https://packagist.org/packages/phpunit/phpunit), and [Composer CLI dry-run](https://getcomposer.org/doc/03-cli.md).
 
 ## Open technical risks and stop conditions
 
