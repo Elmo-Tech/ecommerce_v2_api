@@ -1,50 +1,41 @@
-# Spec Kit bootstrap — F0 setup plan
+# Spec Kit bootstrap — F0 initialization record
 
-> **Status:** DRAFT / CLI NOT EXECUTED. Prepared in the GitHub-first setup branch on 2026-11-23.  
-> **Owner-approved layout:** FND-01 A, in [WORKFLOW](../WORKFLOW.md).  
-> **Scope:** Documentation and tool initialization only. No Laravel application scaffold, deploy, or CI evidence is implied.
+> **Status:** OFFICIAL CLI INITIALIZED AND PUSHED — 2026-11-23; **Constitution NOT RATIFIED**, F0-01 spec NOT APPROVED.  
+> **Owner-approved layout:** FND-01 Option A, in [WORKFLOW](../WORKFLOW.md).  
+> **Scope:** Spec Kit tooling and source-controlled assets only. No Laravel code, app deployment, CI passing evidence or release gate approval is implied.
 
-## Goal and source of truth
+## Goal and authority
 
-Adopt the **official GitHub Spec Kit** within the existing `Elmo-Tech/ecommerce_v2_api` repository, without creating a replacement repository or losing existing docs. Keep one authoritative Module Overview per implemented module under `docs/03-modules/` and independent Feature specifications under `specs/<number>-<feature-name>/`. The existing architecture, standards, handoffs and the approved [FBR-02](../reviews/FBR-02-architecture-gap-review.md) register remain authoritative.
+Adopt official `github/spec-kit` in the existing `Elmo-Tech/ecommerce_v2_api` repository with **one** Module Overview per module at `docs/03-modules/<module>/module-overview.md` and independent Feature specifications at `specs/<number>-<feature-name>/`. The approved project business/architecture/standards decisions and [FBR-02](../reviews/FBR-02-architecture-gap-review.md) remain authoritative.
 
-Official sources checked before drafting:
-- https://github.github.io/spec-kit/how-to/existing-projects.html
-- https://github.github.io/spec-kit/installation.html
-- https://github.github.io/spec-kit/integrations/none.html
-- https://github.github.io/spec-kit/reference/agentic-sdd.html
+Our execution workflow is **ChatGPT ↔ GitHub** for documentation, code, branches and PRs. **Spec Kit integration `none`** installs shared scripts/templates without Codex or Copilot Skills or executable agent slash commands. A supported terminal environment is needed for framework/test runs; it is **not** required for ordinary document/PR changes through GitHub.
 
-## One-time setup: pinned source mirror and blocked CLI execution
+## Verified 2026-11-23 initialization
 
-Use `feature/f0-spec-kit-setup`, created from `development`; **do not** initialize in `main`.
+**Environment:** GitHub Codespaces, workspace `/workspaces/ecommerce_v2_api`, branch `feature/f0-spec-kit-setup`, Linux x86_64; CLI reported Python `3.14.2`.
 
-The execution model is **ChatGPT + connected GitHub repository** for writing/reviewing files, branch and PR management. **GitHub Actions is a planned test execution environment, but its current runner startup is blocked for this repository workflow.** Neither Codex nor Copilot is selected as the coding agent. Use official Spec Kit `--integration none` for its agent-neutral shared scaffolding, requiring only Python 3.11+, `uv`, Git and network-capable GitHub runner. Codespaces is an optional manual fallback if the Action cannot start. Verify the working tree and review generated files: `--force` may overwrite conflicting managed paths.
+1. The owner installed and ran official Specify CLI **v1.4.3** in Codespaces. The shared `.specify/` source assets were originally mirrored from official [v1.4.3](https://github.com/github/spec-kit/tree/v1.4.3) and reconciled by official CLI initialization.
+2. Selected initialization settings, confirmed by committed [`.specify/init-options.json`](../../.specify/init-options.json): `here=true`, `integration=none`, `script=sh`, `feature_numbering=sequential`, `speckit_version=1.4.3`.
+3. The owner's `specify integration status` output was **OK**: default `none`, installed `none`, multi-install safe `yes`, `0` modified/missing managed files, `0` invalid manifest paths.
+4. Owner ran the reviewed `git add` / `git diff --cached --check` / `git commit` / `git push` sequence. Commit [`c58a78f`](https://github.com/Elmo-Tech/ecommerce_v2_api/commit/c58a78ff0f4adec344f1486607a37ee124c8163b) was independently verified via GitHub.
+5. Committed, versioned project state includes `.specify/init-options.json`, `.specify/integration.json`, `.specify/integrations/none.manifest.json`, `.specify/integrations/speckit.manifest.json`, `.specify/memory/constitution.md`, `.specify/workflows/workflow-registry.json`, scripts and templates. The two manifests record the same v1.4.3 setup.
 
-```bash
-git status --short
-uv tool install specify-cli
-specify version
-specify init --here --force --integration none --non-interactive --ignore-agent-tools
-git status --short
-git diff --stat
-```
+The canonical `.specify/memory/constitution.md` is currently **only the official placeholder template**, with `[PROJECT_NAME]` / `[PRINCIPLE_*]` fields. It must **not** be mistaken for the approved E-commerce SaaS V2 Constitution.
 
-**Important:** GitHub Actions runs [#45083043107](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45083043107) and [#45083678045](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45083678045) both failed **before any reported Step**, with no retrievable job logs. The exact account/runner cause is unverified. We removed the nonfunctional automatic workflow from this branch and did not claim that CLI initialization succeeded. Instead, the repository stores an **SHA-verified mirror of 12 original Spec Kit v1.4.3 source assets** in `.specify/` (templates, scripts and the bundled workflow); see [inventory](spec-kit-source-inventory.md). This is **not** a completed `specify init`: no CLI-installed state, integration manifest or canonical constitution has been generated. The agent-neutral `none` integration **does not generate** Codex/Copilot Skills or dispatch `/speckit-*` / `$speckit-*` agent commands. Draft and review the equivalent `spec.md`, `plan.md` and `tasks.md` directly through GitHub using the official templates and approved SDD process, while using Actions for actual CLI setup, tests and validation. Never claim an agent-specific Spec Kit command ran when none was installed. Do not overwrite the proposed constitution/spec without comparing with generated artifacts.
+See [official source inventory and post-init differences](spec-kit-source-inventory.md) for upstream provenance versus generated state.
 
-When a real runner or Codespace becomes available, run the official pinned CLI and verify all generated `.specify/` assets and manifest state (no agent-specific Skills), comparing against the mirrored source. Review for accidental changes to existing documents. Keep the CLI-generated assets source-controlled. Review and commit only intended changes on this branch, in a Draft PR to `development`. Never run Laravel migrations or deploy merely to initialize Spec Kit.
+## Historical GitHub Actions blocker — separate from successful Codespaces init
 
-## Constitution approval before implementation
+Earlier one-time bootstrap Action runs [45083043107](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45083043107) and [45083678045](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45083678045) ended in failure **before visible job steps**; logs were unavailable. The exact cause was **not established**. The nonfunctional bootstrap workflow was removed from this branch. **Codespaces initialization resolves the tooling bootstrap, not the CI runner problem.** Do not infer that PHPUnit/Pest, GitHub-hosted runners or deployment work from this success.
 
-Review [proposed project constitution](constitution-proposal.md) with the owner, then use the already-approved project rules to create/update canonical `.specify/memory/constitution.md` through the GitHub repository workflow. Agent-specific `/speckit-constitution` or `$speckit-constitution` commands are **not available** in `none` mode. Do **not** claim this proposal has been ratified. Approval of FND-01 concerns folder organization, not every future implementation detail.
+## Constitution: separate owner approval gate
 
-Constitution must preserve the hierarchy and existing decisions, not invent new defaults. The official setup is considered **ready only after** CLI initialization and integration are verified, the Constitution is approved, and the resulting diff/PR has been reviewed.
+The proposed content remains at [constitution-proposal.md](constitution-proposal.md) with **DRAFT / NOT RATIFIED** status. Next: review that proposal with the owner against approved project decisions, resolve changes and ratify explicitly before replacing the generated placeholder in `.specify/memory/constitution.md`. No Codex/Copilot `/speckit-constitution` command is available in `none` mode; manage the reviewed canonical file through GitHub.
 
-## First vertical slice
+## First implementation Feature: F0-01
 
-- **F0-01** Laravel Bootstrap + Explicit Module Registry. A [draft specification](../../specs/001-laravel-bootstrap-module-registry/spec.md) is available for owner review, **not yet** a generated or approved Spec Kit plan.
-- Next, after the agent-neutral official setup and review: collaboratively review and refine the draft `spec.md`, resolve clarifications, produce and review `plan.md` / optional checklist / `tasks.md` / consistency analysis as normal repository files. The **methodology** is Spec Kit SDD; no agent slash-command execution is claimed.
-- Only after the owner approves `spec.md` and `plan.md`: a separate implementation branch with code authored through GitHub, CI test execution via GitHub Actions, and review/convergence against the approved spec. This is not a Codex/Copilot execution.
+- [`specs/001-laravel-bootstrap-module-registry/spec.md`](../../specs/001-laravel-bootstrap-module-registry/spec.md) is still a **DRAFT — NOT APPROVED** Feature specification.
+- Review and approve its scope/acceptance scenarios, then create and review `plan.md` and `tasks.md` as GitHub files using the official templates and approved SDD methodology; agent-specific shortcut commands do not run in `none` mode.
+- Laravel/bootstrap code and live integration tests belong to a **separate implementation branch/PR**, and require explicit owner approval and actual runner evidence.
 
-## Explicitly not changed
-
-No new product requirements, prices, SaaS trial rules, legal retention or backup design. **D-201 stays OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.** No application runtime or development infrastructure is claimed active.
+**Unchanged gates:** D-201 **OPEN**; BA-16 **DEFERRED**; BA-30 G3 **BLOCKED**. Neither the CLI setup nor this documentation update changes product behavior or production readiness.

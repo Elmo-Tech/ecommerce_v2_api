@@ -2,7 +2,7 @@
 
 > **Status:** DRAFT FOR OWNER REVIEW — not ratified and **not** an output of `/speckit-constitution`.  
 > **Prepared:** 2026-11-23 | **Version:** Proposed 0.1.0 | **Ratified:** PENDING.  
-> **Future canonical path:** `.specify/memory/constitution.md`, after official initialization and approval.
+> **Canonical file already created by CLI:** `.specify/memory/constitution.md` currently holds the **default placeholder**; replacing its content requires explicit owner approval of this proposal.
 
 ## Core Principles
 

@@ -1,11 +1,11 @@
-# Spec Kit v1.4.3 source mirror — inventory
+# Spec Kit v1.4.3 — upstream source inventory and post-initialization trace
 
-**Status:** original upstream source assets mirrored; **Specify CLI not run**; no Codex/Copilot integration.  
+**Status:** original upstream source assets mirrored, then **official Specify CLI v1.4.3 successfully initialized in Codespaces and pushed** in commit `c58a78ff0f4adec344f1486607a37ee124c8163b`; integration remains `none`, with no Codex/Copilot agent integration.  
 **Official source:** https://github.com/github/spec-kit/tree/v1.4.3  
 **Tag's commit SHA:** `980b3d027f4bd7958c35f97f618d854b41320e3f`  
 **Repository:** `Elmo-Tech/ecommerce_v2_api` / `feature/f0-spec-kit-setup`.
 
-The 12 assets below are copied from the pinned official v1.4.3 source by content-preserving Git blobs. The imported Bash scripts are marked executable. This documents provenance without claiming the official CLI generated/installed any of them.
+The 12 assets below were initially mirrored from pinned official v1.4.3 source by content-preserving Git blobs. The original imported Bash scripts were marked executable. **The SHA column is a pre-initialization upstream provenance snapshot**. Subsequent official CLI initialization legitimately updated a subset of these files; it is not a current-content checksum table.
 
 | Local path | Original upstream Git SHA |
 | --- | --- |
@@ -22,21 +22,17 @@ The 12 assets below are copied from the pinned official v1.4.3 source by content
 | `.specify/templates/tasks-template.md` | `7fff087cc5a3c51a889d865fd9126607a032d233` |
 | `.specify/workflows/speckit/workflow.yml` | `5b91f379b85b9190ea1e7af9657602709ea70a68` |
 
-## Critical distinction
+## Verified post-initialization state
 
-This is **not a successful `specify init`** and is not an agent integration. The shared source templates retain original command placeholders; the official tool may transform them. There is no authoritative `.specify/memory/constitution.md`, no generated shared manifest/init state, and no verified version output. The workflow file under `.specify/workflows` is bundled reference material and cannot dispatch in agent-neutral `none` mode.
+- The owner ran `specify version` and `specify integration status` in Codespaces. Version: **1.4.3**. Integration status: **OK**, default `none`, no modified/missing managed files.
+- GitHub commit [`c58a78f`](https://github.com/Elmo-Tech/ecommerce_v2_api/commit/c58a78ff0f4adec344f1486607a37ee124c8163b) includes official initialization files, and is the checked-in PR #1 head history.
+- Generated state now exists: `.specify/.gitignore`, `.specify/init-options.json`, `.specify/integration.json`, `.specify/integrations/none.manifest.json`, `.specify/integrations/speckit.manifest.json`, `.specify/memory/.constitution-template.json`, `.specify/memory/constitution.md`, `.specify/workflows/workflow-registry.json`, and `.specify/scripts/bash/markdown_sections.py`.
+- The CLI refreshed existing `check-prerequisites.sh`, `setup-tasks.sh`, `checklist-template.md`, `plan-template.md` and `tasks-template.md`; those **must not** be compared byte-for-byte with their original mirror SHA above.
+- The bundled `.specify/workflows/speckit/workflow.yml` exists, but cannot dispatch agent-driven steps with the `none` integration.
+- The current canonical `.specify/memory/constitution.md` is a **placeholder**, not the owner's ratified Constitution.
 
-GitHub Actions attempts #45083043107 and #45083678045 failed before any visible runner step and did not provide retrievable logs. The unsuccessful automatic bootstrap action was removed from this PR. It must not be reintroduced as a required passing check until runner availability is independently established.
+## Separate outstanding gates
 
-## Next verifiable gate
+The unsuccessful one-time GitHub Actions runs #45083043107 and #45083678045 failed before visible runner steps and without retrievable logs. The workflow was removed. Successful **Codespaces CLI** setup does not fix or verify GitHub Actions, Laravel/PHP compatibility or CI execution.
 
-On a working GitHub-hosted runner or Codespace, from this feature branch:
-```bash
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@980b3d027f4bd7958c35f97f618d854b41320e3f
-specify version
-specify init --here --force --integration none --non-interactive --ignore-agent-tools
-git status --short
-git diff --stat
-```
-
-Review generated files against this inventory and the existing docs before any commit or merge. Complete and approve the Constitution and then plan/tasks for F0-01 separately. The source mirror itself is reviewable and allows GitHub-first manual drafting of Feature specs; it does not prove runtime compatibility or production readiness.
+Next, review `docs/foundation/constitution-proposal.md` with the owner, explicitly ratify its intended content, then replace the generated Constitution template. F0-01 `spec.md`, `plan.md`, `tasks.md` and implementation/release gates are separate. No automatic PR merge.

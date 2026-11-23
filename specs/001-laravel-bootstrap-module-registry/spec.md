@@ -101,7 +101,7 @@ This is a **technical Foundation Feature**; it introduces **no approved commerce
 - Approved target is Laravel 13 API-first Modular Monolith, with an initially conditional PHP/Stancl/Sanctum/Redis compatibility baseline; unsupported packages are not force-installed.
 - The 16 logical business domains are **not** a mandate to create 16 physical module directories/providers at bootstrap.
 - FND-01 mandates `docs/03-modules/` for module overviews and `specs/` for the single canonical Feature specification.
-- The **official Specify CLI agent-neutral initialization (`--integration none`) is pending**, documented in [Spec Kit bootstrap](../../docs/foundation/spec-kit-bootstrap.md). Formal `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, and implementation have **not** been executed.
+- Official Specify CLI **v1.4.3** agent-neutral initialization (`--integration none`) has been completed and pushed, as recorded in [Spec Kit bootstrap](../../docs/foundation/spec-kit-bootstrap.md). The generated Constitution remains an **unratified template**. The `none` integration does not provide agent shortcut commands; formal Feature clarifications, `plan.md`, `tasks.md`, and implementation have **not** been completed.
 - The backend repository remains separate from the Next.js frontend. No real Tenant DB, hosting, CI or live Pilot evidence is asserted here.
 
 ## Scope Boundaries and Deferred Details
