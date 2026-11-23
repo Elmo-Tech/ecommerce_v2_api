@@ -1,12 +1,12 @@
 # F0-01 — Planned Local Bootstrap & Verification Guide
 
-> **Status:** PRE-IMPLEMENTATION GUIDE — T002 runtime prerequisite check **completed** in the authorized project Codespace on 2026-11-23 using owner-provided CLI output. Laravel dependency solving/installation, application boot, tests and deployment **NOT EXECUTED**.  
+> **Status:** PRE-IMPLEMENTATION GUIDE — T002 runtime check and T003 temporary Composer **dry-run solver** both **completed successfully** in the authorized project Codespace on 2026-11-23 using owner-provided CLI output. Actual Composer package installation, project lockfile, application boot, framework tests and deployment **NOT EXECUTED**.  
 > **Scope:** Development/test only. Never copy credentials, use a Production database, run migrations, connect to Merchant data or trigger deployment while following this F0-01 plan.
 
 ## Preconditions and approval
 
 - Read [spec](spec.md), [plan](plan.md), [research](research.md) and the ratified [Constitution](../../.specify/memory/constitution.md).
-- **Approval recorded:** Owner approved `spec.md` + `plan.md` as F0-01 Option A on 2026-11-23. Basic PHP/Composer/extension runtime prerequisite check (T002) is now completed; **T003 real dependency compatibility, remaining T004 safety checks, separate implementation authorization, and this F0-01 PR's independent review** remain required. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
+- **Approval recorded:** Owner approved `spec.md` + `plan.md` as F0-01 Option A on 2026-11-23. Basic runtime prerequisite check (T002) and isolated Composer resolver compatibility check (T003) are completed; **T004 safety checks, separate implementation authorization, eventual project lock/install/runtime tests, and this F0-01 PR's independent review** remain required. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
 - Choose an authorized **isolated** runtime environment with PHP >=8.3, Composer and required PHP extensions; record exact versions. A Codespaces Python version from the Spec Kit installation is **not PHP evidence**.
 - Plan a non-destructive Laravel-skeleton integration: generate into an isolated **temporary directory**, inspect before selectively copying into the existing repo. Do not run scaffolding directly over `docs/`, `specs/`, `.specify/` or Git history.
 
@@ -32,11 +32,11 @@ The owner ran the commands in `/workspaces/ecommerce_v2_api` on `feature/f0-01-l
 - Earlier owner-provided `php -m` tail showed `xml`, `xmlreader`, `xmlwriter`, `zlib`; the complete raw `php -m` text was not preserved, but the required extensions were explicitly checked.
 - During Composer and the PHP extension check, Xdebug attempted to connect to `localhost:9003`, which did not respond. This is only the **step-debug client warning**, not Composer resolution failure. `XDEBUG_MODE=off` can suppress it per command when running T003.
 
-This is **real user-supplied Codespaces output**, not a tool-mediated Codespaces shell execution. The earlier *assistant container* with missing extensions was a separate machine and must not be mistaken for this project runtime. This check **does not** validate a Laravel package lock or the Pest/PHPUnit dependency graph; both remain T003.
+This is **real user-supplied Codespaces output**, not a tool-mediated Codespaces shell execution. The earlier *assistant container* with missing extensions was a separate machine and must not be mistaken for this project runtime. The prerequisite check alone did not prove package compatibility; this was subsequently established for a candidate package set via the independent T003 **dry-run**, recorded immediately below. There is still **no installed project package tree, actual project lock or Laravel boot evidence**.
 
-## T003 dependency-resolution probe (PENDING — run in Codespaces only)
+## T003 dependency-resolution probe (COMPLETED — reproducible command, historical evidence)
 
-The following performs a **dry-run**, with **no install and no Composer plugins/scripts**, inside a newly created `/tmp` directory, not the repository. Do not report T003 passing until the owner supplies real output and an exit code.
+The following is the **actual procedure** used by the owner on 2026-11-23. It is preserved for reproducibility, **not a command that must be repeated**. It performs a dry-run with no install/Composer plugins/scripts, in a new `/tmp` directory outside the repository.
 
 ```bash
 probe_dir="$(mktemp -d /tmp/f0-01-composer-XXXXXX)"
@@ -70,10 +70,41 @@ echo "T003_PROBE_DIR=$probe_dir"
 ```
 
 - This writes the probe `composer.json` in a newly created `/tmp` directory (and Composer may refresh its normal user cache); it does **not** modify the repository's `composer.json` or `composer.lock`. No `vendor` installation or Laravel bootstrap is authorized.
-- A `T003_COMPOSER_EXIT=0` confirms only that this **candidate** dependency graph could resolve at that moment; verify the packages and version selection from the output, plus the eventual real lock/install in later tasks.
+- The observed `T003_COMPOSER_EXIT=0` confirmed this candidate graph could resolve at that moment; exact package versions are recorded below. The final project lock/install and runtime checks remain later tasks.
 - If Composer reports conflicts, security-advisory blocking or network errors, keep T003 OPEN, share the exact log and do **not** use `--ignore-platform-reqs`, `--no-blocking`, `--no-cooldown` or forced downgrades.
 - `probe_dir` is printed for manual cleanup after inspection; don't run destructive cleaning commands in the repository.
 - Pest 5 / its Laravel plugin were published after the older Pest 4 / PHPUnit 12 project research. These are researched **candidates**, not an approved or installed test stack. See `research.md` for sources.
+
+### Actual T003 result (owner-provided Codespaces output)
+
+- `./composer.json is valid` from strict validation.
+- `T003_COMPOSER_EXIT=0` from the Composer update dry-run (not a real update or install).
+- `T003_PROBE_DIR=/tmp/f0-01-composer-qwmppK`.
+- Simulated lock operations: **118 installs / 0 updates / 0 removals**.
+- Resolved: `laravel/framework v13.43.0`, `pestphp/pest v5.3.7`, `pestphp/pest-plugin-laravel v5.0.1`, `phpunit/phpunit 13.4.7`.
+- Composer printed `No security vulnerability advisories found.` for this run.
+- **Do not call this a Laravel installation, a project `composer.lock`, a runtime smoke-test, or CI pass.** The project remains documentation-only.
+
+## T004 non-destructive Git / credential filename preflight (PENDING)
+
+Run these commands in the actual project Codespace; all report only filenames, metadata or Git status. Do **not** share the contents of any environment files, secrets or private keys.
+
+```bash
+git status --short
+git branch --show-current
+git fetch origin
+git pull --ff-only
+git status --short
+git log -1 --oneline
+git diff --check
+git diff --name-only origin/feature/f0-spec-kit-setup...HEAD
+printf '\nTracked credential-like filenames (names only):\n'
+git ls-files | grep -Ei '(^|/)(\.env($|\.)|id_rsa$|id_ed25519$|[^/]+\.(pem|p12|pfx|key)$|service[-_]account[^/]*\.json$)' || true
+printf '\nTracked Laravel / migration paths (names only):\n'
+git ls-files | grep -E '^(artisan$|composer\.(json|lock)$|app/|bootstrap/|database/migrations/|vendor/)' || true
+```
+
+**Evaluate the output before marking T004 done.** A path named `.env.example` is only a candidate and may be an intentional safe template; any actual tracked secret file or destructive migration blocks the gate. An empty credential-like filename list **does not prove** no secrets are embedded elsewhere. The team must separately confirm only isolated development/test credentials and a reviewed safe rollback route. The planned bootstrap must occur **outside the existing repository**, followed by selective integration on the feature branch, with no overwrite of `docs/`, `specs/`, `.specify/` or Git history. No merging or code scaffolding is authorized by this check.
 
 ## Planned implementation validation
 
@@ -104,7 +135,7 @@ If installed and configured in the authorized implementation branch, run the app
 | Check | Environment | Revision | Command | Result / log reference |
 | --- | --- | --- | --- | --- |
 | PHP / Composer / extensions | **PASS — user-provided output from authorized Codespaces** | local `accbe34` when tested | `php -v`, `composer --version`, 13-extension `extension_loaded()` check; partial `php -m` | PHP **8.4.27** CLI; Composer **2.10.3**; all Laravel-required extensions **OK (13/13)**; Xdebug v3.5.3 debugger-client warning is non-blocking |
-| Composer dependency graph | NOT RUN | — | `composer validate`, `check-platform-reqs` | PENDING |
+| Composer **temporary dry-run** dependency graph | **PASS — owner-provided Codespaces output** | local worktree on F0-01; original SHA at T002 was `accbe34` (no fresh T003 SHA provided) | `composer validate --strict --no-check-publish`, `composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction` | Exit `0`; 118 simulated installs; Laravel 13.43.0 / Pest 5.3.7 / Plugin 5.0.1 / PHPUnit 13.4.7; no advisories found. **Project `composer.lock`, `composer install`, and `composer check-platform-reqs` still pending.** |
 | Laravel 13 boot | NOT RUN | — | `php artisan about` | PENDING |
 | Module registered/unlisted/invalid | NOT RUN | — | Targeted tests | PENDING |
 | Test probe production exclusion | NOT RUN | — | Separate env/route-cache checks | PENDING |
