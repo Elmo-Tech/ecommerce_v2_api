@@ -6,7 +6,7 @@
 ## Preconditions and approval
 
 - Read [spec](spec.md), [plan](plan.md), [research](research.md) and the ratified [Constitution](../../.specify/memory/constitution.md).
-- Obtain owner approval for `spec.md` and `plan.md` before installing application code. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
+- **Approval recorded:** Owner approved `spec.md` + `plan.md` as F0-01 Option A on 2026-11-23. Separate implementation authorization, real runtime preflight and this F0-01 PR's independent review remain required. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
 - Choose an authorized **isolated** runtime environment with PHP >=8.3, Composer and required PHP extensions; record exact versions. A Codespaces Python version from the Spec Kit installation is **not PHP evidence**.
 - Plan a non-destructive Laravel-skeleton integration: generate into an isolated **temporary directory**, inspect before selectively copying into the existing repo. Do not run scaffolding directly over `docs/`, `specs/`, `.specify/` or Git history.
 

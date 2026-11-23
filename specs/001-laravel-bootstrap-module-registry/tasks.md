@@ -1,16 +1,16 @@
 ---
-description: "F0-01 reviewed implementation task draft; not authorized/executed"
+description: "F0-01 implementation task plan; spec and plan approved, code/testing pending"
 ---
 
 # Tasks: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
-**Input**: [spec.md](spec.md) (reviewed draft, approval pending), [plan.md](plan.md) (draft, approval pending), [research.md](research.md), [test-only contract](contracts/foundation-probe.md), [quickstart](quickstart.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).  
-**Status:** **DRAFT / NONE EXECUTED** as of 2026-11-23. The user has only authorized review/planning. No Laravel scaffold, package install, test runtime or CI claim.  
+**Input**: [spec.md](spec.md) (F0-01 Option A owner-approved), [plan.md](plan.md) (F0-01 Option A owner-approved), [research.md](research.md), [test-only contract](contracts/foundation-probe.md), [quickstart](quickstart.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).  
+**Status:** **SPEC + PLAN APPROVED (F0-01 Option A, 2026-11-23); T001 COMPLETE; T002–T026 PENDING.** No Laravel scaffold, code, Composer install, runtime test or CI execution. Separate permission to begin implementation and real runtime compatibility checks remain pending.  
 **Format**: `[ID] [P?] [US#?] Description (file/path)`; `[P]` means independent files and no ordering dependency. All unchecked boxes represent future work.
 
 ## Phase 0 — Approval and runtime preflight (BLOCKING)
 
-- [ ] **T001** Obtain explicit owner approval for revised `spec.md` and `plan.md` (review record: `docs/reviews/F0-01-spec-review.md`).
+- [x] **T001** Obtain explicit owner approval for revised `spec.md` and `plan.md` (review record: `docs/reviews/F0-01-spec-review.md`).
 - [ ] **T002** In an authorized isolated development environment, capture `php -v`, `php -m`, `composer --version`, and installed extensions; confirm Laravel 13 PHP >=8.3 and the selected exact runtime (record in `specs/001-laravel-bootstrap-module-registry/quickstart.md`).
 - [ ] **T003** Resolve and record supported Laravel 13 + Pest/PHPUnit/Composer versions using genuine Composer checks, or stop and escalate incompatible versions; do not silently downgrade or force dependencies (record in `research.md` and implementation PR evidence).
 - [ ] **T004** Verify the existing Git tree/branch, a non-destructive patch approach, a clean worktree and safe Git rollback route; explicitly confirm no production credentials and no migrations (`docs/reviews/F0-01-spec-review.md`; `quickstart.md`).
@@ -68,7 +68,7 @@ description: "F0-01 reviewed implementation task draft; not authorized/executed"
 
 ## Dependencies and execution order
 
-- **Phase 0 T001–T004** must complete before writing framework code; stop if PHP/Composer compatibility or owner approval is missing.
+- **Phase 0 T001–T004** must complete before writing framework code; T001 is complete, while T002–T004 and separate implementation authorization remain pending. Stop if PHP/Composer compatibility or authorized execution environment is missing.
 - **US1 T005–T009** prepares the skeleton; US2 registry work relies on actual framework bootstrap and test harness.
 - **US2 T010–T016** proves provider registration; US3 T017–T020 tests boundaries and route exposure once the registry exists.
 - **Final T021–T026** requires real test evidence, code review and upstream setup PR dependency handling.
@@ -85,10 +85,10 @@ description: "F0-01 reviewed implementation task draft; not authorized/executed"
 
 ## Implementation strategy
 
-1. Approve the F0-01 spec and plan **separately from the already ratified Constitution**.
+1. **Approved (F0-01 Option A, 2026-11-23):** F0-01 spec and plan, separate from the already ratified Constitution. Implementation authorization and compatibility evidence are separate.
 2. Produce a real Laravel 13 baseline under verified PHP/Composer, preserving the repository, and validate US1 first.
 3. Add just enough Provider Registry / test-demo behavior for US2; prove success and failure cases.
 4. Add focused architectural/production-route isolation proof for US3; do not infer that passing this proves Tenancy, Auth or financial safety.
 5. Record reproducible command/commit evidence, stop on blockers, review and merge only under the approved workflow.
 
-**No commands, installations, tests or merges listed in this file have been run by creating the task list.**
+**Only T001 (owner approval) is complete. No PHP/Composer commands, code installations, framework tests, deployments or merges in T002–T026 have been performed by this approval.**

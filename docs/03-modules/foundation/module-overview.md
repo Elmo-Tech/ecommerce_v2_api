@@ -39,13 +39,13 @@ Actual Laravel Provider initialization order and exact class paths must be verif
 
 | Feature | Canonical artifacts | Status |
 | --- | --- | --- |
-| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | REVIEW DRAFT — NOT APPROVED |
+| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **SPEC + PLAN APPROVED — Option A (2026-11-23)**; code not implemented |
 | F0-02 / F0-03 / F0-04 / F0-05 | Planned F0 follow-ups per [WORKFLOW](../../WORKFLOW.md) | Not specified or implemented in F0-01 |
 
 ## Authorization, tests and gates
 
 - FoundationDemo's HTTP probe must exist **only in testing**; route caches/normal prod routing cannot expose it.
-- Mandatory proof before implementing/merging: owner-approved `spec/plan`, PHP/Composer compatibility, real boot, registered/unregistered/duplicate/missing-provider scenarios and production route absence.
+- Mandatory proof before implementation/merge: owner-approved `spec/plan` (already satisfied), PHP/Composer compatibility, separate implementation authorization, real boot, registered/unregistered/duplicate/missing-provider scenarios and production route absence.
 - Parent Spec Kit PR #1 remains separate; F0-01 implementation/CI/production availability is not proven by this planning document.
 - Business/Release open items **D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED** remain unchanged.
 

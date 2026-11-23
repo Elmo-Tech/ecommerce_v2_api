@@ -22,7 +22,7 @@
 
 ## Unresolved pre-implementation gates
 
-- [ ] CHK011 Owner approves the revised Feature spec and technical plan
+- [x] CHK011 Owner approved the revised Feature spec and technical plan — F0-01 Option A, 2026-11-23
 - [ ] CHK012 Actual PHP >=8.3 + Composer, Laravel 13, PHPUnit/Pest and extensions compatibility validated, exact versions recorded
 - [ ] CHK013 Isolated positive and negative module registration/route exposure tests executed on real Laravel framework
 - [ ] CHK014 Source-controlled code passes applicable formatting/static checks, with reproducible environment output
@@ -32,4 +32,4 @@
 ## Review discipline
 
 - Mark completion based on the **requirements artifact's quality** for CHK001–010; these marks do NOT mean Laravel has been implemented.
-- CHK011–016 are workflow/test evidence gates; keep unchecked until actually satisfied. No speculative green status.
+- CHK011 is complete through explicit owner approval. CHK012–016 are pending workflow/runtime/test evidence gates and remain unchecked until independently satisfied. No speculative green status.
