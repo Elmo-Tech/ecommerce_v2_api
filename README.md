@@ -2,7 +2,7 @@
 
 Private **Elmo-Tech** repository for the **E-commerce SaaS V2 API**.
 
-**Status (2026-11-23):** F0-01 Laravel 13 API foundation **source staged** on `feature/f0-01-laravel-bootstrap` under Draft PR #2. The app is **not yet installed or verified**: `composer.lock`, vendor dependencies, Laravel boot and tests remain pending. Read the [current F0-01 handoff](docs/handoff/NEXT_CHAT_START_HERE.md).
+**Status (2026-11-24):** F0-01 Laravel 13 API Foundation and explicit Module Registry/FoundationDemo **implemented and validated in GitHub Actions**: real `composer.lock`, Laravel 13.43.0 bootstrap, **26 passing Unit/Feature/Architecture tests (116 assertions)** on [Run #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899). Pint/PHPStan are **not installed**; no merge/deployment, Auth, Tenancy or migrations. [Current verified handoff and read-first order](docs/handoff/NEXT_CHAT_START_HERE.md).
 
 ## Product direction
 Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pilot for small/medium omnichannel retailers: online orders, manual orders and simple direct sales, with catalog/pricing, taxes/discounts, basic per-location inventory and single-location full-order fulfillment. Not a full ERP or POS.
@@ -27,4 +27,4 @@ Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pil
 - `feature/*` and `fix/*`: new work from `development`, PR back into it.
 - Promote reviewed, tested changes from `development` into `main`.
 
-New chats should resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md). The owner separately approved **starting T005**, but **no deployment/merge authority** was granted and the Laravel lock/runtime test gates remain open.
+New chats must resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md), then read the latest dated `docs/handoff/` snapshot, live F0-01 tasks/spec/plan and actual code. The owner approved F0-01 implementation, **not merge/deployment**. Latest CI/lock/runtime gates are green; independent PR review and upstream PR #1 integration remain separate. **No Codespaces commands** are required from the owner.
