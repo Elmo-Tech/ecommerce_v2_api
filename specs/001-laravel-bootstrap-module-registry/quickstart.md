@@ -1,6 +1,6 @@
 # F0-01 — Planned Local Bootstrap & Verification Guide
 
-> **Status:** PRE-IMPLEMENTATION GUIDE — T002 runtime check and T003 temporary Composer **dry-run solver** both **completed successfully** in the authorized project Codespace on 2026-11-23 using owner-provided CLI output. Actual Composer package installation, project lockfile, application boot, framework tests and deployment **NOT EXECUTED**.  
+> **Status:** T001–T004 pre-code gates complete; T005 separately authorized and **PARTIALLY STAGED** (33 source/structure files committed via GitHub). Existing `composer.json` is **unlocked**: no `composer.lock`, `vendor/`, Composer installation, Laravel runtime tests or deployment. The owner requires **no further manual Codespaces work**.  
 > **Scope:** Development/test only. Never copy credentials, use a Production database, run migrations, connect to Merchant data or trigger deployment while following this F0-01 plan.
 
 ## Preconditions and approval
@@ -108,6 +108,17 @@ git ls-files | grep -E '^(artisan$|composer\.(json|lock)$|app/|bootstrap/|databa
 
 **Remaining independent gates:** T005 onward still needs **explicit owner permission**, a compatible assistant-managed PHP/Composer test runner or actual passing CI, reviewed implementation diff and test evidence. Keep earlier terminal commands above as historical reference only; **never ask the owner to run Codespaces commands**. A path named `.env.example` is only a candidate and may be an intentional safe template; any actual tracked secret file or destructive migration blocks the gate. An empty credential-like filename list **does not prove** no secrets are embedded elsewhere. The team must separately confirm only isolated development/test credentials and a reviewed safe rollback route. The planned bootstrap must occur **outside the existing repository**, followed by selective integration on the feature branch, with no overwrite of `docs/`, `specs/`, `.specify/` or Git history. No merging or code scaffolding is authorized by this check.
 
+## T005 actual GitHub source staging — 2026-11-23 (INCOMPLETE)
+
+**Owner-authorized:** The user selected Option A to start T005 on the existing `feature/f0-01-laravel-bootstrap` branch; see the [separate implementation authorization](../../docs/reviews/F0-01-implementation-authorization.md) and the [dated staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md).
+
+- Official `laravel/laravel` `13.x` sources selectively integrated: `artisan`, framework bootstrap/providers, safe config, `public/index.php`, `app/`, test base, root ignores and runtime storage markers. **33 code/config/structure paths**, plus approval record, were added; approved old documents were not replaced.
+- Manifest is a minimal `laravel/framework:^13.0` / Pest `^5.0` project on PHP `^8.4`, with **no Composer lifecycle scripts** that would create secrets, seed data or run migrations. `.env.example` has blank `APP_KEY`, no actual credentials, and array/sync/in-memory defaults.
+- No default auth/User schema, public web/welcome route, public health/diagnostic probe, migration, Sanctum, tenancy or service integration was added.
+- **Static checks only:** `php -l` on modified `bootstrap/app.php` and `routes/console.php` in the assistant's isolated scratch source passed; `composer.json` parsed as JSON; remote GitHub diff of pre-code head showed only 34 new paths, none overwriting existing project docs.
+- **T005 BLOCKER:** no actual `composer.lock`. Composer/package registry access and Laravel-required extensions are unavailable in this assistant container; prior Codespaces results were dry-run only, and the user has prohibited further manual Codespaces actions. Do **not** mark T005 complete, install packages, claim smoke tests, or attempt to merge.
+- **Next independent environment requirement:** a compatible non-Codespaces PHP 8.4+/Composer runtime with network access must generate and verify the reviewed project lockfile and install; afterward execute `composer check-platform-reqs`, real Laravel boot and focused tests at their respective task gates. GitHub Actions historic init failures remain unresolved.
+
 ## Planned implementation validation
 
 Run only when the Laravel source and tested Composer lock actually exist.
@@ -138,6 +149,7 @@ If installed and configured in the authorized implementation branch, run the app
 | --- | --- | --- | --- | --- |
 | PHP / Composer / extensions | **PASS — user-provided output from authorized Codespaces** | local `accbe34` when tested | `php -v`, `composer --version`, 13-extension `extension_loaded()` check; partial `php -m` | PHP **8.4.27** CLI; Composer **2.10.3**; all Laravel-required extensions **OK (13/13)**; Xdebug v3.5.3 debugger-client warning is non-blocking |
 | Composer **temporary dry-run** dependency graph | **PASS — owner-provided Codespaces output** | local worktree on F0-01; original SHA at T002 was `accbe34` (no fresh T003 SHA provided) | `composer validate --strict --no-check-publish`, `composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction` | Exit `0`; 118 simulated installs; Laravel 13.43.0 / Pest 5.3.7 / Plugin 5.0.1 / PHPUnit 13.4.7; no advisories found. **Project `composer.lock`, `composer install`, and `composer check-platform-reqs` still pending.** |
+| T005 source skeleton staged | **PARTIAL — GitHub source files present** | Code-stage branch HEAD, see dated handoff | GitHub PR diff and static PHP/JSON parsing | 33 code/config/structure files added; approved existing docs preserved; **no project `composer.lock`/runtime yet** |
 | Laravel 13 boot | NOT RUN | — | `php artisan about` | PENDING |
 | Module registered/unlisted/invalid | NOT RUN | — | Targeted tests | PENDING |
 | Test probe production exclusion | NOT RUN | — | Separate env/route-cache checks | PENDING |
