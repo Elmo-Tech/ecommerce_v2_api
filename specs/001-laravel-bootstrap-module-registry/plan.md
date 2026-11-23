@@ -1,7 +1,7 @@
 # Implementation Plan: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Branch**: `feature/f0-01-laravel-bootstrap` | **Prepared**: 2026-11-23 | **Spec**: [spec.md](spec.md)  
-**Status**: **APPROVED — F0-01 Option A; T001–T009 COMPLETE (2026-11-23), T010–T026 PENDING.** Separately authorized T005 now has an authentic committed `composer.lock`, successful locked Composer install and platform/advisory checks, Laravel 13.43.0 bootstrap and Pest Foundation smoke (1 passed / 9 assertions) in [GitHub Actions Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994). No Module Registry/provider/demo production route/cache tests, deployment or PR merge yet.  
+**Status (2026-11-24)**: **APPROVED F0-01 Option A, T001–T024 COMPLETE (24/26), T025–T026 pending.** Native Laravel 13.43.0 + explicit Module Registry/FoundationDemo, fresh-boot negative validation, production/local route absence and isolated production route-cache isolation verified. [Actions #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899): **26 Unit/Feature/Architecture tests / 116 assertions passed**, pinned Composer/platform/audit, full PHP syntax lint. **Pint/PHPStan NOT in approved lock; not claimed passed**. No Auth/Tenancy/migrations, merge or deployment.
 **Input**: Reviewed F0-01 `spec.md` v0.2 and ratified [E-commerce SaaS V2 Constitution v1.0.0](../../.specify/memory/constitution.md).  
 **Method**: Reviewer-authored against official Spec Kit v1.4.3 `plan-template.md` using agent-neutral `none` integration; not a run of `/speckit.plan`.
 
@@ -10,6 +10,12 @@
 Create a minimal reproducible **Laravel 13 API-first backend** in the **existing repository root**, preserving approved documents, Spec Kit, history and branch conventions. Demonstrate a **small explicit Module Registry** loading only listed Providers through the Laravel lifecycle, with one **non-business FoundationDemo module**. The only demonstration route is test-only, with automated proof that it does **not** exist in a non-testing/production application. Provide runtime/bootstrap, positive and negative registration, and architectural tests without building Auth, Tenancy, business schemas, production endpoints, infrastructure or deployment.
 
 The owner approved this **technical design approach** under F0-01 Option A on 2026-11-23. A **separate later owner response, A**, expressly authorized **starting T005** on `feature/f0-01-laravel-bootstrap`, recorded in [F0-01 implementation authorization](../../docs/reviews/F0-01-implementation-authorization.md). This is not approval to deploy/merge or to skip real Composer/project runtime tests. The [T005 staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md) records what source actually exists and why T005 remains open.
+
+## Current implementation evidence (addendum; original approved design retained)
+
+The approved D2/D3 registry architecture was implemented in `config/modules.php`, `app/Core/Modules/ModuleRegistry.php`, `app/Providers/ModuleRegistryServiceProvider.php` and `app/Modules/FoundationDemo/`. Tests in `tests/{Unit,Feature,Architecture,Fixtures}/` passed on actual Laravel 13.43.0. See [T010–T016 handoff](../../docs/handoff/F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md), [T017–T020 route/cache verification](../../docs/handoff/F0-01_ARCHITECTURE_AND_PRODUCTION_PROBE_VERIFIED_2026-11-24.md), and [complete CI #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899). The **real app has no Production routes**; Laravel's `route:cache` does not create a cache for an empty route collection; a scratch app containing a harmless non-business redirect was used to prove the actual production route cache excludes the test probe. No scratch cache is shipped.
+
+**Remain open:** T025 documentation closure and T026 independent PR/approval gates. Optional Pint/PHPStan/Larastan are not in the approved F0-01 lock and were **not executed**; PHP syntax lint was actually executed. The planning-only statuses elsewhere in this document describe historical review checkpoints; refer to this addendum for verified execution status.
 
 ## Technical Context
 
@@ -39,14 +45,14 @@ The owner approved this **technical design approach** under F0-01 Option A on 20
 | IV — Money / stock | **N/A** — none in this technical slice | Confirm no financial/inventory schema/code or migration effects |
 | V — API / security | **CONDITIONAL** — test-only demo HTTP route, no production API or Sanctum | Actual production/non-testing route absence and route cache checks |
 | VI — Jobs / files / Audit | **N/A** — no outbox, queue workers, private storage or business effects | Diff inspection excludes related packages and code |
-| VII — Tests / evidence | **PENDING** — required test design identified | Run real tests and record versions, commands, revision, actual output; don't claim unrun CI |
-| VIII — Simplicity / releases | **Design PASS, runtime pending** — native Laravel + minimal custom registry, PHP-FPM first | Composer compatibility, one-root scaffold diff, no auto-migrations, owner/test/PR gates |
+| VII — Tests / evidence | **VERIFIED for F0-01 Unit/Feature/Architecture suite** — 26 passed / 116 assertions | Real Actions #45285351899 and prior T017–T020 CI; independent PR approval remains open |
+| VIII — Simplicity / releases | **Design and isolated CI runtime verified; release PENDING** — native Laravel + minimal registry | Composer lock/platform passed, no migrations; Pint/PHPStan not installed; PR review remains open |
 
-**Implementation gate (updated 2026-11-23):** Owner approval of Spec + Plan, separate T005 authorization, pre-code checks, **real project lockfile, CI install/bootstrap/Foundation smoke and advisory audit are SATISFIED (T001–T009 complete)**. The Module Registry, test-only FoundationDemo, negative/provider validation, production route/cache isolation and final security/merge gates T010–T026 are **PENDING**; no production deploy, DB migration or PR merge was performed.
+**Implementation gate (updated 2026-11-24):** F0-01 design approval, separate implementation authorization, locked dependencies, actual native Laravel 13 Provider lifecycle, negative/unlisted registration, test-only and production route-cache isolation, all 26 tests and bounded secret/diff review are **verified/completed (T001–T024)**. **T025 documentation completion and T026 independent review/merge approval remain pending.** No production deployment or migrations.
 
 ## Phase 0 — Research (Documentary Only)
 
-See [research.md](research.md) for official-source checks and pending runtime probes.
+See [research.md](research.md) for historical official-source checks and the current real CI/runtime verification addendum.
 
 - Official Laravel 13 [release notes](https://laravel.com/docs/13.x/releases) specify PHP minimum **8.3** and recommend `^13.0` when requiring the framework.
 - Laravel 13 [Service Providers](https://laravel.com/docs/13.x/providers) uses `bootstrap/providers.php`; `register()` binds dependencies, `boot()` initializes routes/listeners.
