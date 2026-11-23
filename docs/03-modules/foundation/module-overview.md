@@ -1,6 +1,6 @@
 # Foundation — Technical Module Overview (F0)
 
-> **Status (2026-11-24):** **Laravel 13 + explicit Module Registry + FoundationDemo implemented.** F0-01 T001–T016 passed actual CI (19 tests, 63 assertions); focused architecture/prod route-cache tests are authored in T017/T018 and require separate CI verification before claiming route isolation or completion of T017–T020.  
+> **Status (2026-11-24):** **Laravel 13 + explicit Module Registry + FoundationDemo implemented and tested**. T001–T024 completed at defined scope; actual GitHub Actions [#45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) passed **26 tests / 116 assertions** including production/local route absence and genuine scratch production route cache exclusion. Pint/PHPStan unavailable (not claimed passed); final documentation/PR review still T025–T026.  
 > **Scope:** Technical Engineering Foundation, not one of the 16 business-domain data owners.  
 > **Source of truth:** [F0-01 Feature Specification](../../../specs/001-laravel-bootstrap-module-registry/spec.md), [technical plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md), [Constitution v1.0.0](../../../.specify/memory/constitution.md).
 
@@ -40,7 +40,7 @@ Native Laravel provider registration at application bootstrap has been verified 
 ## Public contracts, APIs and events
 
 - **Internal technical boundary:** `ModuleRegistry` receives only the reviewed ordered list in `config/modules.php`, validates duplicate IDs/providers, missing/invalid provider classes and blank identifiers; `ModuleRegistryServiceProvider` then registers validated classes using native Laravel lifecycle. No external public business API, data or merchant-owned state.
-- **Demonstration module:** `FoundationDemoServiceProvider` binds typed `FoundationMarker` and registers a test-only HTTP endpoint returning `{"module":"foundation-demo","source":"explicit-registry"}` following the [test probe contract](../../../specs/001-laravel-bootstrap-module-registry/contracts/foundation-probe.md). Registered route is only enabled when Laravel environment is `testing`; **production route/cache isolation proof must still be verified under T018/T020**.
+- **Demonstration module:** `FoundationDemoServiceProvider` binds typed `FoundationMarker` and registers a test-only HTTP endpoint returning `{"module":"foundation-demo","source":"explicit-registry"}` following the [test probe contract](../../../specs/001-laravel-bootstrap-module-registry/contracts/foundation-probe.md). Registered route is only enabled when Laravel environment is `testing`; **production/local route and scratch-generated route-cache absence proven under T018/T020**.
 - **Production HTTP endpoints:** **none** introduced by F0-01.
 - **Published business events/Outbox:** **none**.
 - **Dependencies:** native Laravel provider/service-container facilities; external Stancl/Redis/queue/Identity modules **not installed** for this Feature.
@@ -49,13 +49,13 @@ Native Laravel provider registration at application bootstrap has been verified 
 
 | Feature | Canonical artifacts | Status |
 | --- | --- | --- |
-| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T016 CI verified**, T017–T026 pending validation/review (2026-11-24) |
+| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T024 complete with explicit Pint/PHPStan limitation**, T025 documentation/T026 PR review pending (2026-11-24) |
 | F0-02 / F0-03 / F0-04 / F0-05 | Planned F0 follow-ups per [WORKFLOW](../../WORKFLOW.md) | Not specified or implemented in F0-01 |
 
 ## Authorization, tests and gates
 
 - FoundationDemo's HTTP probe must exist **only in testing**; route caches/normal prod routing cannot expose it.
-- Approved/verified: owner-approved `spec/plan`, separate F0-01 implementation authorization, PHP/Composer locked real Laravel boot and positive/negative listed/unlisted/duplicate/missing/invalid Provider tests. Real [Module Registry CI Run #45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273): **19 passed, 63 assertions**. **Not yet verified at this document update:** independent production route + route-cache isolation, architecture checks, full feature/security review and final PR gate.
+- Approved/verified: owner-approved `spec/plan`, separate F0-01 implementation authorization, PHP/Composer locked real Laravel boot and positive/negative listed/unlisted/duplicate/missing/invalid Provider tests. Real [Module Registry CI Run #45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273): **19 passed, 63 assertions**. **Subsequently verified:** independent production/local route absence, generated scratch production route cache, focused Architecture boundaries, full Unit/Feature/Architecture tests and scoped diff review. **Not verified:** standalone Pint/PHPStan analysis (tools absent), independent final PR review/merge gate.
 - Parent Spec Kit [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and stacked F0-01 [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remain **Draft/unmerged**. Neither successful Foundation tests nor this overview authorizes production deployment, migration or merge.
 - Business/Release open items **D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED** remain unchanged.
 
