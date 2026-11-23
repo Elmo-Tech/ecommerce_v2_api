@@ -1,7 +1,7 @@
 # F0-01 — Feature Specification and Constitution Review
 
-> **Status: REVIEW COMPLETE / F0-01 OPTION A APPROVED (SPEC + PLAN)** — owner approval 2026-11-23. **T002 PHP/Composer prerequisites + T003 isolated Composer dry-run compatibility completed (owner-supplied Codespaces outputs).** Code authorization, final installed Laravel/runtime tests and CI remain pending.  
-> **Branch:** `feature/f0-01-laravel-bootstrap` (planning only; based on `feature/f0-spec-kit-setup`).  
+> **Status: F0-01 OPTION A APPROVED; T005 EXPLICITLY AUTHORIZED AND SOURCE STAGED (PARTIAL).** T001–T004 pre-code gates complete. Owner separately authorized T005 on 2026-11-23. Minimal Laravel 13 source files are now present on the feature branch; **project `composer.lock`, vendor installation, Laravel boot/tests and CI remain pending**.  
+> **Branch:** `feature/f0-01-laravel-bootstrap` (partially implemented T005, Draft PR #2 stacked on `feature/f0-spec-kit-setup`).  
 > **Canonical specification:** [F0-01 spec](../../specs/001-laravel-bootstrap-module-registry/spec.md); [Constitution v1.0.0](../../.specify/memory/constitution.md).
 
 ## Review result
@@ -66,5 +66,13 @@ The workflow avoids relying on an owner's local Codespaces worktree. For future 
 The Codespaces owner provided (not independently executed via connector): PHP `8.4.27`, Composer `2.10.3`, and positive checks for all 13 Laravel-required extensions (**T002 complete**); and a strict Composer manifest validation plus **no-install/no-scripts/no-plugins Composer dry-run** in `/tmp/f0-01-composer-qwmppK` with exit `0` (**T003 complete**). It simulated 118 lock operations selecting Laravel `v13.43.0`, Pest `v5.3.7`, Laravel test plugin `v5.0.1`, PHPUnit `13.4.7`, and printed `No security vulnerability advisories found.`
 
 This is package **resolution evidence only**; no project `composer.lock`, packages, Laravel runtime/application, actual test runner execution or CI pass exists. GitHub comparisons through the former head showed only documentation changes on F0-01; local T004 safety/secret checks and rollback evidence still need to be completed. Neither prior owner approval nor this evidence relaxes the separate implementation permission or merge requirements. See [latest dated handoff](../handoff/F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), and [research](../../specs/001-laravel-bootstrap-module-registry/research.md).
+
+## Latest implementation authorization and staging evidence — 2026-11-23
+
+The owner explicitly replied **A** to starting T005 on the existing feature branch, separately from the Spec + Plan approval. The exact permission is in [implementation authorization](F0-01-implementation-authorization.md).
+
+Using official Laravel 13 source, **33 framework/config/structure files** were selectively added, plus the decision record; prior `docs/`, `specs/`, `.specify/` and `README.md` were preserved. The new `bootstrap/app.php` exposes no web/health/API route, `routes/console.php` has no demo work, and `composer.json` omits install/setup migration scripts. No User model, Auth config, default migrations, Sanctum, tenancy or production secrets were introduced. See [T005 staging handoff](../handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md).
+
+**T005 IS NOT COMPLETE:** no project `composer.lock`, no successful Composer install or Laravel boot, no Pest tests or CI evidence. The assistant's isolated container lacks a compatible Composer/extensions/package-network environment; the user's no-Codespaces instruction remains in force. Preserve all future T006/T021–T026 test and review gates, and do not merge or deploy from this source-only state.
 
 **Sources:** [Backend Architecture](../01-architecture/backend-architecture.md), [Module Architecture](../01-architecture/module-architecture.md), [Code Standards](../02-standards/code-standards.md), [Testing Standards](../02-standards/testing-standards.md), [FBR-02](FBR-02-architecture-gap-review.md), [Laravel 13 release notes](https://laravel.com/docs/13.x/releases), [Laravel 13 providers](https://laravel.com/docs/13.x/providers).
