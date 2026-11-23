@@ -1,13 +1,16 @@
 # START HERE — E-commerce SaaS V2 API — current project handoff
 
-**Last verified:** 2026-11-23  
+**Last verified:** 2026-11-24 (T010–T016 in progress; no test completion claimed yet)  
 **Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
 **Current milestone:** **Laravel 13 bootstrap + committed Composer lock + DB-free Foundation smoke validated by successful GitHub Actions**. T001–T009 COMPLETE, T010–T026 PENDING; PR #1/#2 Draft/unmerged.
 
+**Current live work:** Implementing F0-01 T010–T016 explicit Module Registry. See the [dated work-in-progress checkpoint](F0-01_MODULE_REGISTRY_WORK_IN_PROGRESS_2026-11-24.md), and check current branch + test runs before treating anything new as complete. No Codespaces; do not merge/deploy.
+
 ## Read first — current source of truth
 
-1. **[LATEST: F0-01 Bootstrap Validated — 2026-11-23](F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md)** — real CI proof, locked dependencies, route fixes, clean smoke test and T010 next action.
+1. **[CURRENT WIP: F0-01 Module Registry T010–T016 — 2026-11-24](F0-01_MODULE_REGISTRY_WORK_IN_PROGRESS_2026-11-24.md)** — active implementation scope, exact files to read, checklist and safe continuation. **NOT yet verified completed.**
+2. **[LAST PASSED: F0-01 Bootstrap Validated — 2026-11-23](F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md)** — verified green baseline before registry changes.
 2. [Task ledger T001–T009 complete](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved Spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [approved Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [Research](../../specs/001-laravel-bootstrap-module-registry/research.md).
 3. [Separate T005 authorization](../reviews/F0-01-implementation-authorization.md) and [No-Codespaces workflow](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
 4. [Historical private Actions blocker](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md), [Constitution](../../.specify/memory/constitution.md), [branch workflow](../WORKFLOW.md), [open business gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
