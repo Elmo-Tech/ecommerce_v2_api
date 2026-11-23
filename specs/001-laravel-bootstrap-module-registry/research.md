@@ -1,6 +1,6 @@
 # F0-01 — Phase 0 Research and Compatibility Evidence
 
-> **Status: T002 CODESPACES RUNTIME PREREQUISITES VERIFIED; T003 COMPATIBILITY RESOLUTION PENDING.** PHP/Composer/extension outputs were supplied by the owner on 2026-11-23. No Composer dependency graph/lock, Laravel installation, framework tests, route checks or CI validation have been run.
+> **Status: T002 + T003 VERIFIED IN CODESPACES; T004 SAFETY GATE PENDING.** The owner supplied actual PHP/Composer/extension and isolated Composer **dry-run** solver outputs on 2026-11-23. No project lockfile, packages, Laravel scaffold, framework tests, route checks or CI validation have been performed.
 
 ## Verified externally from official Laravel documentation
 
@@ -29,10 +29,10 @@
 - One `FoundationDemo` test route guarded by app environment and excluded from all production routes and route caches; test both true/false cases.
 - PHPUnit/Pest targeted framework tests with no database migrations or dependency on Redis, Sanctum, Stancl, frontend or real merchant data.
 
-## Implementation-time probes (T002 completed; T003–T026 remain)
+## Implementation-time probes (T002/T003 completed; T004–T026 remain)
 
 1. **T002 COMPLETE:** Codespaces PHP version, Composer availability and 13/13 Laravel-required extensions were validated (details below). **NOT EXECUTED:** `composer check-platform-reqs` because no project `composer.lock` exists; belongs to later lock-dependent checks.
-2. `composer validate --strict`, `composer install` in isolated, safe development context; record any runtime incompatibilities.
+2. **T003 COMPLETE (dry-run only):** Owner ran a strictly validated temporary Composer manifest and a no-install, no-scripts, no-plugins dependency solve in `/tmp`. **NOT RUN:** project `composer install` and lock-based platform verification, reserved for subsequent implementation/evidence tasks.
 3. `php artisan about` / `php artisan route:list`: validate boot and exclude private/unintended test route from non-testing environments.
 4. Targeted `php artisan test --filter=Foundation` (or verified supported runner): no DB I/O and negative registration test outcomes.
 5. `vendor/bin/pint --test` and applicable static checks **only when tool versions/config have been validated**.
@@ -47,19 +47,40 @@
 | Composer | `Composer 2.10.3` using PHP `8.4.27` | CLI available; packages not resolved |
 | Extensions | All 13 documented requirements returned `OK` in explicit `extension_loaded()` check | Passes framework minimum required extensions |
 | Xdebug message | `Could not connect to debugging client` (`localhost:9003`) | Not a dependency incompatibility; disable debug mode for single Composer commands if desired |
-| Composer dependency solve | **NOT RUN** | T003 still pending |
+| Composer dependency solve | **PASS in separate `/tmp` dry-run** (see T003 evidence section) | T003 fulfilled without a project lock/install |
 
 **Documentation source:** official Laravel 13 deployment requirements: https://laravel.com/docs/13.x/deployment. **Evidence source:** terminal transcript supplied by project owner; not independently executed within Codespaces by this assistant. The isolated assistant container observations recorded in earlier handoff are not representative of this project's environment.
 
-### Remaining T003 checks
+### T003 candidate package research (now verified through dry-run only)
 
-**Current published candidate (verified via upstream documentation/Packagist on 2026-11-23):** `laravel/framework:^13.0`, `pestphp/pest:^5.0`, `pestphp/pest-plugin-laravel:^5.0` on **PHP 8.4.27**. Pest 5 requires PHP 8.4 and is built on PHPUnit 13, while Pest Laravel Plugin 5.0.1 declares a Laravel 13 framework constraint beginning at `^13.23.0`. **These are external metadata facts, not proof of a Composer-resolvable set in this project.** A root PHPUnit pin is deliberately omitted from the temporary probe so Pest may select its compatible PHPUnit version. Pest 5.3.7 has an explicit conflict with PHPUnit `>13.4.7`, even though Packagist lists PHPUnit 13.4.8 separately; real resolution may choose an allowed patch or fail under security policy, and neither situation should be hidden.
+**Current published candidate (verified via upstream documentation/Packagist on 2026-11-23):** `laravel/framework:^13.0`, `pestphp/pest:^5.0`, `pestphp/pest-plugin-laravel:^5.0` on **PHP 8.4.27**. Pest 5 requires PHP 8.4 and is built on PHPUnit 13, while Pest Laravel Plugin 5.0.1 declares a Laravel 13 framework constraint beginning at `^13.23.0`. **These were external metadata predictions; the owner subsequently supplied an actual successful isolated Composer resolution, detailed below, but not a project lock/install.** A root PHPUnit pin is deliberately omitted from the temporary probe so Pest may select its compatible PHPUnit version. Pest 5.3.7 has an explicit conflict with PHPUnit `>13.4.7`, even though Packagist lists PHPUnit 13.4.8 separately; real resolution may choose an allowed patch or fail under security policy, and neither situation should be hidden.
 
 **Historical candidate:** Older F0-01 research mentioned Pest 4 + PHPUnit 12 per Laravel upgrade guidance. That guidance remains historically accurate for upgrading certain older projects, but **does not fix the test tool versions for this new Laravel 13 project**. Do not automatically pin the old combination or treat the new combination as approved without Composer results.
 
-**Safe T003 requirement:** run a real `composer update --dry-run --no-install --no-scripts --no-plugins` inside a **temporary directory outside the repository**, record actual exit status/solver output, do not install packages, execute plugins/scripts, skip extension checks, ignore security policy or silently downgrade. See `quickstart.md` for a reproducible probe.
+**T003 execution completed in Codespaces:** `composer validate --strict --no-check-publish` and `composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction` using `XDEBUG_MODE=off` in `/tmp/f0-01-composer-qwmppK`. Solver exit `0`. See exact recorded selection below. This remains a hypothetical dependency graph until a project lockfile/install and runtime tests are executed in later approved tasks.
 
 External sources: [Pest 5 upgrade guidance](https://pestphp.com/docs/upgrade-guide), [Pest 5 release](https://pestphp.com/docs/pest5-now-available), [Pest Laravel Plugin on Packagist](https://packagist.org/packages/pestphp/pest-plugin-laravel), [Pest on Packagist](https://packagist.org/packages/pestphp/pest), [PHPUnit on Packagist](https://packagist.org/packages/phpunit/phpunit), and [Composer CLI dry-run](https://getcomposer.org/doc/03-cli.md).
+
+## T003 successful isolated dependency resolution — owner-provided Codespaces transcript, 2026-11-23
+
+**This is actual command output from the owner's authorized Codespace, not an assistant-run Codespaces shell.** Scope was a temporary `/tmp` directory and Composer dry-run only, with scripts and plugins disabled.
+
+| Field | Observed evidence |
+| --- | --- |
+| Probe working directory | `/tmp/f0-01-composer-qwmppK` |
+| PHP / Composer | PHP `8.4.27`, Composer `2.10.3` (from T002) |
+| Manifest validation | `./composer.json is valid` from `composer validate --strict --no-check-publish` |
+| Resolver command | `XDEBUG_MODE=off composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction` |
+| Result / exit | `T003_COMPOSER_EXIT=0`; 118 planned installs, 0 updates, 0 removals |
+| Framework | `laravel/framework v13.43.0` |
+| Tests | `pestphp/pest v5.3.7`, `pestphp/pest-plugin-laravel v5.0.1`, `phpunit/phpunit 13.4.7` |
+| Other representative selection | `brianium/paratest v7.29.0` and `symfony/console v8.1.11` |
+| Vulnerability advisory output | `No security vulnerability advisories found.` at probe time |
+| Installation / lock commit / application boot | **NOT DONE**; dry-run `Locking` lines are only solver output |
+
+**Conclusion:** This candidate version set is **Composer-resolvable in the sampled Codespaces environment**. Pest 5.3.7 and PHPUnit 13.4.7 were successfully selected together (the previously identified patch conflict with later PHPUnit versions did not block resolution). This is not proof of application behavior, finalized Composer lock contents, API module wiring, CI, or production-security readiness.
+
+**Next:** T004 non-destructive Git/credential hygiene and rollback checks. Later T005/T021 must produce a reviewed project `composer.json`+`composer.lock`, actual install and `composer check-platform-reqs` evidence; review any dependency changes at that time. The approved F0-01 technical scope is unchanged.
 
 ## Open technical risks and stop conditions
 
