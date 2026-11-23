@@ -3,42 +3,32 @@
 **Last verified:** 2026-11-23  
 **Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
-**Current milestone:** F0-01 implementation authorized and source staged; CI runner initialization BLOCKED, no real lockfile or Laravel tests. **T005 remains unchecked.**
+**Current milestone:** **Laravel 13 bootstrap + committed Composer lock + DB-free Foundation smoke validated by successful GitHub Actions**. T001–T009 COMPLETE, T010–T026 PENDING; PR #1/#2 Draft/unmerged.
 
-## Read first — authoritative current snapshot
+## Read first — current source of truth
 
-1. **[LATEST: F0-01 Private-repo runner diagnosis narrowed — 2026-11-23](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md)** — actual cross-repository comparison, official status/billing documentation and exact remaining GitHub UI checks. **Root cause still unconfirmed.**
-2. **[Prior: F0-01 Runner Triage + direct GitHub Actions retry — 2026-11-23](F0-01_RUNNER_TRIAGE_AND_TEST_GUARDS_2026-11-23.md)** — Includes ChatGPT-triggered rerun for #45217288046, resulting job #137850639683 failure before steps, [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3), test safeguards and next action.
-2. [Prior: T005 CI blocked / T006–T008 prepared](F0-01_T005_CI_BLOCKED_TESTS_PREPARED_2026-11-23.md) and [Laravel 13 source staged](F0-01_T005_SOURCE_STAGED_2026-11-23.md).
-3. [Owner's explicit T005 Option A implementation authorization](../reviews/F0-01-implementation-authorization.md) and [NO Codespaces workflow instruction](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
-4. [F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), [review](../reviews/F0-01-spec-review.md).
-5. [Historical T004](F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md), [T003](F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md), [T002](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md) handoffs; [constitution](../../.specify/memory/constitution.md), [workflow](../WORKFLOW.md), [business gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
+1. **[LATEST: F0-01 Bootstrap Validated — 2026-11-23](F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md)** — real CI proof, locked dependencies, route fixes, clean smoke test and T010 next action.
+2. [Task ledger T001–T009 complete](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved Spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [approved Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [Research](../../specs/001-laravel-bootstrap-module-registry/research.md).
+3. [Separate T005 authorization](../reviews/F0-01-implementation-authorization.md) and [No-Codespaces workflow](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
+4. [Historical private Actions blocker](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md), [Constitution](../../.specify/memory/constitution.md), [branch workflow](../WORKFLOW.md), [open business gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
 
-## Actual verified status — 2026-11-23
+## Current verified project state — 2026-11-23
 
-- **T001–T004 COMPLETE; T005 IN PROGRESS/BLOCKED; T006–T008 COMPLETE for limited static/docs/authoring scope; T009–T026 PENDING.** Exactly **7 of 26 tasks are checked**. Implementation authorization was separately granted by owner; **merge/deploy was not authorized**.
-- Laravel 13 minimal API bootstrap and two authored Pest smoke-test files are on Draft [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2), stacked on Draft [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1). No production routes, migrations, default User/Auth or Tenancy. **No `composer.lock`, vendor install or live Laravel runtime/test result exists.**
-- A read-only GitHub Actions [F0-01 workflow](../../.github/workflows/f0-01-laravel-bootstrap.yml) exists to generate a **candidate** lockfile artifact/install/bootstrap/test, but **four observed runs failed with zero job steps**, no usable logs/artifacts (including latest recorded run `45217288046`). Exact reason remains unconfirmed. Blocker tracked under [GitHub Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3).
-- **Test-selection hardening:** `phpunit.xml` adds `failOnEmptyTestSuite="true"` and CI now uses `php artisan test --group=foundation --fail-on-empty-test-suite --no-ansi`; XML syntax parsed successfully in the isolated check. **No runtime Pest/PHPUnit tests executed**, so no green CI claims.
-- **No viable runner:** local assistant container has PHP 8.4.24 but no Composer, required PHP extensions, Docker or Packagist DNS; connected desktop device is offline. Historical Codespaces PHP/Composer preflight + isolated dependency dry-run were successful but are not installed-project evidence. **Owner expressly forbids further manual Codespaces steps.**
-- PR #2 title/body now accurately describe partial source implementation and blocked CI. Both PRs remain Draft/unmerged; no data, secret, migrations, deployment or merge touched.
-- D-201 **OPEN**, BA-16 **DEFERRED**, BA-30 G3 **BLOCKED**.
+- **T001–T009 COMPLETE (9/26); T010–T026 PENDING.** F0-01 Spec + Plan Option A and separate implementation approval already recorded.
+- [GitHub Actions Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994) **PASSED** at tested source SHA `a446e0be`. Real Ubuntu runner PHP `8.4.28`, Composer `2.11.2`, Laravel `13.43.0`; committed lockfile validated, locked install (no scripts/plugins), platform checks, `composer audit --locked` (no advisories reported), `php artisan about`, `php artisan route:list --json` (`[]`), and DB-free Pest Foundation smoke **1 passed, 9 assertions, no warnings**. Tracked-file diff check passed.
+- `composer.lock` generated from a real GitHub Actions artifact, verified and committed (`5d334ecd`, 118 packages). CI installs **pinned dependencies** rather than running `composer update` each time.
+- Test failures were real and fixed: missing `tests/Unit` directory, Laravel's default private Storage GET/PUT routes disabled via local `serve=false`, and missing dotenv PHPUnit warning resolved by an **empty, ignored, ephemeral CI-only `.env`**. No production credentials, default User/Auth, Sanctum, tenancy, migrations or data access.
+- Owner reported former GitHub Actions limit on private repositories was lifted; subsequent CI runs actually executed. The historical runner blocker [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3) is **CLOSED**; the assistant did not inspect billing amounts.
+- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) remains Draft/unmerged → `development`; [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remains Draft/unmerged → `feature/f0-spec-kit-setup`. No merges/deployment. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
+- **Important limit:** Foundation success does not prove the unimplemented explicit Module Registry, FoundationDemo, missing/duplicate/unlisted provider rejection, production test-probe route/cache isolation or final architectural/security reviews.
 
-The connected GitHub connector can re-run jobs directly without Work mode; a direct retry of run `45217288046` was accepted but new job `137850639683` **failed before any steps**, so runner settings/billing remain an unresolved blocker. No user-run Codespaces tasks.
+## Next exact action — T010 (no Codespaces)
 
-## New narrow diagnostic finding — 2026-11-23
+Continue F0-01 **T010–T026** under the approved Option A plan: start with negative unit tests for Module Registry configuration/provider validation; implement minimal native Laravel explicit Module Registry and test-only FoundationDemo; verify unlisted/invalid/duplicate providers, test-only route availability, absence under production routing **and production route cache**, and source/module ownership. Keep GitHub Actions green and log actual outputs. Do **not** implement Auth/Sanctum/Tenancy, migrations or business APIs, merge or deploy without their separate gates.
 
-The F0-01 repo is **private**, while another Elmo-Tech repo **restaurant-qr-platform (public)** has a successful GitHub Actions run [45189505578](https://github.com/Elmo-Tech/restaurant-qr-platform/actions/runs/45189505578) (17 job steps). [Official GitHub Status](https://www.githubstatus.com/) reported Actions operational with no incident on 2026-11-23. A private-repo **Actions budget/quota or runner-policy restriction is plausible, NOT verified**. GitHub's [billing docs](https://docs.github.com/en/billing/concepts/product-billing/github-actions) distinguish public free hosted runners from private metered runs. Current connector has repo admin and can rerun/read job metadata, but **no access to Org billing/Actions settings**, and the user's org-membership call returned no organizations (not evidence of actual owner role). Read [new dated handoff](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md) and [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3). Do not run Codespaces or alter billing settings.
+## Product and decision continuity
 
-## Next exact action (no user-run Codespaces work)
-
-Unblock the GitHub Actions job initialization via concrete org/repo Actions runner and billing-policy evidence, or obtain an **actually online** independent PHP 8.4+/Composer runner with required extensions/Packagist access. [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3) records the exact job IDs and **GitHub UI** diagnosis checks; the connector lacks Actions billing/admin APIs. Do not assume the cause or change billing settings without authorization.
-
-When a runner truly starts, **generate a real project `composer.lock` from its committed manifest**, review package/security selection and commit it only after confirmation, then run actual Composer install/platform, Artisan boot/route-list and Pest smoke; record logs/SHA before marking T005/T009 complete. Do not begin further Module Registry gates, merge, deploy or ask the owner to execute Codespaces commands without required runtime evidence.
-
-n continuity
-
-The agreed product is an Egypt-first multi-tenant e-commerce SaaS for SMB merchants with independent stores, Online/Manual/Direct Sales, location-separated inventory and one-location full-order fulfillment in the MVP. Not a full ERP/POS. The most recent historical business approval in the consolidated handoff was **D-200 A**. **D-201** (customer response marker for proposed alternative location) **remains open**; revisit it in the Orders/Fulfillment module, not during F0-01.
+Egypt-first multi-tenant e-commerce SaaS for SMB merchants with independent stores, Online/Manual/Direct Sales, location-separated inventory and one-location full-order fulfillment in the MVP; **not** a full ERP/POS. Last historical approved decision D-200 A; **D-201 OPEN** (customer response marker for alternative stock location) to revisit during Orders/Fulfillment, not during F0-01.
 
 ## Permanent instruction for future sessions
 
