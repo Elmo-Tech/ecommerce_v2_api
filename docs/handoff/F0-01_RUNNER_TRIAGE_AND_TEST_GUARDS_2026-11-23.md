@@ -71,6 +71,13 @@ The [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3) is the tr
 
 After a runner is actually assigned: generate and review real project `composer.lock`, install `vendor/` without Composer scripts/plugins, run actual `composer check-platform-reqs` / `php artisan about` / `route:list` / Pest Foundation smoke and record real logs plus commit SHA; then finish T005/T009 and proceed with Module Registry tasks. Keep PR Draft and do not merge/deploy without gates.
 
+## Direct GitHub Actions retry from ChatGPT — 2026-11-23
+
+- The owner asked whether **GitHub Actions can be operated directly in ChatGPT without Work mode**. Confirmed **YES** through the installed GitHub connector: `rerun_failed_workflow_run_jobs({run_id:45217288046})` returned `success:true`.
+- The retry successfully created a new job **`137850639683`**, which went from **queued** to **completed/failure**, with **zero executed steps and no artifacts**. The successful retry API call does **not** mean a successful workflow. GitHub's pre-step execution problem persists.
+- No Codespaces tasks were requested, no Composer installation, no real Laravel tests, migrations, deployment or merge occurred. T005/T009 remain blocked. This evidence was also added to [GitHub Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3).
+- Available through connector: edit workflow files, re-run failed jobs, inspect job states/logs/artifacts. Unavailable through connector: org Actions billing and hosted runner policies/allocations. Work mode is **not** required for basic GitHub Actions control, but may be needed for direct settings UI navigation.
+
 ## 6. Source of truth for new chat
 
 - [NEXT_CHAT_START_HERE](NEXT_CHAT_START_HERE.md) — permanent entrypoint, updated after this snapshot
