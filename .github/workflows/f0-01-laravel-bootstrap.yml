@@ -4,9 +4,31 @@ on:
   push:
     branches:
       - feature/f0-01-laravel-bootstrap
+    paths:
+      - composer.json
+      - composer.lock
+      - app/**
+      - bootstrap/**
+      - config/**
+      - public/**
+      - routes/**
+      - tests/**
+      - phpunit.xml
+      - .github/workflows/f0-01-laravel-bootstrap.yml
   pull_request:
     branches:
       - feature/f0-spec-kit-setup
+    paths:
+      - composer.json
+      - composer.lock
+      - app/**
+      - bootstrap/**
+      - config/**
+      - public/**
+      - routes/**
+      - tests/**
+      - phpunit.xml
+      - .github/workflows/f0-01-laravel-bootstrap.yml
   workflow_dispatch:
 
 permissions:
