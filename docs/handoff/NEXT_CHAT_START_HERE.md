@@ -8,6 +8,8 @@
 
 **Live T026 checkpoint:** Manual independent CodeRabbit review requested on both PRs. **PR #1 review triggered and processing; PR #2 review was rate-limited (CodeRabbit said ~59 minutes from 2026-11-24 01:54 Cairo)**. **Neither review was completed or approved** at checkpoint, so **T026 remains PENDING and no merge/next Feature is allowed**. Read [T026 review-requested handoff](F0-01_T026_REVIEW_REQUESTED_2026-11-24.md) **before prior completed milestone**. GitHub currently reports repository **public** (was previously documented private); do not change visibility without owner approval.
 
+**One-time follow-up automation:** Already scheduled for **2026-11-24 03:02 Africa/Cairo** to inspect CodeRabbit PR #1/#2 after rate-limit recovery, request a single PR #2 review only if eligible, update handoff and report actual findings; **do not schedule another duplicate**. This is **not a guarantee of review completion or merge approval**. T026 stays pending until documented independently reviewed/approved.
+
 ## FIRST: Exact files to open in the NEXT CHAT (in this order)
 
 1. **[NEW LATEST: T026 INDEPENDENT PR REVIEW REQUESTED — 2026-11-24](F0-01_T026_REVIEW_REQUESTED_2026-11-24.md)** — PR #1 bot review triggered/in progress; PR #2 rate limited; no submitted independent approvals, exact comment links, GitHub rules/visibility limitations and precise next steps. **Read immediately after this entrypoint.**
