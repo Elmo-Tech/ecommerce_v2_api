@@ -1,7 +1,7 @@
 # Implementation Plan: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Branch**: `feature/f0-01-laravel-bootstrap` | **Prepared**: 2026-11-23 | **Spec**: [spec.md](spec.md)  
-**Status**: **APPROVED — F0-01 Option A, 2026-11-23 (Spec + Plan).** **T005 separately authorized** (2026-11-23) and a minimal official-source skeleton **partially staged** on GitHub. **No project `composer.lock`, packages installed, Laravel boot, framework tests, CI success or deployment. T005 remains unchecked.**  
+**Status**: **APPROVED — F0-01 Option A; T001–T009 COMPLETE (2026-11-23), T010–T026 PENDING.** Separately authorized T005 now has an authentic committed `composer.lock`, successful locked Composer install and platform/advisory checks, Laravel 13.43.0 bootstrap and Pest Foundation smoke (1 passed / 9 assertions) in [GitHub Actions Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994). No Module Registry/provider/demo production route/cache tests, deployment or PR merge yet.  
 **Input**: Reviewed F0-01 `spec.md` v0.2 and ratified [E-commerce SaaS V2 Constitution v1.0.0](../../.specify/memory/constitution.md).  
 **Method**: Reviewer-authored against official Spec Kit v1.4.3 `plan-template.md` using agent-neutral `none` integration; not a run of `/speckit.plan`.
 
@@ -42,7 +42,7 @@ The owner approved this **technical design approach** under F0-01 Option A on 20
 | VII — Tests / evidence | **PENDING** — required test design identified | Run real tests and record versions, commands, revision, actual output; don't claim unrun CI |
 | VIII — Simplicity / releases | **Design PASS, runtime pending** — native Laravel + minimal custom registry, PHP-FPM first | Composer compatibility, one-root scaffold diff, no auto-migrations, owner/test/PR gates |
 
-**Implementation gate (updated 2026-11-23):** Owner approval of Spec + Plan and the **separate T005 implementation authorization are SATISFIED**. T002 PHP/Composer prerequisites, T003 temporary Composer solver dry-run and T004 scoped GitHub safety checks are documented as complete. **T005 is PARTIAL**, because a real project `composer.lock` and compatible non-Codespaces install/bootstrap/test runner are not yet available; runtime/code-security checks remain open and must not be claimed as passed.
+**Implementation gate (updated 2026-11-23):** Owner approval of Spec + Plan, separate T005 authorization, pre-code checks, **real project lockfile, CI install/bootstrap/Foundation smoke and advisory audit are SATISFIED (T001–T009 complete)**. The Module Registry, test-only FoundationDemo, negative/provider validation, production route/cache isolation and final security/merge gates T010–T026 are **PENDING**; no production deploy, DB migration or PR merge was performed.
 
 ## Phase 0 — Research (Documentary Only)
 
