@@ -3,31 +3,30 @@
 **Last verified:** 2026-11-23  
 **Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
-**Current milestone:** F0-01 Specification and Technical Plan **APPROVED (Option A)**; implementation has **NOT** started.
+**Current milestone:** F0-01 Option A **APPROVED**, implementation start separately authorized; Laravel source and initial tests staged but actual runtime, lockfile and CI are **BLOCKED**.
 
-## Read first — latest status & decision
+## Read first — latest verified state
 
-1. **[LATEST: T005 Laravel 13 official source staged, runtime/lock blocked — 2026-11-23](F0-01_T005_SOURCE_STAGED_2026-11-23.md)** — exact changed file inventory, static checks, limitations and next step.
-2. [Owner's explicit T005 implementation authorization](../reviews/F0-01-implementation-authorization.md) — **Option A** separately approved beginning T005 on the same feature branch, **NOT** deploying/merging.
-3. [No-Codespaces workflow rule](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md) — do not ask the owner to run commands in Codespaces.
-4. [F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved technical plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [specification](../../specs/001-laravel-bootstrap-module-registry/spec.md), [quickstart/evidence](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), [review](../reviews/F0-01-spec-review.md).
-5. [Earlier T004 safety handoff](F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md), [T003 Composer dry-run](F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md), [T002 PHP/Composer check](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md), [Constitution](../../.specify/memory/constitution.md), [workflow](../WORKFLOW.md) and [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
+1. **[LATEST: F0-01 T005 CI BLOCKED / T006–T008 PREPARED — 2026-11-23](F0-01_T005_CI_BLOCKED_TESTS_PREPARED_2026-11-23.md)** — actual GitHub Actions job IDs/results, code/tests added, remaining prerequisites and exact continuation.
+2. [T005 Laravel 13 staged source handoff](F0-01_T005_SOURCE_STAGED_2026-11-23.md) and [separate Option A implementation authorization](../reviews/F0-01-implementation-authorization.md).
+3. [No-Codespaces workflow](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md): owner **does not want to run any more Codespaces commands**.
+4. [Current F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [updated quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), and [F0-01 review record](../reviews/F0-01-spec-review.md).
+5. Earlier [T004](F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md), [T003](F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md) and [T002](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md) handoffs; [Constitution](../../.specify/memory/constitution.md), [workflow](../WORKFLOW.md), [open business gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
 
-## Current implementation state — 2026-11-23
+## Precise current project status — 2026-11-23
 
-- F0-01 Specification + Technical Plan **APPROVED — Option A**. **Separate owner approval to START T005 also GRANTED** in this conversation (response `a`) and recorded on GitHub.
-- **T001–T004 COMPLETE. T005 IN PROGRESS / PARTIALLY STAGED, NOT COMPLETE. T006–T026 PENDING.** A successful source-file commit is not a validated Laravel application.
-- 33 Laravel 13 framework/config/structure files were selectively added on `feature/f0-01-laravel-bootstrap`, based on the official upstream `laravel/laravel` `13.x` skeleton. Root now includes `composer.json`, `artisan`, `bootstrap/app.php`, `bootstrap/providers.php`, `app/`, `config/`, `public/index.php`, `phpunit.xml`, safe `.env.example`, runtime storage markers.
-- The skeleton uses PHP `^8.4`, Laravel `^13.0`, Pest `^5.0`; `composer.json` has **no install/migration scripts**. `bootstrap/app.php` registers **no web/API/health production route**. Default User/auth, migrations, Sanctum, tenancy and business features remain excluded. Config uses array cache/session, sync queue and in-memory SQLite placeholder.
-- GitHub comparison verified the initial 33-source-file staging plus approval record did **not overwrite** historic approved docs/specs/.specify; `README.md` was subsequently **minimally updated only to describe the actual new status**.
-- Static sanity: modified `bootstrap/app.php` and `routes/console.php` passed `php -l` in assistant scratch; new `composer.json` parsed as JSON. **NO actual Laravel bootstrap, Composer install, Pest tests, CI pass, migration, deployment or PR merge was executed**.
-- **Critical T005 blocker:** project `composer.lock` is **absent**. Assistant container has PHP 8.4.24 but lacks Composer, required extensions and working package-network access; a connected remote desktop runner is offline; old GitHub Actions `init` jobs failed before steps. Earlier Codespaces T003 dry-run exit 0 (Laravel 13.43.0/Pest 5.3.7/PHPUnit 13.4.7) is historical, NOT this project's installed lock. **Never invent `composer.lock` or test success**.
-- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) still **Draft/unmerged**; PR #2 is stacked on PR #1. No production credentials or tenant DB changes.
-- Business **D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED**.
+- Owner approved **F0-01 Spec + Technical Plan Option A**, and separately approved **beginning implementation T005** on `feature/f0-01-laravel-bootstrap`. No authorization to deploy or merge.
+- **T001–T004 DONE; T005 IN PROGRESS/BLOCKED (no real `composer.lock` or Laravel install); T006–T008 DONE for static review/documentation/authored code ONLY; T009–T026 OPEN.**
+- Laravel 13 API-first skeleton exists on GitHub: 33 source/config files from official `laravel/laravel` `13.x`, plus 2 Pest test files `tests/Pest.php` and `tests/Feature/Foundation/BootstrapSmokeTest.php`. The tests are **not executed**. `bootstrap/app.php` has no web/health/public API route, and no User/identity/tenant/default migrations were added.
+- `.github/workflows/f0-01-laravel-bootstrap.yml` defines PHP 8.4, a candidate `composer.lock` artifact, a safe no-scripts/no-plugins dependency install, Laravel Artisan checks and smoke test. CI is path-filtered to avoid running on documentation-only pushes. Its three observed runs **45210517286**, **45211196092**, **45211745261** all **failed before any step** with zero job steps, no useful logs and no lock artifact; exact platform cause **unknown**. **Do not call CI or Laravel tests passed.**
+- T006 remote static inspection of 9 files had 13/13 defensive assertions; the 54-file PR #2 patch review detected zero high-confidence secret-pattern hits and no unexpected migration/auth/default User files. **These are bounded checks, not historical secret or dependency audits.**
+- PHP 8.4 syntax check passed for the two authored test files in isolated scratch. The assistant container lacks Composer, required extensions and usable Packagist DNS, so no real app install can run there. Earlier Codespaces T002/T003 results are historical preflight **only**, and the owner prohibits additional manual Codespaces work.
+- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remain **Draft/unmerged**; PR #2 is stacked on PR #1.
+- D-201 **OPEN**, BA-16 **DEFERRED**, BA-30 G3 **BLOCKED**.
 
-## Exact next action — continue T005 without Codespaces
+## Single next action — no user-run Codespaces commands
 
-Find/enable a truly compatible **assistant-managed** non-Codespaces runner or properly functioning GitHub Actions to generate the real `composer.lock` for the **committed** manifest and validate install/platform/Laravel boot; record actual logs and commit SHA. Keep lockfile and runtime-test gates open until checks run. Preserve all branch history and previous decisions. **Owner has already authorized starting T005 — do not re-ask for the same authorization; but no deploy/merge approval exists.** If a compatible runner remains unavailable, report the blocker instead of claiming completion. Never ask the owner to execute Codespaces commands.
+**Restore a functional independent PHP/Composer runner or GitHub Actions job initialization** before finalizing T005. Diagnose GitHub Actions organization/repository execution settings and runner availability **only with actual accessible evidence**; the present connector exposes job failure but no reason. When a runner is genuinely available, execute reviewed Composer manifest/lockfile generation and real install, inspect the generated `composer.lock`, run `php artisan about`, `php artisan route:list`, the Foundation smoke test and subsequent tests. Do not invent a lockfile or claim success from a dry-run. Keep PRs Draft, do not merge/deploy, and **do not ask the owner to use Codespaces**.
 
 ## Product/decision continuity
 
