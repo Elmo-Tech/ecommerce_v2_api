@@ -1,38 +1,46 @@
-# START HERE — E-commerce SaaS V2 API — next chat
+# START HERE — E-commerce SaaS V2 API — current project handoff
 
-**GitHub:** https://github.com/Elmo-Tech/ecommerce_v2_api  
-**Organization:** Elmo-Tech  
-**Default branch:** `main` (stable). **Development integration branch:** `development`.  
-**Stage:** business decisions collected; code scaffolding and technical architecture **not yet approved**.
+**Last verified:** 2026-11-23  
+**Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
+**Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
+**Current milestone:** F0-01 Specification and Technical Plan **APPROVED (Option A)**; implementation has **NOT** started.
 
-## Read these in order
+## Read first (current, authoritative)
 
-1. [Latest canonical D-152 onward decision register](../decisions/ecommerce_saas_decision_register_D152_onward_2026-11-15.md).
-2. [Full Business Discovery Handoff v5.48, approved through D-200](ecommerce_saas_handoff_v5_48_2026-11-16.md).
-3. [Open decisions & MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
-4. [Original historical handoff](ecommerce_saas_business_discovery_handoff_ar.md).
+1. [Latest dated F0-01 handoff: 2026-11-23 preflight](F0-01_preflight_2026-11-23.md).
+2. [F0-01 Task Ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [Technical Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Specification](../../specs/001-laravel-bootstrap-module-registry/spec.md).
+3. [F0-01 owner approval review](../reviews/F0-01-spec-review.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).
+4. [Architecture and workflow conventions](../WORKFLOW.md) and [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
+5. [Full Business Discovery Handoff v5.48](ecommerce_saas_handoff_v5_48_2026-11-16.md) and [decision register D-152 onward](../decisions/ecommerce_saas_decision_register_D152_onward_2026-11-15.md).
 
-## Decision status at transition
+## Verified status — do not assume more
 
-- The newest approved decision is **D-200, choice A**: show alternative fulfillment locations compatible with the customer's current Delivery/Pickup method first, then locations requiring a method change. Inside each group, prioritize lower **reliable and comparable indicative order totals**. Keep unknown costs visible as **“needs review”**, not ranked by imaginary numbers. This internal ordering is **not FIFO** and does not reserve stock or change the order.
-- **D-201 remains OPEN**: A) internal “awaiting customer response” indicator for a proposed alternative location (previous recommendation); B) communication notes only. **No choice has been accepted yet**.
-- Historical OPEN proposals in the long handoff are not active if a newer approved decision supersedes them.
-- Business rules that are APPROVED are **not automatically MVP implementation commitments**.
+- **T001 completed** (F0-01 Option A approved, commit `e730a5c`). **T002–T026 pending**.
+- In an isolated assistant container, **PHP 8.4.24** was found but **Composer was absent**, as were required PHP extensions **curl, dom, mbstring, xml**. **This was not the project's Codespace**. Codespaces runtime is still unverified.
+- Laravel 13 requires PHP >=8.3. PHPUnit ^12 and Pest ^4 are documented upgrade guidance, **not a tested Composer resolution**.
+- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) Draft/unmerged; [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) Draft/unmerged and stacked on PR #1.
+- No Laravel skeleton (`composer.json`/`artisan`) existed at original commit `e730a5c`; no migrations, implementation tests, CI passing proof or deployment.
+- Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED**. Approved architecture/decisions remain authoritative; no silent choice changes.
 
-## Product goals already agreed
+## Exact next action: T002 Codespaces runtime and worktree evidence
 
-Egypt-first pilot for small/medium omnichannel retailers; multi-tenant independent merchant storefronts; Online Orders, Manual Orders, basic Direct Sales; a catalog with variants, discounts, coupons, taxes/shipping, location-separated inventory, and single-location **full-order** fulfillment. **Not** a full ERP/POS; no Split Fulfillment in MVP.
+Run inside the **authorized project Codespace** and share output. Read-only:
 
-## Technology direction, not an approved architecture
+```bash
+php -v
+composer --version
+php -m
+git status --short
+git branch --show-current
+git log -1 --oneline
+```
 
-Laravel API + PostgreSQL + Next.js + GitHub Spec Kit were stated as the preferred direction. Precise API/module architecture, tenant isolation, CI, deployment and infrastructure need project kickoff decisions and design review.
+Then finish T003 dependency/version verification and T004 clean-worktree/safe-scaffold review. **Do not begin T005 or merge** without actual preflight and the separate implementation authorization. This handoff update does not change approved F0-01 Option A.
 
-## The instruction for the next conversation
+## Product/decision continuity
 
-> We created `Elmo-Tech/ecommerce_v2_api`, with `main` and `development`, and archived full Business Discovery handoffs. Read all linked repository documentation before responding. Start **Project Kickoff and MVP Scope v1**. Identify **only blocking decisions**, then discuss architecture and an incremental Laravel API implementation plan, modular features, tests, CI and branch workflow. Keep D-201 OPEN and discuss it when we reach Orders & Fulfillment. Do not silently approve any option, assume every business decision is mandatory in MVP, or start application coding without approving the plan.
+The agreed product is an Egypt-first multi-tenant e-commerce SaaS for SMB merchants with independent stores, Online/Manual/Direct Sales, location-separated inventory and one-location full-order fulfillment in the MVP. Not a full ERP/POS. The most recent historical business approval in the consolidated handoff was **D-200 A**. **D-201** (customer response marker for proposed alternative location) **remains open**; revisit it in the Orders/Fulfillment module, not during F0-01.
 
-## Non-negotiable checks
+## Permanent instruction for future sessions
 
-- Tenant isolation and staff permissions, auditability and payment/inventory consistency need rigorous implementation.
-- Do not imply that the pilot is compliant with Egypt's statutory e-invoicing or e-receipt obligations without verifying actual merchant eligibility and compliance.
-- Preserve the complete older decision history. The handoff notes a missing original historic v0.2 file for some early decision wording; ask for it only if it materially affects a rule.
+**Always refresh this file** when work advances. For each milestone, keep a dated snapshot in `docs/handoff/` containing precise approvals, task status, Git SHA/PR status, evidence source/environment, blockers and next action. Keep historical handoffs and decisions for traceability.
