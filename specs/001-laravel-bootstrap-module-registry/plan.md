@@ -1,7 +1,7 @@
 # Implementation Plan: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Branch**: `feature/f0-01-laravel-bootstrap` | **Prepared**: 2026-11-23 | **Spec**: [spec.md](spec.md)  
-**Status**: **APPROVED — F0-01 Option A, 2026-11-23 (Spec + Plan).** No code implemented or tested; real runtime validation and separate implementation authorization remain pending.  
+**Status**: **APPROVED — F0-01 Option A, 2026-11-23 (Spec + Plan).** **T005 separately authorized** (2026-11-23) and a minimal official-source skeleton **partially staged** on GitHub. **No project `composer.lock`, packages installed, Laravel boot, framework tests, CI success or deployment. T005 remains unchecked.**  
 **Input**: Reviewed F0-01 `spec.md` v0.2 and ratified [E-commerce SaaS V2 Constitution v1.0.0](../../.specify/memory/constitution.md).  
 **Method**: Reviewer-authored against official Spec Kit v1.4.3 `plan-template.md` using agent-neutral `none` integration; not a run of `/speckit.plan`.
 
@@ -9,7 +9,7 @@
 
 Create a minimal reproducible **Laravel 13 API-first backend** in the **existing repository root**, preserving approved documents, Spec Kit, history and branch conventions. Demonstrate a **small explicit Module Registry** loading only listed Providers through the Laravel lifecycle, with one **non-business FoundationDemo module**. The only demonstration route is test-only, with automated proof that it does **not** exist in a non-testing/production application. Provide runtime/bootstrap, positive and negative registration, and architectural tests without building Auth, Tenancy, business schemas, production endpoints, infrastructure or deployment.
 
-The owner approved this **technical design approach** under F0-01 Option A on 2026-11-23. Approval fixes the reviewed scope; it **does not** prove PHP/Composer compatibility, authorize deployment or Code changes by itself, or waive the separate implementation and test gates.
+The owner approved this **technical design approach** under F0-01 Option A on 2026-11-23. A **separate later owner response, A**, expressly authorized **starting T005** on `feature/f0-01-laravel-bootstrap`, recorded in [F0-01 implementation authorization](../../docs/reviews/F0-01-implementation-authorization.md). This is not approval to deploy/merge or to skip real Composer/project runtime tests. The [T005 staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md) records what source actually exists and why T005 remains open.
 
 ## Technical Context
 
@@ -42,7 +42,7 @@ The owner approved this **technical design approach** under F0-01 Option A on 20
 | VII — Tests / evidence | **PENDING** — required test design identified | Run real tests and record versions, commands, revision, actual output; don't claim unrun CI |
 | VIII — Simplicity / releases | **Design PASS, runtime pending** — native Laravel + minimal custom registry, PHP-FPM first | Composer compatibility, one-root scaffold diff, no auto-migrations, owner/test/PR gates |
 
-**Implementation gate:** Owner approval of the F0-01 Spec + Plan is **SATISFIED (Option A, 2026-11-23)**. Actual PHP/Composer/Laravel compatibility evidence and a separate authorization to begin implementation are still **PENDING**; a red runtime/security result blocks further work.
+**Implementation gate (updated 2026-11-23):** Owner approval of Spec + Plan and the **separate T005 implementation authorization are SATISFIED**. T002 PHP/Composer prerequisites, T003 temporary Composer solver dry-run and T004 scoped GitHub safety checks are documented as complete. **T005 is PARTIAL**, because a real project `composer.lock` and compatible non-Codespaces install/bootstrap/test runner are not yet available; runtime/code-security checks remain open and must not be claimed as passed.
 
 ## Phase 0 — Research (Documentary Only)
 
@@ -51,7 +51,7 @@ See [research.md](research.md) for official-source checks and pending runtime pr
 - Official Laravel 13 [release notes](https://laravel.com/docs/13.x/releases) specify PHP minimum **8.3** and recommend `^13.0` when requiring the framework.
 - Laravel 13 [Service Providers](https://laravel.com/docs/13.x/providers) uses `bootstrap/providers.php`; `register()` binds dependencies, `boot()` initializes routes/listeners.
 - Laravel 13 [routing documentation](https://laravel.com/docs/13.x/routing) states `php artisan install:api` **installs Sanctum**; intentionally do not invoke it in F0-01.
-- No actual Composer dependency graph, PHP extensions, provider registration timing, Pest compatibility or application test has been executed here.
+- **Subsequently verified:** Owner-provided real Codespaces PHP 8.4.27/extensions + temporary Composer dry-run resolver (Laravel 13.43.0 / Pest 5.3.7 / PHPUnit 13.4.7); **not** a project install/lock or application test. A curated Laravel 13 source scaffold was later staged; framework boot/Provider lifecycle remain untested.
 
 ## Phase 1 — Proposed Design
 
@@ -196,7 +196,7 @@ No Constitution violation or new custom framework is approved in this design. If
 ## Decision / Delivery Gates
 
 1. **Owner approved F0-01 `spec.md` and this `plan.md` — Option A on 2026-11-23 (COMPLETE).** The approved direction is still subject to real framework compatibility evidence.
-2. Validate PHP/Composer/Laravel/Pest compatibility and refine decisions, then authorize implementation in a separate explicit step.
+2. **COMPLETE for pre-code gates:** T002 PHP/Composer extensions, T003 isolated Composer dry-run compatibility, T004 bounded GitHub safety review; **separate T005 authorization also recorded**. Actual project install/runtime evidence remains outstanding.
 3. Implement tasks in [tasks.md](tasks.md), review the actual diff, record tests with environment/commit and resolve any blocker before merge.
 4. PR #1 (Spec Kit + Constitution) is upstream to this planning branch. This F0-01 PR must remain Draft/stacked until PR #1 merges; then consider retargeting to `development` following review. Do **not** merge from this plan alone.
 5. D-201 **OPEN**; BA-16 **DEFERRED**; BA-30 G3 **BLOCKED**. F0-01 gives no release/Pilot authority.
