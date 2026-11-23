@@ -74,24 +74,25 @@ jobs:
           composer --version
           composer validate --strict --no-check-publish
 
-      - name: Resolve and generate candidate composer.lock without install or scripts
-        run: composer update --no-install --no-scripts --no-plugins --no-interaction --no-progress --prefer-dist
-
-      - name: Validate resolved dependency graph and platform
+      - name: Validate committed dependency lock and platform
         run: |
+          test -s composer.lock
           composer validate --strict --no-check-publish
           composer check-platform-reqs --lock
 
-      - name: Publish candidate lockfile for reviewed integration (never auto-commit)
+      - name: Publish committed lockfile for reproducibility review
         uses: actions/upload-artifact@v4
         with:
-          name: f0-01-reviewed-candidate-composer-lock
+          name: f0-01-committed-composer-lock
           path: composer.lock
           retention-days: 7
           if-no-files-found: error
 
-      - name: Install dependencies without Composer scripts or plugins
+      - name: Install pinned dependencies without Composer scripts or plugins
         run: composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+
+      - name: Audit pinned dependency versions
+        run: composer audit --locked --no-interaction
 
       - name: Verify actual installed packages and framework bootstrap
         run: |
@@ -113,5 +114,5 @@ jobs:
 
       - name: Check runtime source tree did not change tracked files
         run: |
-          git diff --exit-code -- composer.json bootstrap/app.php docs/ specs/ .specify/ README.md
+          git diff --exit-code -- composer.json composer.lock bootstrap/app.php docs/ specs/ .specify/ README.md
 
