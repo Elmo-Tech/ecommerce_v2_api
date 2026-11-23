@@ -22,20 +22,24 @@
 - No Laravel skeleton (`composer.json`/`artisan`) existed at original commit `e730a5c`; no migrations, implementation tests, CI passing proof or deployment.
 - Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED**. Approved architecture/decisions remain authoritative; no silent choice changes.
 
-## Exact next action: T002 Codespaces runtime and worktree evidence
+## Exact next action: switch Codespaces safely to F0-01, then T002 runtime evidence
 
-Run inside the **authorized project Codespace** and share output. Read-only:
+**New owner-provided Codespaces evidence (2026-11-23):** clean local working tree, but checked out `feature/f0-spec-kit-setup` at `c58a78f`, **not** `feature/f0-01-laravel-bootstrap`. The upstream PR #1 head was `5665832a` at verification, so fetch before relying on local branch freshness. This partially informs T004; **T002 is still pending** because actual Codespaces PHP/Composer/extensions output has not been shared.
+
+Run in the authorized project Codespace:
 
 ```bash
-php -v
-composer --version
-php -m
+git fetch origin
+git switch --track origin/feature/f0-01-laravel-bootstrap
 git status --short
 git branch --show-current
 git log -1 --oneline
+php -v
+composer --version
+php -m
 ```
 
-Then finish T003 dependency/version verification and T004 clean-worktree/safe-scaffold review. **Do not begin T005 or merge** without actual preflight and the separate implementation authorization. This handoff update does not change approved F0-01 Option A.
+If `feature/f0-01-laravel-bootstrap` already exists locally, replace the `git switch --track` line with `git switch feature/f0-01-laravel-bootstrap`. Do not force reset/merge. Continue T003 and remaining T004 only after the above. **No T005 implementation, migrations or PR merge** until separate authorization and real runtime evidence. See the [dated snapshot](F0-01_preflight_2026-11-23.md).
 
 ## Product/decision continuity
 
