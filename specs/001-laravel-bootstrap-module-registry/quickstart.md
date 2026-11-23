@@ -139,7 +139,7 @@ composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-p
 composer check-platform-reqs
 php artisan about --no-ansi
 php artisan route:list --json
-php artisan test --filter=BootstrapSmokeTest --no-ansi
+php artisan test --group=foundation --fail-on-empty-test-suite --no-ansi
 ```
 
 The lockfile-generation step prior to deterministic install is `composer update --no-install --no-scripts --no-plugins --no-interaction --no-progress --prefer-dist`, in a **fresh isolated checkout/runner only**, with no credentials. Treat generated `composer.lock` as a *candidate artifact*, review and commit it only after genuine resolver evidence; don't manufacture the lockfile from the earlier temporary T003 dry-run output. `composer check-platform-reqs --lock` may be performed after successful lock generation.
@@ -152,6 +152,13 @@ No project Composer lifecycle scripts exist (`composer.json` omits `scripts`), s
 - `tests/Feature/Foundation/BootstrapSmokeTest.php` verifies `testing` environment, array cache/session, sync queue, no created database connection objects before/after a non-existent HTTP route returns 404. It does not use `RefreshDatabase` or execute any SQL.
 - Both files passed **PHP 8.4.24 CLI syntax lint** in the assistant's isolated scratch directory, but the test suite has **not** run (GitHub Actions failed before steps). Later code changes can cause it to fail; T009 must establish real success before any release claim.
 
+### F0-01 CI runner issue and empty-suite guard — 2026-11-23
+
+- Tracked in [GitHub Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3). Three F0-01 workflow runs failed with **zero job steps**, no runner logs and no lockfile artifact. This is a **pre-execution failure**; precise cause not verified. The connected GitHub tools do not expose the account/org Actions billing or runner settings.
+- `phpunit.xml` now has `failOnEmptyTestSuite="true"`, and the CI command runs `php artisan test --group=foundation --fail-on-empty-test-suite --no-ansi`. These are **configuration improvements not tested against an installed Laravel runtime**.
+- GitHub documentation lists Actions policies, billing/budgets, runner eligibility and service incidents as categories to inspect. **Do not claim a billing issue or infrastructure bug without the specific GitHub Actions UI/API evidence.** No more owner Codespaces commands are required.
+- See the [Pest test grouping guide](https://pestphp.com/docs/grouping-tests), [Laravel test runner docs](https://laravel.com/framework/docs/13.x/testing) and [PHPUnit 13 empty-suite setting](https://docs.phpunit.de/en/13.4/xml-configuration-file.html).
+
 ## Planned implementation validation
 
 Run only when the Laravel source and tested Composer lock actually exist.
@@ -162,10 +169,10 @@ composer install
 composer check-platform-reqs
 php artisan about
 php artisan route:list
-php artisan test --filter=Foundation
+php artisan test --group=foundation --fail-on-empty-test-suite --no-ansi
 ~~~
 
-The old `--filter=Foundation` command is **illustrative**. The authored smoke-test file is now `BootstrapSmokeTest.php`; its precise `--filter=BootstrapSmokeTest` command is documented above but remains **unexecuted**. Do not interpret a default Laravel welcome page as proof that the Module Registry works.
+The authored Pest smoke test is in the explicit `foundation` group; `--group=foundation` is supported by Pest and `--fail-on-empty-test-suite` by PHPUnit 13. **Execution still pending; CI runner failed before steps.**
 
 If installed and configured in the authorized implementation branch, run the appropriate formatting/static checks (e.g. `vendor/bin/pint --test`, configured PHPStan/Larastan) and capture results.
 
