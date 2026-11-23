@@ -34,6 +34,46 @@ The owner ran the commands in `/workspaces/ecommerce_v2_api` on `feature/f0-01-l
 
 This is **real user-supplied Codespaces output**, not a tool-mediated Codespaces shell execution. The earlier *assistant container* with missing extensions was a separate machine and must not be mistaken for this project runtime. This check **does not** validate a Laravel package lock or the Pest/PHPUnit dependency graph; both remain T003.
 
+## T003 dependency-resolution probe (PENDING — run in Codespaces only)
+
+The following performs a **dry-run**, with **no install and no Composer plugins/scripts**, inside a newly created `/tmp` directory, not the repository. Do not report T003 passing until the owner supplies real output and an exit code.
+
+```bash
+probe_dir="$(mktemp -d /tmp/f0-01-composer-XXXXXX)"
+(
+  cd "$probe_dir" || exit 1
+  cat > composer.json <<'JSON'
+{
+  "name": "elmo-tech/f0-01-compatibility-probe",
+  "description": "Temporary F0-01 dependency resolution only",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.4",
+    "laravel/framework": "^13.0"
+  },
+  "require-dev": {
+    "pestphp/pest": "^5.0",
+    "pestphp/pest-plugin-laravel": "^5.0"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
+JSON
+  XDEBUG_MODE=off composer validate --strict --no-check-publish
+  XDEBUG_MODE=off composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction
+)
+probe_exit=$?
+echo "T003_COMPOSER_EXIT=$probe_exit"
+echo "T003_PROBE_DIR=$probe_dir"
+```
+
+- This changes only the new temporary probe directory, not `composer.json` or `composer.lock` in the repo. No `vendor` installation or Laravel bootstrap is authorized.
+- A `T003_COMPOSER_EXIT=0` confirms only that this **candidate** dependency graph could resolve at that moment; verify the packages and version selection from the output, plus the eventual real lock/install in later tasks.
+- If Composer reports conflicts, security-advisory blocking or network errors, keep T003 OPEN, share the exact log and do **not** use `--ignore-platform-reqs`, `--no-blocking`, `--no-cooldown` or forced downgrades.
+- `probe_dir` is printed for manual cleanup after inspection; don't run destructive cleaning commands in the repository.
+- Pest 5 / its Laravel plugin were published after the older Pest 4 / PHPUnit 12 project research. These are researched **candidates**, not an approved or installed test stack. See `research.md` for sources.
+
 ## Planned implementation validation
 
 Run only when the Laravel source and tested Composer lock actually exist.
