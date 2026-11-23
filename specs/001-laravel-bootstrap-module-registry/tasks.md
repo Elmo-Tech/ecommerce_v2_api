@@ -5,14 +5,14 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 # Tasks: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Input**: [spec.md](spec.md) (F0-01 Option A owner-approved), [plan.md](plan.md) (F0-01 Option A owner-approved), [research.md](research.md), [test-only contract](contracts/foundation-probe.md), [quickstart](quickstart.md), [Constitution v1.0.0](../../.specify/memory/constitution.md).  
-**Status:** **SPEC + PLAN APPROVED (F0-01 Option A, 2026-11-23); T001–T002 COMPLETE; T003–T026 PENDING.** Codespaces runtime prerequisites checked via owner-provided terminal output (PHP 8.4.27, Composer 2.10.3, 13/13 required Laravel extensions); Composer dependency solving, Laravel scaffold/code, framework tests and CI remain unperformed. Separate implementation authorization remains pending.  
+**Status:** **SPEC + PLAN APPROVED (F0-01 Option A, 2026-11-23); T001–T003 COMPLETE; T004–T026 PENDING.** Codespaces runtime prerequisites checked via owner-provided terminal output (PHP 8.4.27, Composer 2.10.3, 13/13 required Laravel extensions); Composer **temporary dry-run dependency solving passed** on Codespaces (118 simulated lock operations; Laravel 13.43.0, Pest 5.3.7, Pest Laravel Plugin 5.0.1, PHPUnit 13.4.7; exit code 0). No package installation, persisted lockfile, Laravel scaffold/code, framework tests or green CI evidence. Separate implementation authorization remains pending.  
 **Format**: `[ID] [P?] [US#?] Description (file/path)`; `[P]` means independent files and no ordering dependency. All unchecked boxes represent future work.
 
 ## Phase 0 — Approval and runtime preflight (BLOCKING)
 
 - [x] **T001** Obtain explicit owner approval for revised `spec.md` and `plan.md` (review record: `docs/reviews/F0-01-spec-review.md`).
 - [x] **T002** In authorized project Codespaces, verified `php -v` = PHP **8.4.27** CLI, `composer --version` = Composer **2.10.3**, and all **13 Laravel 13 required extensions** via explicit `extension_loaded()` probe; owner also shared a partial `php -m` tail. Evidence and source provenance recorded in `quickstart.md` and dated handoff. No dependency graph, framework install or Laravel boot tested.
-- [ ] **T003** Resolve and record supported Laravel 13 + Pest/PHPUnit/Composer versions using genuine Composer checks, or stop and escalate incompatible versions; do not silently downgrade or force dependencies (record in `research.md` and implementation PR evidence).
+- [x] **T003** In authorized project Codespaces, owner ran isolated `/tmp` Composer probe: `composer validate --strict --no-check-publish` (`./composer.json is valid`) then `composer update --dry-run --no-install --no-scripts --no-plugins --no-interaction` with `XDEBUG_MODE=off`; exit `T003_COMPOSER_EXIT=0`, **118 planned installs**, zero updates/removals, **no security vulnerability advisories found**. Resolver chose Laravel **v13.43.0**, Pest **v5.3.7**, Pest Laravel Plugin **v5.0.1**, PHPUnit **13.4.7**, under PHP 8.4.27 / Composer 2.10.3. This is an **uninstalled hypothetical graph**; actual project lock/install/platform tests remain separate T005/T021 gates.
 - [ ] **T004** Verify the existing Git tree/branch, a non-destructive patch approach, a clean worktree and safe Git rollback route; explicitly confirm no production credentials and no migrations (`docs/reviews/F0-01-spec-review.md`; `quickstart.md`).
 
 **STOP GATE:** No implementation work (T005 onward) until T001–T004 and real environment compatibility are resolved. If CI is unavailable, record its condition rather than claiming success.
@@ -68,7 +68,7 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 
 ## Dependencies and execution order
 
-- **Phase 0 T001–T004** must complete before writing framework code; T001 is complete, while T002–T004 and separate implementation authorization remain pending. Stop if PHP/Composer compatibility or authorized execution environment is missing.
+- **Phase 0 T001–T004** must complete before writing framework code; **T001–T003 completed** (T003 dry-run only), while **T004 and separate implementation authorization remain pending**. Stop if PHP/Composer compatibility or authorized execution environment is missing.
 - **US1 T005–T009** prepares the skeleton; US2 registry work relies on actual framework bootstrap and test harness.
 - **US2 T010–T016** proves provider registration; US3 T017–T020 tests boundaries and route exposure once the registry exists.
 - **Final T021–T026** requires real test evidence, code review and upstream setup PR dependency handling.
@@ -91,4 +91,4 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 4. Add focused architectural/production-route isolation proof for US3; do not infer that passing this proves Tenancy, Auth or financial safety.
 5. Record reproducible command/commit evidence, stop on blockers, review and merge only under the approved workflow.
 
-**T001 (owner approval) and T002 (Codespaces PHP/Composer/extensions prerequisite verification) are complete. T003–T026 are pending.** No Composer dependency solve or package installation, Laravel code/bootstrap, framework tests, deployments or PR merges have been performed. The T002 terminal evidence is owner-supplied, not an independently executed Codespaces session.
+**T001 (approval), T002 (Codespaces runtime prerequisites) and T003 (successful temporary Composer dry-run resolution) are complete. T004–T026 are pending.** No Composer package installation or project lockfile, Laravel code/bootstrap, framework tests, deployments or PR merges were performed. T002/T003 terminal evidence was provided by the owner, not independently executed in the Codespace by this assistant.
