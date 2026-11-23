@@ -5,28 +5,29 @@
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
 **Current milestone:** F0-01 Specification and Technical Plan **APPROVED (Option A)**; implementation has **NOT** started.
 
-## Read first — latest working instructions
+## Read first — latest status & decision
 
-1. **[LATEST: T004 GitHub safety preflight COMPLETED — 2026-11-23](F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md)** — exact safety evidence, scoped limitations, rollback approach and T005 owner gate.
-2. [No-Codespaces workflow handoff](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md): owner explicitly requires **no more manual Codespaces commands**; use connected GitHub and validated isolated execution when possible.
-3. [Earlier T003 compatibility evidence](F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md) and [T002 runtime evidence](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md), preserved as verified historical owner-provided outputs, not current independent runner evidence.
-4. [F0-01 tasks](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [approved plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [technical research](../../specs/001-laravel-bootstrap-module-registry/research.md), [F0-01 review record](../reviews/F0-01-spec-review.md).
-5. [Project Constitution](../../.specify/memory/constitution.md), [workflow](../WORKFLOW.md), [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md), [Business Discovery v5.48](ecommerce_saas_handoff_v5_48_2026-11-16.md).
+1. **[LATEST: T005 Laravel 13 official source staged, runtime/lock blocked — 2026-11-23](F0-01_T005_SOURCE_STAGED_2026-11-23.md)** — exact changed file inventory, static checks, limitations and next step.
+2. [Owner's explicit T005 implementation authorization](../reviews/F0-01-implementation-authorization.md) — **Option A** separately approved beginning T005 on the same feature branch, **NOT** deploying/merging.
+3. [No-Codespaces workflow rule](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md) — do not ask the owner to run commands in Codespaces.
+4. [F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [approved technical plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [specification](../../specs/001-laravel-bootstrap-module-registry/spec.md), [quickstart/evidence](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), [review](../reviews/F0-01-spec-review.md).
+5. [Earlier T004 safety handoff](F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md), [T003 Composer dry-run](F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md), [T002 PHP/Composer check](F0-01_T002_RUNTIME_VERIFIED_2026-11-23.md), [Constitution](../../.specify/memory/constitution.md), [workflow](../WORKFLOW.md) and [open MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
 
-## Current project status — 2026-11-23
+## Current implementation state — 2026-11-23
 
-- F0-01 **Specification and Technical Plan APPROVED — Option A**, owner approval in `e730a5c`.
-- **T001–T004 COMPLETE**. T004 is a **scoped GitHub-native pre-code safety review**, not a full repository-history secret audit. **T005–T026 NOT STARTED**.
-- T002 Codespaces history: PHP 8.4.27, Composer 2.10.3, 13/13 required extensions. T003 Codespaces dry-run: exit 0, 118 **simulated** installs, Laravel 13.43.0, Pest 5.3.7, plugin 5.0.1, PHPUnit 13.4.7. **None installed in the project.**
-- T004 checks: verified PR stack/ancestor-only comparisons, 66 changed paths since main in `.specify/`/`docs/`/`specs/`; no app code, migrations, runtime scripts or production credentials used; PR #1/#2 patches and 26 architecture files inspected for high-confidence secret patterns (zero matches in this limited scope); SHA-checked non-destructive writes and revert-based rollback protocol specified.
-- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remain **Draft and unmerged**; PR #2 is stacked on PR #1.
-- Assistant container was checked: PHP 8.4.24 exists, but Composer, required PHP extensions and Docker are unavailable. GitHub Actions job IDs `137395280556` and `137397302456` failed with no steps and unavailable logs. **No verified test runner / CI pass**, no Laravel code, project `composer.lock`, migrations, deployment or merge.
-- Owner explicitly **does not want to run any further Codespaces commands**; continue autonomously using available connected tools, never imply tests happened without actual execution.
-- Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED** remain unchanged.
+- F0-01 Specification + Technical Plan **APPROVED — Option A**. **Separate owner approval to START T005 also GRANTED** in this conversation (response `a`) and recorded on GitHub.
+- **T001–T004 COMPLETE. T005 IN PROGRESS / PARTIALLY STAGED, NOT COMPLETE. T006–T026 PENDING.** A successful source-file commit is not a validated Laravel application.
+- 33 Laravel 13 framework/config/structure files were selectively added on `feature/f0-01-laravel-bootstrap`, based on the official upstream `laravel/laravel` `13.x` skeleton. Root now includes `composer.json`, `artisan`, `bootstrap/app.php`, `bootstrap/providers.php`, `app/`, `config/`, `public/index.php`, `phpunit.xml`, safe `.env.example`, runtime storage markers.
+- The skeleton uses PHP `^8.4`, Laravel `^13.0`, Pest `^5.0`; `composer.json` has **no install/migration scripts**. `bootstrap/app.php` registers **no web/API/health production route**. Default User/auth, migrations, Sanctum, tenancy and business features remain excluded. Config uses array cache/session, sync queue and in-memory SQLite placeholder.
+- GitHub comparison verified the initial 33-source-file staging plus approval record did **not overwrite** historic approved docs/specs/.specify; `README.md` was subsequently **minimally updated only to describe the actual new status**.
+- Static sanity: modified `bootstrap/app.php` and `routes/console.php` passed `php -l` in assistant scratch; new `composer.json` parsed as JSON. **NO actual Laravel bootstrap, Composer install, Pest tests, CI pass, migration, deployment or PR merge was executed**.
+- **Critical T005 blocker:** project `composer.lock` is **absent**. Assistant container has PHP 8.4.24 but lacks Composer, required extensions and working package-network access; a connected remote desktop runner is offline; old GitHub Actions `init` jobs failed before steps. Earlier Codespaces T003 dry-run exit 0 (Laravel 13.43.0/Pest 5.3.7/PHPUnit 13.4.7) is historical, NOT this project's installed lock. **Never invent `composer.lock` or test success**.
+- [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) still **Draft/unmerged**; PR #2 is stacked on PR #1. No production credentials or tenant DB changes.
+- Business **D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED**.
 
-## Next action / owner gate
+## Exact next action — continue T005 without Codespaces
 
-**STOP before T005** — the approved plan specifically requires **separate explicit owner authorization to begin implementation**. Once owner authorizes T005, prepare the Laravel 13 skeleton only in a fresh isolated environment; integrate reviewed minimal files via feature-branch commits, preserve `docs/`, `specs/`, `.specify/` and history, and arrange a compatible independent PHP/Composer runner or approved GitHub Actions. Record actual runtime/test evidence, never claim CI green without jobs/logs, and do not merge PR #1/#2 without review and required gates. No manual Codespaces task for the owner.
+Find/enable a truly compatible **assistant-managed** non-Codespaces runner or properly functioning GitHub Actions to generate the real `composer.lock` for the **committed** manifest and validate install/platform/Laravel boot; record actual logs and commit SHA. Keep lockfile and runtime-test gates open until checks run. Preserve all branch history and previous decisions. **Owner has already authorized starting T005 — do not re-ask for the same authorization; but no deploy/merge approval exists.** If a compatible runner remains unavailable, report the blocker instead of claiming completion. Never ask the owner to execute Codespaces commands.
 
 ## Product/decision continuity
 
