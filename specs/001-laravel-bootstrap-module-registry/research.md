@@ -1,6 +1,6 @@
 # F0-01 — Phase 0 Research and Compatibility Evidence
 
-> **Status: PRE-IMPLEMENTATION RESEARCH DRAFT.** Document/web evidence only; no PHP commands, Composer resolution, real runtime, production route tests or CI job were run for this phase as of 2026-11-23.
+> **Status: T002 CODESPACES RUNTIME PREREQUISITES VERIFIED; T003 COMPATIBILITY RESOLUTION PENDING.** PHP/Composer/extension outputs were supplied by the owner on 2026-11-23. No Composer dependency graph/lock, Laravel installation, framework tests, route checks or CI validation have been run.
 
 ## Verified externally from official Laravel documentation
 
@@ -22,21 +22,38 @@
 - [Code Standards CS-01 / CS-07](../../docs/02-standards/code-standards.md) — Eloquent/Actions/boundaries in their owning features, no global mutable Tenant state.
 - [Testing Standards TEST-01 / TEST-02](../../docs/02-standards/testing-standards.md) — Pest preferred when compatible; PHPUnit foundation and risk-based target tests.
 
-## Proposed choices (NOT YET VERIFIED OR OWNER APPROVED)
+## Approved F0-01 Option A design choices (NOT IMPLEMENTED OR RUNTIME-TESTED)
 
 - Integrate the official Laravel 13 skeleton into the existing repository root using a temporary work directory/controlled file selection; never run a destructive scaffold command in the repo root.
 - Minimal module list in `config/modules.php`, a tiny `ModuleRegistry` and Laravel `ModuleRegistryServiceProvider` in `bootstrap/providers.php`. Alternative provider wiring can be considered if the real framework startup tests show a safer/simpler fit.
 - One `FoundationDemo` test route guarded by app environment and excluded from all production routes and route caches; test both true/false cases.
 - PHPUnit/Pest targeted framework tests with no database migrations or dependency on Redis, Sanctum, Stancl, frontend or real merchant data.
 
-## Implementation-time probes (not executed)
+## Implementation-time probes (T002 completed; T003–T026 remain)
 
-1. `php -v`, `php -m`, `composer --version`, `composer check-platform-reqs`: verify actual runtime/required extensions and lock compatibility.
+1. **T002 COMPLETE:** Codespaces PHP version, Composer availability and 13/13 Laravel-required extensions were validated (details below). **NOT EXECUTED:** `composer check-platform-reqs` because no project `composer.lock` exists; belongs to later lock-dependent checks.
 2. `composer validate --strict`, `composer install` in isolated, safe development context; record any runtime incompatibilities.
 3. `php artisan about` / `php artisan route:list`: validate boot and exclude private/unintended test route from non-testing environments.
 4. Targeted `php artisan test --filter=Foundation` (or verified supported runner): no DB I/O and negative registration test outcomes.
 5. `vendor/bin/pint --test` and applicable static checks **only when tool versions/config have been validated**.
 6. If CI runner remains blocked, record independently verified Codespaces commands/results, but do **not** claim a green required CI gate.
+
+## T002 user-provided Codespaces evidence — 2026-11-23
+
+| Check | Actual owner-provided output | Conclusion |
+| --- | --- | --- |
+| Working directory / branch | `/workspaces/ecommerce_v2_api`, `feature/f0-01-laravel-bootstrap`; clean `git status --short` at local `accbe34` | Correct local execution context, but remote advanced with documentation commits |
+| PHP | `PHP 8.4.27 (cli)`, Xdebug `3.5.3` | Passes Laravel 13 minimum PHP 8.3 |
+| Composer | `Composer 2.10.3` using PHP `8.4.27` | CLI available; packages not resolved |
+| Extensions | All 13 documented requirements returned `OK` in explicit `extension_loaded()` check | Passes framework minimum required extensions |
+| Xdebug message | `Could not connect to debugging client` (`localhost:9003`) | Not a dependency incompatibility; disable debug mode for single Composer commands if desired |
+| Composer dependency solve | **NOT RUN** | T003 still pending |
+
+**Documentation source:** official Laravel 13 deployment requirements: https://laravel.com/docs/13.x/deployment. **Evidence source:** terminal transcript supplied by project owner; not independently executed within Codespaces by this assistant. The isolated assistant container observations recorded in earlier handoff are not representative of this project's environment.
+
+### Remaining T003 checks
+
+Resolve `laravel/framework:^13.0`, `pestphp/pest:^4.0`, `pestphp/pest-plugin-laravel:^4.0` and `phpunit/phpunit:^12.0` using real Composer **in a temporary directory outside the repository**, with no plugins or scripts and `--dry-run`. These are **candidate version constraints, not verified results**. Record exact output and exit status; keep failed resolution as an explicit blocker, never override platform requirements, ignore security blocks, or silently downgrade. Actual lockfile-based platform checks are deferred to the approved implementation stage. See `quickstart.md` for preflight commands.
 
 ## Open technical risks and stop conditions
 
