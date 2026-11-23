@@ -85,9 +85,9 @@ echo "T003_PROBE_DIR=$probe_dir"
 - Composer printed `No security vulnerability advisories found.` for this run.
 - **Do not call this a Laravel installation, a project `composer.lock`, a runtime smoke-test, or CI pass.** The project remains documentation-only.
 
-## T004 non-destructive Git / credential filename preflight (PENDING)
+## T004 non-destructive Git / credential filename preflight (PENDING — no Codespaces)
 
-Run these commands in the actual project Codespace; all report only filenames, metadata or Git status. Do **not** share the contents of any environment files, secrets or private keys.
+**Workflow supersession, 2026-11-23:** The owner explicitly does not want to run any additional commands in Codespaces. **Do not send the following historical terminal commands as an action item.** Continue this gate through GitHub connector inspections and, when independently available, a verified assistant-managed isolated checkout or approved CI runner. Current assistant container has PHP 8.4.24 but no Composer or complete Laravel extensions; it is not a validated Laravel execution environment. The commands below are kept strictly for traceability/reference and are **not required from the owner**. Never display secret contents.
 
 ```bash
 git status --short
@@ -104,7 +104,9 @@ printf '\nTracked Laravel / migration paths (names only):\n'
 git ls-files | grep -E '^(artisan$|composer\.(json|lock)$|app/|bootstrap/|database/migrations/|vendor/)' || true
 ```
 
-**Evaluate the output before marking T004 done.** A path named `.env.example` is only a candidate and may be an intentional safe template; any actual tracked secret file or destructive migration blocks the gate. An empty credential-like filename list **does not prove** no secrets are embedded elsewhere. The team must separately confirm only isolated development/test credentials and a reviewed safe rollback route. The planned bootstrap must occur **outside the existing repository**, followed by selective integration on the feature branch, with no overwrite of `docs/`, `specs/`, `.specify/` or Git history. No merging or code scaffolding is authorized by this check.
+**Current GitHub-side evidence (2026-11-23):** remote PR #1 / #2 are Draft and unmerged, and the changes since F0-01 Option A approval touch only `docs/` and `specs/`; prior lookups for root `artisan`, `composer.json` and `.gitignore` returned 404. This supports branch/scope review only. It does **not** prove a full credential scan or safe local runtime. Preserve branch SHA, use isolated reviewed commits and `git revert` (not forced resets) as rollback strategy. T004 stays pending until all gates have suitable evidence.
+
+**Evaluate the evidence before marking T004 done.** A path named `.env.example` is only a candidate and may be an intentional safe template; any actual tracked secret file or destructive migration blocks the gate. An empty credential-like filename list **does not prove** no secrets are embedded elsewhere. The team must separately confirm only isolated development/test credentials and a reviewed safe rollback route. The planned bootstrap must occur **outside the existing repository**, followed by selective integration on the feature branch, with no overwrite of `docs/`, `specs/`, `.specify/` or Git history. No merging or code scaffolding is authorized by this check.
 
 ## Planned implementation validation
 
