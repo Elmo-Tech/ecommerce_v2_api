@@ -103,7 +103,7 @@ jobs:
 
       - name: Execute foundation smoke test without migrations or real database
         run: |
-          php artisan test --group=foundation --fail-on-empty-test-suite --no-ansi
+          COLUMNS=180 php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
 
       - name: Check runtime source tree did not change tracked files
         run: |
