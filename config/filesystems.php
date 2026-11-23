@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // F0-01 does not expose local file-serving HTTP routes.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
