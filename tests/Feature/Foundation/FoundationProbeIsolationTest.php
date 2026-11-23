@@ -57,7 +57,16 @@ it('excludes the probe from a genuine production-generated route cache in a scra
     $fixtureRoot = sys_get_temp_dir().'/f0-01-production-route-fixture-'.bin2hex(random_bytes(8));
     $filesystem = new Filesystem;
 
-    foreach ([$fixtureRoot.'/bootstrap/cache', $fixtureRoot.'/routes', $fixtureRoot.'/config'] as $directory) {
+    foreach ([
+        $fixtureRoot.'/bootstrap/cache',
+        $fixtureRoot.'/routes',
+        $fixtureRoot.'/config',
+        $fixtureRoot.'/storage/framework/cache/data',
+        $fixtureRoot.'/storage/framework/sessions',
+        $fixtureRoot.'/storage/framework/views',
+        $fixtureRoot.'/storage/logs',
+        $fixtureRoot.'/storage/app/private',
+    ] as $directory) {
         $filesystem->makeDirectory($directory, recursive: true);
     }
 
@@ -74,14 +83,24 @@ it('excludes the probe from a genuine production-generated route cache in a scra
         );
 
         copy(base_path('config/modules.php'), $fixtureRoot.'/config/modules.php');
+        copy(base_path('config/app.php'), $fixtureRoot.'/config/app.php');
+        copy(base_path('config/filesystems.php'), $fixtureRoot.'/config/filesystems.php');
 
         file_put_contents($fixtureRoot.'/bootstrap/app.php', <<<'PHP'
 <?php
 
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php')
+    ->withMiddleware(static function (Middleware $middleware): void {
+        // No session/auth/tenant wiring in the temporary app.
+    })
+    ->withExceptions(static function (Exceptions $exceptions): void {
+        // Bind a normal console exception handler for actionable failures.
+    })
     ->create();
 PHP);
 
