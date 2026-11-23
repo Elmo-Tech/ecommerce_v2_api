@@ -45,13 +45,21 @@ These are **owner-approved technical design choices** in [plan.md](../../specs/0
 | Technical plan approval | **APPROVED — Option A, 2026-11-23** | Explicit Provider Registry and test-only probe design accepted; actual runtime verification outstanding |
 | PHP/Composer + candidate dependency compatibility | **T002 + T003 PASS (preflight scope only)** | Codespaces PHP 8.4.27, Composer 2.10.3, all 13 required extensions; isolated Composer dry-run solver exit 0 (Laravel 13.43.0 / Pest 5.3.7 / Plugin 5.0.1 / PHPUnit 13.4.7). **No actual app install, project lock or runtime tests.** |
 | Test runner reliability | NOT VERIFIED | Codespaces/manual runs can produce evidence; GitHub Actions #45083043107/#45083678045 previously failed before steps |
-| Tasks authorization | DRAFT ONLY | Owner authorizes implementation after spec and plan approval |
+| Tasks authorization | **T001–T004 pre-code complete; T005 authorization PENDING** | Owner must explicitly authorize implementation after verified bounded GitHub-only safety review; no automatic code approval |
 | Parent Spec Kit setup PR | OPEN / DRAFT | PR #1 must be approved and integrated separately before direct F0-01 merge into `development` |
 | Release/legal/recovery | UNCHANGED | D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED |
 
 **Decision recorded:** On 2026-11-23, the owner replied **A** to the explicit question approving **F0-01 Specification + Technical Plan — Option A**. This records binding approval of the reviewed technical scope and design for further preflight, not authorization to run production operations, start Laravel implementation without its separate gate, touch Tenant DBs, declare CI passed or merge a PR.
 
 **Next separate gate:** Complete T004 non-destructive Git/credential hygiene and rollback checks and obtain explicit **separate implementation authorization** before T005–T026. The T002–T003 preflight outputs do not authorize or prove a Laravel app installation. Upstream Spec Kit PR #1 must be integrated before merging this stacked Feature into `development`.
+
+## T004 GitHub-native pre-code safety review — 2026-11-23
+
+**T004 COMPLETE for the bounded pre-implementation remote workflow**, according to [T004 GitHub safety handoff](../handoff/F0-01_T004_GITHUB_SAFETY_VERIFIED_2026-11-23.md). The repo's accepted branch structure and ancestor-only comparisons were verified, and all 66 changes since `main` were under `.specify/`, `docs/` or `specs/`. PR #1 and #2 patch additions and 26 architecture documents were inspected for high-confidence secret-pattern matches (none found); no application runtime/migration or production environment file was added. The assistant has not used application production credentials or performed any database operation.
+
+The workflow avoids relying on an owner's local Codespaces worktree. For future implementation, GitHub content SHA preconditions, new feature-only commits, a fresh isolated runner and reviewed reverse commits/reverts are mandatory. **The scoped textual pattern review is not a comprehensive historical repository secret scan**, and later T006/T024 checks must review the actual implementation delta. The owner's instruction **not to perform further manual Codespaces work** remains binding.
+
+**Remaining STOP:** T005 implementation requires **separate explicit owner authorization**. A valid installed Laravel runner and green CI have **not** been demonstrated; both are distinct from T004. PR #1/#2 remain Draft/unmerged, and no migrations, installs or deployment have been performed.
 
 ## Subsequent pre-implementation evidence — 2026-11-23
 
