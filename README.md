@@ -2,12 +2,12 @@
 
 Private **Elmo-Tech** repository for the **E-commerce SaaS V2 API**.
 
-**Status:** project kickoff and architecture planning; documentation only. No Laravel application code yet.
+**Status (2026-11-23):** F0-01 Laravel 13 API foundation **source staged** on `feature/f0-01-laravel-bootstrap` under Draft PR #2. The app is **not yet installed or verified**: `composer.lock`, vendor dependencies, Laravel boot and tests remain pending. Read the [current F0-01 handoff](docs/handoff/NEXT_CHAT_START_HERE.md).
 
 ## Product direction
 Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pilot for small/medium omnichannel retailers: online orders, manual orders and simple direct sales, with catalog/pricing, taxes/discounts, basic per-location inventory and single-location full-order fulfillment. Not a full ERP or POS.
 
-**Tech direction (architecture NOT finalized):** Laravel API, PostgreSQL, Next.js and GitHub Spec Kit.
+**Approved F0 technical direction:** Laravel 13 API-first Modular Monolith with explicit Module Registry, PostgreSQL for later database Features, separate Next.js frontend, and GitHub Spec Kit. This does not imply tenancy/identity/business module implementation.
 
 ## Essential documentation
 
@@ -27,4 +27,4 @@ Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pil
 - `feature/*` and `fix/*`: new work from `development`, PR back into it.
 - Promote reviewed, tested changes from `development` into `main`.
 
-The next chat should start with MVP Scope v1 and blocking architecture decisions. Approving implementation requires a separate user decision.
+New chats should resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md). The owner separately approved **starting T005**, but **no deployment/merge authority** was granted and the Laravel lock/runtime test gates remain open.
