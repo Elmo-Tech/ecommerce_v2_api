@@ -1,12 +1,12 @@
 # F0-01 — Planned Local Bootstrap & Verification Guide
 
-> **Status:** DRAFT PROCEDURE — NOT EXECUTED. No Laravel code or verified PHP runtime currently exists on the planning branch.  
+> **Status:** PRE-IMPLEMENTATION GUIDE — T002 runtime prerequisite check **completed** in the authorized project Codespace on 2026-11-23 using owner-provided CLI output. Laravel dependency solving/installation, application boot, tests and deployment **NOT EXECUTED**.  
 > **Scope:** Development/test only. Never copy credentials, use a Production database, run migrations, connect to Merchant data or trigger deployment while following this F0-01 plan.
 
 ## Preconditions and approval
 
 - Read [spec](spec.md), [plan](plan.md), [research](research.md) and the ratified [Constitution](../../.specify/memory/constitution.md).
-- **Approval recorded:** Owner approved `spec.md` + `plan.md` as F0-01 Option A on 2026-11-23. Separate implementation authorization, real runtime preflight and this F0-01 PR's independent review remain required. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
+- **Approval recorded:** Owner approved `spec.md` + `plan.md` as F0-01 Option A on 2026-11-23. Basic PHP/Composer/extension runtime prerequisite check (T002) is now completed; **T003 real dependency compatibility, remaining T004 safety checks, separate implementation authorization, and this F0-01 PR's independent review** remain required. Keep upstream Spec Kit setup PR and this F0-01 PR separate.
 - Choose an authorized **isolated** runtime environment with PHP >=8.3, Composer and required PHP extensions; record exact versions. A Codespaces Python version from the Spec Kit installation is **not PHP evidence**.
 - Plan a non-destructive Laravel-skeleton integration: generate into an isolated **temporary directory**, inspect before selectively copying into the existing repo. Do not run scaffolding directly over `docs/`, `specs/`, `.specify/` or Git history.
 
@@ -21,6 +21,18 @@ git branch --show-current
 ~~~
 
 Check Laravel 13 PHP extension list against [official deployment requirements](https://laravel.com/docs/13.x/deployment). Record **actual** output in the implementation PR. Choose the exact runtime and dependency versions only after resolution.
+
+## Verified T002 evidence — project Codespaces, 2026-11-23
+
+The owner ran the commands in `/workspaces/ecommerce_v2_api` on `feature/f0-01-laravel-bootstrap`, with a clean `git status --short`, local HEAD `accbe34`, and the following actual output:
+
+- `php -v` → `PHP 8.4.27 (cli) (built: Oct 28 2026)`, Xdebug `3.5.3`.
+- `composer --version` → `Composer version 2.10.3 2026-08-27`, running under PHP `8.4.27`.
+- `php -r '...extension_loaded...' ` → **OK**: `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pcre`, `pdo`, `session`, `tokenizer`, `xml` (13/13 official Laravel runtime requirements).
+- Earlier owner-provided `php -m` tail showed `xml`, `xmlreader`, `xmlwriter`, `zlib`; the complete raw `php -m` text was not preserved, but the required extensions were explicitly checked.
+- During Composer and the PHP extension check, Xdebug attempted to connect to `localhost:9003`, which did not respond. This is only the **step-debug client warning**, not Composer resolution failure. `XDEBUG_MODE=off` can suppress it per command when running T003.
+
+This is **real user-supplied Codespaces output**, not a tool-mediated Codespaces shell execution. The earlier *assistant container* with missing extensions was a separate machine and must not be mistaken for this project runtime. This check **does not** validate a Laravel package lock or the Pest/PHPUnit dependency graph; both remain T003.
 
 ## Planned implementation validation
 
@@ -50,7 +62,7 @@ If installed and configured in the authorized implementation branch, run the app
 
 | Check | Environment | Revision | Command | Result / log reference |
 | --- | --- | --- | --- | --- |
-| PHP / Composer / extensions | NOT RUN | — | `php -v`, `composer --version`, `php -m` | PENDING |
+| PHP / Composer / extensions | **PASS — user-provided output from authorized Codespaces** | local `accbe34` when tested | `php -v`, `composer --version`, 13-extension `extension_loaded()` check; partial `php -m` | PHP **8.4.27** CLI; Composer **2.10.3**; all Laravel-required extensions **OK (13/13)**; Xdebug v3.5.3 debugger-client warning is non-blocking |
 | Composer dependency graph | NOT RUN | — | `composer validate`, `check-platform-reqs` | PENDING |
 | Laravel 13 boot | NOT RUN | — | `php artisan about` | PENDING |
 | Module registered/unlisted/invalid | NOT RUN | — | Targeted tests | PENDING |
