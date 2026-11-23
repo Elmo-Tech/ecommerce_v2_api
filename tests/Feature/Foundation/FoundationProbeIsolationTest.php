@@ -1,6 +1,6 @@
 <?php
 
-use Symfony\Component\Filesystem\Filesystem;
+use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 
 it('omits the testing-only probe from an independently booted non-testing application', function (string $environment): void {
@@ -57,11 +57,9 @@ it('excludes the probe from a genuine production-generated route cache in a scra
     $fixtureRoot = sys_get_temp_dir().'/f0-01-production-route-fixture-'.bin2hex(random_bytes(8));
     $filesystem = new Filesystem;
 
-    $filesystem->mkdir([
-        $fixtureRoot.'/bootstrap/cache',
-        $fixtureRoot.'/routes',
-        $fixtureRoot.'/config',
-    ]);
+    foreach ([$fixtureRoot.'/bootstrap/cache', $fixtureRoot.'/routes', $fixtureRoot.'/config'] as $directory) {
+        $filesystem->makeDirectory($directory, recursive: true);
+    }
 
     try {
         copy(base_path('artisan'), $fixtureRoot.'/artisan');
@@ -130,6 +128,6 @@ PHP);
     } finally {
         // Delete only the uniquely named test scratch directory, never the
         // actual GitHub checkout, project vendor/ or any production data.
-        $filesystem->remove($fixtureRoot);
+        $filesystem->deleteDirectory($fixtureRoot);
     }
 })->group('foundation');
