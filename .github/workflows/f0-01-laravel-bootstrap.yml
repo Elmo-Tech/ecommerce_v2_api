@@ -79,6 +79,10 @@ jobs:
           php artisan about --no-ansi
           php artisan route:list --json
 
+      - name: Execute foundation smoke test without migrations or real database
+        run: |
+          php artisan test --filter=BootstrapSmokeTest --no-ansi
+
       - name: Check runtime source tree did not change tracked files
         run: |
           git diff --exit-code -- composer.json bootstrap/app.php docs/ specs/ .specify/ README.md
