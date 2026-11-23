@@ -1,6 +1,6 @@
 # Foundation — Technical Module Overview (F0)
 
-> **Status:** PLANNING DRAFT; no Laravel application, providers, tests or runtime implemented yet.  
+> **Status (2026-11-24):** **Laravel 13 + explicit Module Registry + FoundationDemo implemented.** F0-01 T001–T016 passed actual CI (19 tests, 63 assertions); focused architecture/prod route-cache tests are authored in T017/T018 and require separate CI verification before claiming route isolation or completion of T017–T020.  
 > **Scope:** Technical Engineering Foundation, not one of the 16 business-domain data owners.  
 > **Source of truth:** [F0-01 Feature Specification](../../../specs/001-laravel-bootstrap-module-registry/spec.md), [technical plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md), [Constitution v1.0.0](../../../.specify/memory/constitution.md).
 
@@ -15,22 +15,32 @@ Prepare one verifiable Laravel 13 API-first Modular Monolith and an explicit, mi
 - **Permitted responsibilities:** selected Provider registration, typed non-business bootstrap test contract, module availability validation, safe boot diagnostics.
 - **Never:** scan module directories to register implicitly; retain mutable Tenant/request state; treat a Provider registration as SaaS entitlement; authorize cross-module database writes.
 
-## Proposed structure — not implemented
+## Implemented technical structure
 
 ~~~text
-app/Core/Modules/ModuleRegistry.php
-app/Providers/ModuleRegistryServiceProvider.php
-config/modules.php
-app/Modules/FoundationDemo/FoundationDemoServiceProvider.php
-app/Modules/FoundationDemo/Routes/testing.php
+bootstrap/providers.php                           # registers ModuleRegistryServiceProvider
+config/modules.php                               # explicit list; only FoundationDemo
+app/Core/Modules/ModuleRegistry.php              # fail-fast validation, no scanning
+app/Providers/ModuleRegistryServiceProvider.php  # validates then calls Laravel register()
+app/Modules/FoundationDemo/
+  FoundationDemoServiceProvider.php              # container binding, testing-only route
+  Contracts/FoundationMarker.php                 # deterministic technical payload
+  Routes/testing.php                             # GET /api/v1/__foundation/module-probe
+tests/Unit/Core/ModuleRegistryValidationTest.php
+tests/Feature/Foundation/
+  ExplicitModuleRegistrationTest.php
+  InvalidModuleRegistrationTest.php
+  FoundationProbeIsolationTest.php
+tests/Fixtures/isolated-module-bootstrap.php      # fresh process for negative config
+tests/Architecture/ModuleRegistryBoundariesTest.php
 ~~~
 
-Actual Laravel Provider initialization order and exact class paths must be verified in the approved implementation branch.
+Native Laravel provider registration at application bootstrap has been verified with a real PHP 8.4/Laravel 13 CI runner; negative scenarios use fresh application boot instead of mutating a previously registered provider. No module is activated merely because its directory exists.
 
 ## Public contracts, APIs and events
 
-- **Internal technical boundary:** Explicit Module Registry receives only the reviewed configuration list; no external public network API or merchant-owned state.
-- **Demonstration module:** deterministic test-only Provider binding and [probe contract](../../../specs/001-laravel-bootstrap-module-registry/contracts/foundation-probe.md) during isolated tests.
+- **Internal technical boundary:** `ModuleRegistry` receives only the reviewed ordered list in `config/modules.php`, validates duplicate IDs/providers, missing/invalid provider classes and blank identifiers; `ModuleRegistryServiceProvider` then registers validated classes using native Laravel lifecycle. No external public business API, data or merchant-owned state.
+- **Demonstration module:** `FoundationDemoServiceProvider` binds typed `FoundationMarker` and registers a test-only HTTP endpoint returning `{"module":"foundation-demo","source":"explicit-registry"}` following the [test probe contract](../../../specs/001-laravel-bootstrap-module-registry/contracts/foundation-probe.md). Registered route is only enabled when Laravel environment is `testing`; **production route/cache isolation proof must still be verified under T018/T020**.
 - **Production HTTP endpoints:** **none** introduced by F0-01.
 - **Published business events/Outbox:** **none**.
 - **Dependencies:** native Laravel provider/service-container facilities; external Stancl/Redis/queue/Identity modules **not installed** for this Feature.
@@ -39,14 +49,14 @@ Actual Laravel Provider initialization order and exact class paths must be verif
 
 | Feature | Canonical artifacts | Status |
 | --- | --- | --- |
-| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **SPEC + PLAN APPROVED — Option A (2026-11-23)**; code not implemented |
+| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T016 CI verified**, T017–T026 pending validation/review (2026-11-24) |
 | F0-02 / F0-03 / F0-04 / F0-05 | Planned F0 follow-ups per [WORKFLOW](../../WORKFLOW.md) | Not specified or implemented in F0-01 |
 
 ## Authorization, tests and gates
 
 - FoundationDemo's HTTP probe must exist **only in testing**; route caches/normal prod routing cannot expose it.
-- Mandatory proof before implementation/merge: owner-approved `spec/plan` (already satisfied), PHP/Composer compatibility, separate implementation authorization, real boot, registered/unregistered/duplicate/missing-provider scenarios and production route absence.
-- Parent Spec Kit PR #1 remains separate; F0-01 implementation/CI/production availability is not proven by this planning document.
+- Approved/verified: owner-approved `spec/plan`, separate F0-01 implementation authorization, PHP/Composer locked real Laravel boot and positive/negative listed/unlisted/duplicate/missing/invalid Provider tests. Real [Module Registry CI Run #45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273): **19 passed, 63 assertions**. **Not yet verified at this document update:** independent production route + route-cache isolation, architecture checks, full feature/security review and final PR gate.
+- Parent Spec Kit [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and stacked F0-01 [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remain **Draft/unmerged**. Neither successful Foundation tests nor this overview authorizes production deployment, migration or merge.
 - Business/Release open items **D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED** remain unchanged.
 
 ## Dependencies and next modules
