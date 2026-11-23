@@ -5,9 +5,9 @@
 **Integration:** `development`; **current feature:** `feature/f0-01-laravel-bootstrap`  
 **Current milestone:** F0-01 implementation authorized and source staged; CI runner initialization BLOCKED, no real lockfile or Laravel tests. **T005 remains unchecked.**
 
-## Read first — la## Read first — authoritative current snapshot
+## Read first — authoritative current snapshot
 
-1. **[LATEST: F0-01 Runner Triage + Pest Empty-Suite Guard — 2026-11-23](F0-01_RUNNER_TRIAGE_AND_TEST_GUARDS_2026-11-23.md)** — exact GitHub Actions diagnostics, [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3), changes and next action.
+1. **[LATEST: F0-01 Runner Triage + direct GitHub Actions retry — 2026-11-23](F0-01_RUNNER_TRIAGE_AND_TEST_GUARDS_2026-11-23.md)** — Includes ChatGPT-triggered rerun for #45217288046, resulting job #137850639683 failure before steps, [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3), test safeguards and next action.
 2. [Prior: T005 CI blocked / T006–T008 prepared](F0-01_T005_CI_BLOCKED_TESTS_PREPARED_2026-11-23.md) and [Laravel 13 source staged](F0-01_T005_SOURCE_STAGED_2026-11-23.md).
 3. [Owner's explicit T005 Option A implementation authorization](../reviews/F0-01-implementation-authorization.md) and [NO Codespaces workflow instruction](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
 4. [F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), [review](../reviews/F0-01-spec-review.md).
@@ -22,6 +22,8 @@
 - **No viable runner:** local assistant container has PHP 8.4.24 but no Composer, required PHP extensions, Docker or Packagist DNS; connected desktop device is offline. Historical Codespaces PHP/Composer preflight + isolated dependency dry-run were successful but are not installed-project evidence. **Owner expressly forbids further manual Codespaces steps.**
 - PR #2 title/body now accurately describe partial source implementation and blocked CI. Both PRs remain Draft/unmerged; no data, secret, migrations, deployment or merge touched.
 - D-201 **OPEN**, BA-16 **DEFERRED**, BA-30 G3 **BLOCKED**.
+
+The connected GitHub connector can re-run jobs directly without Work mode; a direct retry of run `45217288046` was accepted but new job `137850639683` **failed before any steps**, so runner settings/billing remain an unresolved blocker. No user-run Codespaces tasks.
 
 ## Next exact action (no user-run Codespaces work)
 
