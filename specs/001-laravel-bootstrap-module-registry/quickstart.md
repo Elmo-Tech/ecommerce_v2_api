@@ -41,6 +41,7 @@ The following performs a **dry-run**, with **no install and no Composer plugins/
 ```bash
 probe_dir="$(mktemp -d /tmp/f0-01-composer-XXXXXX)"
 (
+  set -e
   cd "$probe_dir" || exit 1
   cat > composer.json <<'JSON'
 {
@@ -68,7 +69,7 @@ echo "T003_COMPOSER_EXIT=$probe_exit"
 echo "T003_PROBE_DIR=$probe_dir"
 ```
 
-- This changes only the new temporary probe directory, not `composer.json` or `composer.lock` in the repo. No `vendor` installation or Laravel bootstrap is authorized.
+- This writes the probe `composer.json` in a newly created `/tmp` directory (and Composer may refresh its normal user cache); it does **not** modify the repository's `composer.json` or `composer.lock`. No `vendor` installation or Laravel bootstrap is authorized.
 - A `T003_COMPOSER_EXIT=0` confirms only that this **candidate** dependency graph could resolve at that moment; verify the packages and version selection from the output, plus the eventual real lock/install in later tasks.
 - If Composer reports conflicts, security-advisory blocking or network errors, keep T003 OPEN, share the exact log and do **not** use `--ignore-platform-reqs`, `--no-blocking`, `--no-cooldown` or forced downgrades.
 - `probe_dir` is printed for manual cleanup after inspection; don't run destructive cleaning commands in the repository.
