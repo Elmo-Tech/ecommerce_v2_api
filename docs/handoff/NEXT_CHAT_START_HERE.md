@@ -6,9 +6,12 @@
 **Active feature branch:** `feature/f0-01-laravel-bootstrap`  
 **F0-01 status:** **T001–T025 COMPLETE (25/26); T026 PENDING**. Laravel 13 bootstrap, explicit Module Registry, FoundationDemo, architecture and production route/cache isolation, full tests and scoped code/secret review are complete at their documented scope. **PR #1 and PR #2 remain Draft and unmerged**. No deployment/migration or owner-run Codespaces work.
 
+**Live T026 checkpoint:** Manual independent CodeRabbit review requested on both PRs. **PR #1 review triggered and processing; PR #2 review was rate-limited (CodeRabbit said ~59 minutes from 2026-11-24 01:54 Cairo)**. **Neither review was completed or approved** at checkpoint, so **T026 remains PENDING and no merge/next Feature is allowed**. Read [T026 review-requested handoff](F0-01_T026_REVIEW_REQUESTED_2026-11-24.md) **before prior completed milestone**. GitHub currently reports repository **public** (was previously documented private); do not change visibility without owner approval.
+
 ## FIRST: Exact files to open in the NEXT CHAT (in this order)
 
-1. **[LATEST DATED SNAPSHOT — F0-01 Final Technical Verification / PR Review Pending, 2026-11-24](F0-01_FINAL_REVIEW_READY_2026-11-24.md)**. This is the decisive up-to-date handoff: what has actually run, true limitations, PR stack and the precise T026 action. **Always read it first after this file.**
+1. **[NEW LATEST: T026 INDEPENDENT PR REVIEW REQUESTED — 2026-11-24](F0-01_T026_REVIEW_REQUESTED_2026-11-24.md)** — PR #1 bot review triggered/in progress; PR #2 rate limited; no submitted independent approvals, exact comment links, GitHub rules/visibility limitations and precise next steps. **Read immediately after this entrypoint.**
+2. **[Completed technical milestone: F0-01 Final Technical Verification](F0-01_FINAL_REVIEW_READY_2026-11-24.md)** — all implementation source/test paths, genuine CI proof and 25/26 task status.
 2. **[F0-01 tasks.md](../../specs/001-laravel-bootstrap-module-registry/tasks.md)** — authoritative checkbox list (T001–T025 checked, T026 unchecked); [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md) and [technical plan](../../specs/001-laravel-bootstrap-module-registry/plan.md). Also read the [test-only probe contract](../../specs/001-laravel-bootstrap-module-registry/contracts/foundation-probe.md).
 3. **[Quickstart/current real CI commands](../../specs/001-laravel-bootstrap-module-registry/quickstart.md)**, [research/runtime evidence](../../specs/001-laravel-bootstrap-module-registry/research.md), and [spec/Constitution review](../reviews/F0-01-spec-review.md).
 4. **[Owner’s no-Codespaces workflow requirement](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md)** and [separate F0-01 implementation authorization](../reviews/F0-01-implementation-authorization.md); [Constitution v1.0.0](../../.specify/memory/constitution.md), [repository branch workflow](../WORKFLOW.md).
@@ -27,12 +30,13 @@
 - **T024 scoped PR safety:** scanned readable PR #2 change patches for common credential/token patterns (zero hits), reviewed the real large Composer lock separately (118 packages; no Sanctum/Stancl/Octane/Horizon), compared runtime diff against pre-code branch and confirmed no migrations, User/Auth/Tenancy, actual `.env`, vendor commit, business API or unapproved production code. **Not a full repository-history secret audit**.
 - **No production/live DB, Secrets, Auth/Sanctum, Tenancy, migrations, merchant data or deployment**. No user Codespaces activity requested. D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED unchanged.
 
-## NEXT EXACT ACTION — T026 INDEPENDENT PR REVIEW (NOT A MERGE AUTHORIZATION)
+## NEXT EXACT ACTION — FINISH T026 REVIEWS (PR #1 TRIGGERED, PR #2 RATE-LIMITED)
 
-1. Verify PR #1/#2 current Draft status, latest branch SHAs, review/branch protection requirements, and CI proof. Arrange **independent risk-appropriate code review** of all F0-01 source, tests, diff and documented Pint/PHPStan limitation. The assistant's own security/diff review does **not** substitute for independent reviewer approval.
+1. Read the [2026-11-24 T026 review checkpoint](F0-01_T026_REVIEW_REQUESTED_2026-11-24.md). Re-fetch live PR #1 review/status/comments; CodeRabbit accepted manual review and its summary showed processing, but **not approval yet**. Re-fetch PR #2; bot explicitly **rate-limited** the manual review and estimated replenishment ~59min after 2026-11-24 01:54 Cairo. **Do not retry repeatedly, bypass rate limits, or consider trigger acknowledgement a completed review**. Obtain a named non-author reviewer if automation cannot satisfy the approval gate.
 2. PR #1 **must be independently approved and integrated into `development` first**. Only after the required owner/reviewer approvals can PR #2 be retargeted to `development`, reviewed/approved and eventually merged. **Do not automatically merge, retarget, mark ready or deploy** in a future chat just because this handoff says 25/26 tasks complete.
 3. If reviews request fixes, edit only on the feature branch, rerun actual GitHub Actions and update dated handoff/this entrypoint and task checkbox before claiming T026 done. Until approvals, **T026 stays unchecked**. Do not begin the separately-scoped F0-02 Feature without its required specification/approval.
 4. **No Codespaces commands** from the owner. Use connected GitHub/Actions tools. Do not fabricate successful test results or assume deployment permission.
+5. GitHub metadata currently says repo is **public**, repo rulesets empty, `development` branch not marked protected; detailed branch-protection endpoint returned 403 to the integration. These facts do **not** waive T026 review/owner approval. Do not change repo visibility/policies without owner instruction.
 
 ## Product and decision continuity
 
