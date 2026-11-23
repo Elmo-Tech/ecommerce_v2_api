@@ -1,6 +1,6 @@
 # F0-01 — FoundationDemo Probe Contract (TEST ONLY)
 
-> **Status:** PROPOSED TEST CONTRACT — NO PRODUCTION API, NOT EXECUTED.  
+> **Status (2026-11-24):** **IMPLEMENTED AND TEST VERIFIED — TEST ONLY, NOT A PRODUCTION API.** Laravel 13 CI [#45284904141](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45284904141) verifies probe HTTP behavior, independent non-testing/production route absence and scratch production-generated route-cache exclusion.  
 > **Owner:** Technical Engineering Foundation (`app/Modules/FoundationDemo`)  
 > **Reference:** [F0-01 spec](../spec.md), [plan](../plan.md), Constitution Principle V.
 
@@ -8,9 +8,9 @@
 
 Prove that one explicitly enabled, non-business Module Provider can register a container binding and a test HTTP route through the **same** Laravel lifecycle expected of future modules. This probe **must not** be installed in any normal merchant, storefront, Platform or customer production API.
 
-## Proposed test-only behavior
+## Verified internal test-only behavior
 
-| Property | Proposed contract |
+| Property | Internal contract (verified) |
 | --- | --- |
 | Test environment | `APP_ENV=testing` or genuinely equivalent isolated framework test environment, not a client-controlled value |
 | Method/path | `GET /api/v1/__foundation/module-probe` |
@@ -20,7 +20,7 @@ Prove that one explicitly enabled, non-business Module Provider can register a c
 | Distribution | No production OpenAPI, no public swagger contract, no deployment as a merchant-visible endpoint |
 | Route cache | Route caches built for production must not include the test probe; testing cache files must never be shipped |
 
-The exact marker payload is an **internal assertion proposal** and is not a user-facing standard envelope. The future F0-02 API Foundation will separately approve production error/resource contracts.
+The exact marker payload is an **implemented internal testing assertion**, not a user-facing resource/envelope contract. The real application has **zero production routes**; Laravel declines route:cache on an empty collection. A scratch app with the same module registry and a benign non-business redirect route generated a real production route cache excluding this probe; scratch cache is deleted after CI. The future F0-02 API Foundation will separately approve production error/resource contracts.
 
 ## Negative contracts
 
