@@ -1,6 +1,6 @@
 # F0-01 — Phase 0 Research and Compatibility Evidence
 
-> **Status: T002 + T003 VERIFIED IN CODESPACES; T004 SAFETY GATE PENDING.** The owner supplied actual PHP/Composer/extension and isolated Composer **dry-run** solver outputs on 2026-11-23. No project lockfile, packages, Laravel scaffold, framework tests, route checks or CI validation have been performed.
+> **Status: T001–T004 COMPLETE; T005 SEPARATELY AUTHORIZED AND SOURCE STAGED (INCOMPLETE).** The owner supplied actual historical PHP/Composer and temporary Composer dry-run results; a scoped GitHub safety preflight was completed. A minimal official-source Laravel 13 scaffold has now been added to the F0-01 feature branch, but **no project `composer.lock`, Composer installation, Laravel application boot, framework tests, route cache checks or CI success** exist.
 
 ## Verified externally from official Laravel documentation
 
@@ -80,7 +80,16 @@ External sources: [Pest 5 upgrade guidance](https://pestphp.com/docs/upgrade-gui
 
 **Conclusion:** This candidate version set is **Composer-resolvable in the sampled Codespaces environment**. Pest 5.3.7 and PHPUnit 13.4.7 were successfully selected together (the previously identified patch conflict with later PHPUnit versions did not block resolution). This is not proof of application behavior, finalized Composer lock contents, API module wiring, CI, or production-security readiness.
 
-**Next:** T004 non-destructive Git/credential hygiene and rollback checks. Later T005/T021 must produce a reviewed project `composer.json`+`composer.lock`, actual install and `composer check-platform-reqs` evidence; review any dependency changes at that time. The approved F0-01 technical scope is unchanged.
+**Subsequent status:** T004 scoped GitHub safety and rollback review was completed, and the owner separately authorized T005. A reviewed `composer.json` and 32 other official-source Laravel bootstrap files were created on the feature branch; **`composer.lock` and actual install are still missing**. T005 and later T021 must produce genuine lock/install/platform evidence. The approved F0-01 technical scope is unchanged. See [latest staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md).
+
+## T005 source-stage evidence and execution blocker — 2026-11-23
+
+- User explicitly authorized implementation start (Option A) after the T004 gate; [approval record](../../docs/reviews/F0-01-implementation-authorization.md).
+- Official `laravel/laravel` `13.x` source was reviewed via the GitHub connector and **33 code/config/runtime-structure files** were integrated selectively into the same Draft F0-01 PR without replacing historic docs or Spec Kit data. The manifest is PHP `^8.4`, Laravel `^13.0`, Pest `^5.0` with no install/migration Composer scripts; no default User, Auth, migration, Tenant or production route was added.
+- Safe development defaults were chosen: array cache/session, synchronous queue and in-memory SQLite placeholder. No database connections occurred.
+- Actual local static syntax checks passed for the customized Laravel bootstrap and console routes; actual Laravel dependency installation/boot was **not possible** because the isolated assistant container lacks Composer, required PHP extensions and external package-network access.
+- No `composer.lock`, `vendor/`, application test execution or green CI. The owner does not want any further manual Codespaces instructions; an available remote desktop runner is currently offline and prior GitHub Actions attempts ended before execution.
+- **No claim of successful project Composer resolution, deployability or T005 completion.** The historical T003 dry-run used a separate temporary manifest, not this project's finalized source manifest.
 
 ## Open technical risks and stop conditions
 
