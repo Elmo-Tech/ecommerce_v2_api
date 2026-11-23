@@ -29,10 +29,10 @@ The 12 assets below were initially mirrored from pinned official v1.4.3 source b
 - Generated state now exists: `.specify/.gitignore`, `.specify/init-options.json`, `.specify/integration.json`, `.specify/integrations/none.manifest.json`, `.specify/integrations/speckit.manifest.json`, `.specify/memory/.constitution-template.json`, `.specify/memory/constitution.md`, `.specify/workflows/workflow-registry.json`, and `.specify/scripts/bash/markdown_sections.py`.
 - The CLI refreshed existing `check-prerequisites.sh`, `setup-tasks.sh`, `checklist-template.md`, `plan-template.md` and `tasks-template.md`; those **must not** be compared byte-for-byte with their original mirror SHA above.
 - The bundled `.specify/workflows/speckit/workflow.yml` exists, but cannot dispatch agent-driven steps with the `none` integration.
-- The current canonical `.specify/memory/constitution.md` is a **placeholder**, not the owner's ratified Constitution.
+- The official CLI initially generated a `.specify/memory/constitution.md` placeholder. Following **FND-02 Option A approval on 2026-11-23**, the canonical file was replaced by the owner-ratified eight-principle **Constitution v1.0.0**. The source mirror SHA table remains pre-init provenance, not a checksum of current generated/canonical files.
 
 ## Separate outstanding gates
 
 The unsuccessful one-time GitHub Actions runs #45083043107 and #45083678045 failed before visible runner steps and without retrievable logs. The workflow was removed. Successful **Codespaces CLI** setup does not fix or verify GitHub Actions, Laravel/PHP compatibility or CI execution.
 
-Next, review `docs/foundation/constitution-proposal.md` with the owner, explicitly ratify its intended content, then replace the generated Constitution template. F0-01 `spec.md`, `plan.md`, `tasks.md` and implementation/release gates are separate. No automatic PR merge.
+The FND-02 Constitution approval and canonical replacement are complete; [approval record](../reviews/FND-02-constitution-review.md). F0-01 `spec.md`, `plan.md`, `tasks.md` and implementation/release gates remain separate and unapproved. No automatic PR merge.

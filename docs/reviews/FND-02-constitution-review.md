@@ -1,16 +1,16 @@
-# FND-02 — Project Constitution Review & Ratification Proposal
+# FND-02 — Project Constitution Approval and Review Record
 
-> **Status: REVIEW DRAFT / OWNER DECISION PENDING.** No binding Constitution has been ratified.  
-> **Prepared:** 2026-11-23 | **Candidate:** [Constitution Review Draft 0.2.0](../foundation/constitution-proposal.md)  
-> **Technology setup:** Official Spec Kit v1.4.3 initialized in GitHub Codespaces, `--integration none`, commit `c58a78f`. The canonical `.specify/memory/constitution.md` currently holds an untouched placeholder.
+> **Status: APPROVED — FND-02 Option A.** The owner approved the reviewed eight-principle draft on 2026-11-23; the canonical Constitution is now **v1.0.0**.  
+> **Reviewed source:** [Constitution Review Draft 0.2.0](../foundation/constitution-proposal.md). **Ratified canonical file:** [E-commerce SaaS V2 Constitution](../../.specify/memory/constitution.md).  
+> **Technology setup:** Official Spec Kit v1.4.3 initialized in GitHub Codespaces with `--integration none`, commit `c58a78f`. The earlier placeholder has been replaced by owner-approved text in the setup branch.
 
-## Decision requested — not decided
+## Approved owner decision — FND-02 Option A
 
-**FND-02 (Proposed Option A):** Review and explicitly ratify the eight-principle Constitution Review Draft 0.2.0 as the project's canonical **Constitution v1.0.0**, with the actual approval date recorded on ratification. The existing approved source decisions remain authoritative within their respective domains, and ratification **does not** authorize implementation/deployment.
+**FND-02 — Option A: APPROVED on 2026-11-23.** The owner explicitly selected `A` in this conversation, authorizing ratification of the reviewed eight-principle Draft 0.2.0 as **Project Constitution v1.0.0**. The resulting canonical document uses the approved principle text; only document status, approval metadata, relative source links and versioning tense were normalized.
 
-**Option B:** Return specific wording for revision; keep both the proposal and the generated canonical placeholder unratified until another explicit decision.
+**Option B:** Not selected. It would have returned the draft for further revisions.
 
-**No approval has been recorded for Option A or B.** In particular, initiating review is not approval to set a ratification date, copy the draft into the canonical file or merge the setup PR.
+Existing D/OV/BA/MA/Standards and FBR-02 decisions retain their authoritative scope. **This approval does not authorize Laravel implementation, deployment, production activation, automatic PR merge or resolution of any open business decision.**
 
 ## Review findings and wording refinements
 
@@ -25,7 +25,7 @@
 | VII — testing | Every change does not require heavy integration tests, but Critical/High merges do | Risk-based suites; real Central + 2 Tenant DBs/Redis/worker evidence for relevant risk before affected merge | Testing Standards TEST-01/02; FBR-02 acceptance |
 | VIII — launch & governance | Conditional tooling does not prove runtime compatibility; release gates must remain blocked | PHP-FPM first; conditional Laravel/Stancl tests; BA-16 deferred / BA-30 G3 blocked; no live pilot without required restore/legal/gates | Backend Architecture BA-30; DB Standards; Security Standards; FBR-02 |
 
-**Conclusion:** The review found no need to change the approved architecture direction; the proposed edits clarify boundaries already present in the cited documents. This is a review opinion, **not** formal approval or an assertion that implementation and compatibility have been verified.
+**Conclusion:** The review found no need to change the approved architecture direction; the wording clarifies boundaries already present in the cited documents. **Owner approval of Option A is now recorded and the canonical Constitution is ratified.** This is not evidence that Laravel compatibility, CI, deployment or runtime behavior has been verified.
 
 ## Boundaries deliberately not filled in
 
@@ -35,11 +35,11 @@
 - The previous two GitHub Actions runner-startup failures remain unresolved; successful **Codespaces** CLI initialization does not equate to green CI.
 - Ratification does not automatically approve F0-01 `spec.md` / `plan.md`, Laravel implementation, production access or a PR merge.
 
-## Approval and follow-up sequence
+## Ratification results and next approval boundaries
 
-1. Owner reviews [Constitution Draft 0.2.0](../foundation/constitution-proposal.md) and gives explicit approval of **FND-02 Option A**, or provides revisions under Option B.
-2. **Only after approval:** replace canonical `.specify/memory/constitution.md` with the approved text, record formal version/date and source notes, and update the review status.
-3. Review actual canonical diff and adjust PR #1; keep Draft/merge controls until owner authorization and applicable checks are satisfied.
-4. Independently review F0-01 Feature `spec.md` and implementation plan before code. No business rules are inferred from Constitution ratification.
+1. **Completed:** Owner approved **FND-02 Option A** on 2026-11-23, ratifying [Constitution v1.0.0](../../.specify/memory/constitution.md).
+2. **Completed:** Canonical Spec Kit Constitution replaced the default placeholder; current version, source approval and ratification date were recorded, while Draft 0.2.0 remains a traceable historical artifact.
+3. **Separate pending gate:** PR #1 stays Draft, targeting `development`. Constitution approval does **not** grant PR merge approval or prove GitHub Actions/CI.
+4. **Separate pending gate:** Review and approve the existing F0-01 Feature `spec.md`, then its `plan.md` and `tasks.md`, before implementing Laravel code. No new business rules are inferred from ratification.
 
 **References:** [FBR-02](FBR-02-architecture-gap-review.md), [Project Overview](../00-overview/project-overview.md), [Module Architecture](../01-architecture/module-architecture.md), [Tenancy Architecture](../01-architecture/tenancy-architecture.md), [API Standards](../02-standards/api-standards.md), [Authorization Standards](../02-standards/authorization-standards.md), [Database Standards](../02-standards/database-standards.md), [Logging/Audit Standards](../02-standards/logging-audit-observability-standards.md), [Testing Standards](../02-standards/testing-standards.md).

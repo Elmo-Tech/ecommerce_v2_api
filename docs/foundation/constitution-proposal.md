@@ -1,8 +1,8 @@
 # E-commerce SaaS V2 — Proposed Spec Kit Constitution
 
-> **Status:** DRAFT FOR OWNER REVIEW — not ratified and **not** an output of `/speckit-constitution`.  
-> **Prepared:** 2026-11-23 | **Version:** Reviewed Draft 0.2.0 | **Ratified:** PENDING — requires explicit owner approval.  
-> **Canonical file already created by CLI:** `.specify/memory/constitution.md` currently holds the **default placeholder**; replacing its content requires explicit owner approval of this proposal.
+> **Status:** HISTORICAL REVIEW DRAFT — **FND-02 Option A APPROVED** on 2026-11-23; this document is retained for decision traceability, not as the governing Constitution.  
+> **Prepared:** 2026-11-23 | **Draft version:** 0.2.0 | **Ratified canonical version:** 1.0.0.  
+> **Canonical authority:** [E-commerce SaaS V2 Constitution](../../.specify/memory/constitution.md). The pre-approval wording below is preserved as the historical reviewed proposal; it is no longer the operative status.
 
 ## Core Principles
 
