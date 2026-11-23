@@ -1,6 +1,16 @@
 # F0-01 — Phase 0 Research and Compatibility Evidence
 
-> **Status (verified 2026-11-23): T001–T009 COMPLETE; T010–T026 PENDING.** Laravel 13.43.0 is installed and booted in real GitHub Actions using the **committed project `composer.lock`**, with passed platform checks, `composer audit --locked` (no advisories at test time), an empty HTTP route collection and DB-free Pest Foundation smoke **1 passed / 9 assertions**. See [current validated handoff](../../docs/handoff/F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md). **Module Registry, testing-only demo and negative/production route-cache tests remain unperformed.**
+> **Status (verified 2026-11-24): T001–T024 COMPLETE; T025–T026 pending.** Real Laravel 13.43.0 native Module Registry/FoundationDemo, testing-only probe isolation, production/local absence and scratch production route cache proven by [Actions #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899): **26 passed / 116 assertions** on PHP 8.4.28 with locked Composer, platform/advisory checks and all PHP syntax lints. **Pint/PHPStan are absent/not run**, no merge/deploy or migration.
+
+## Current runtime/architecture evidence (supersedes historical preflight sections)
+
+- [Foundation bootstrap T005/T009](../../docs/handoff/F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md) and authentic committed `composer.lock` (118 packages, pinned Composer graph).
+- [Native Module Registry T010–T016](../../docs/handoff/F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md): explicit config list, Provider lifecycle, FoundationDemo marker/route, duplicate/missing/wrong Provider rejection and unlisted-on-disk negative proof using fresh isolated application boot.
+- [Architecture and production probe T017–T020](../../docs/handoff/F0-01_ARCHITECTURE_AND_PRODUCTION_PROBE_VERIFIED_2026-11-24.md): F0-01 scoped architecture assertions; `APP_ENV=production` / `local` route absence; actual real-app production route list empty so `route:cache` deliberately declines writing; separate scratch app copies registry/config, adds harmless redirect *only in scratch*, builds real production route cache without test route, then cleans up.
+- [Full targeted/unfiltered CI and dependency/quality checks T021–T024](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) — PHP **8.4.28**, Composer **2.11.2**, Laravel **13.43.0**; `composer validate --strict`, platform checks, locked install (no scripts/plugins), `composer audit --locked` no advisories at test time, `php artisan about`, `artisan route:list`, Foundation group **26 passed / 116 assertions**, unfiltered Unit+Feature+Architecture **26 passed / 116 assertions**, **0 failed/skipped**, syntax lint every tracked PHP file passed, no tracked runtime diff. **Pint and PHPStan/Larastan not installed**, so they were not executed and no pass is claimed.
+- Final PR review/merge gate **T026 remains OPEN**; spec/plan review was approved earlier, no new policy/feature scope accepted here.
+
+**Below: historical Phase 0 research and previous no-run caveats are retained for traceability, NOT the current operational status.**
 
 ## Verified externally from official Laravel documentation
 
@@ -22,7 +32,7 @@
 - [Code Standards CS-01 / CS-07](../../docs/02-standards/code-standards.md) — Eloquent/Actions/boundaries in their owning features, no global mutable Tenant state.
 - [Testing Standards TEST-01 / TEST-02](../../docs/02-standards/testing-standards.md) — Pest preferred when compatible; PHPUnit foundation and risk-based target tests.
 
-## Approved F0-01 Option A design choices (NOT IMPLEMENTED OR RUNTIME-TESTED)
+## Approved F0-01 Option A design choices (HISTORICAL; subsequently implemented and tested)
 
 - Integrate the official Laravel 13 skeleton into the existing repository root using a temporary work directory/controlled file selection; never run a destructive scaffold command in the repo root.
 - Minimal module list in `config/modules.php`, a tiny `ModuleRegistry` and Laravel `ModuleRegistryServiceProvider` in `bootstrap/providers.php`. Alternative provider wiring can be considered if the real framework startup tests show a safer/simpler fit.
