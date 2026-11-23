@@ -119,6 +119,39 @@ git ls-files | grep -E '^(artisan$|composer\.(json|lock)$|app/|bootstrap/|databa
 - **T005 BLOCKER:** no actual `composer.lock`. Composer/package registry access and Laravel-required extensions are unavailable in this assistant container; prior Codespaces results were dry-run only, and the user has prohibited further manual Codespaces actions. Do **not** mark T005 complete, install packages, claim smoke tests, or attempt to merge.
 - **Next independent environment requirement:** a compatible non-Codespaces PHP 8.4+/Composer runtime with network access must generate and verify the reviewed project lockfile and install; afterward execute `composer check-platform-reqs`, real Laravel boot and focused tests at their respective task gates. GitHub Actions historic init failures remain unresolved.
 
+## GitHub-native T006/T007/T008 preparation — 2026-11-23
+
+**No owner-run Codespaces commands.** The only new execution attempt is [GitHub Actions `f0-01-laravel-bootstrap.yml`](../../.github/workflows/f0-01-laravel-bootstrap.yml), with read-only repository permissions and a deliberately separate Ubuntu/PHP 8.4 runner. Its first reported run `45210517286` and second reported run `45211196092` both **failed before a single job step**. Each had zero steps; no job logs or lockfile artifacts were available. **No dependency installation, Composer lock resolution or app smoke test occurred in those runs.** Job-provisioning/root cause is not established by this output.
+
+### T006 — source/config/security checks (scoped static review COMPLETE)
+
+- Inspected `.gitignore`, `.env.example`, `phpunit.xml`, `composer.json`, `bootstrap/app.php`, `config/cache.php`, `config/session.php`, `config/queue.php`, `config/database.php` on the F0-01 feature branch: 13/13 configured defensive checks passed (safe template, ignored `.env` and `vendor/`, no setup/migration scripts, array cache/session, sync queue, in-memory SQLite placeholder, no public web/health route).
+- The latest GitHub PR #2 patch contained 54 readable file entries (all had a patch), zero high-confidence secret-pattern hits in added lines, and no `database/migrations/`, `app/Models/User.php`, `config/auth.php`, `routes/web.php`, committed `.env` or `vendor/` files.
+- This does **not** replace comprehensive repository-history scanning, actual Composer security auditing, dependency-lock validation or final T024 post-code review.
+
+### T007 — deterministic actual installation procedure (DOCUMENTED; not run)
+
+Once a real compatible PHP 8.4+ runner is allocated and a reviewed **real `composer.lock`** has been produced, the reproducible steps are:
+
+```bash
+composer validate --strict --no-check-publish
+composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+composer check-platform-reqs
+php artisan about --no-ansi
+php artisan route:list --json
+php artisan test --filter=BootstrapSmokeTest --no-ansi
+```
+
+The lockfile-generation step prior to deterministic install is `composer update --no-install --no-scripts --no-plugins --no-interaction --no-progress --prefer-dist`, in a **fresh isolated checkout/runner only**, with no credentials. Treat generated `composer.lock` as a *candidate artifact*, review and commit it only after genuine resolver evidence; don't manufacture the lockfile from the earlier temporary T003 dry-run output. `composer check-platform-reqs --lock` may be performed after successful lock generation.
+
+No project Composer lifecycle scripts exist (`composer.json` omits `scripts`), so they cannot automatically call `migrate`, `key:generate`, `install:api`, Tenant provisioning or seeders. `--no-scripts --no-plugins` additionally disables package/plugin execution for the bootstrap validation. Do not run database migration commands or connect to a live database.
+
+### T008 — authored smoke test (NOT EXECUTED)
+
+- `tests/Pest.php` binds Laravel's `Tests\TestCase` to the `Feature` directory, per the documented Pest configuration pattern.
+- `tests/Feature/Foundation/BootstrapSmokeTest.php` verifies `testing` environment, array cache/session, sync queue, no created database connection objects before/after a non-existent HTTP route returns 404. It does not use `RefreshDatabase` or execute any SQL.
+- Both files passed **PHP 8.4.24 CLI syntax lint** in the assistant's isolated scratch directory, but the test suite has **not** run (GitHub Actions failed before steps). Later code changes can cause it to fail; T009 must establish real success before any release claim.
+
 ## Planned implementation validation
 
 Run only when the Laravel source and tested Composer lock actually exist.
@@ -132,7 +165,7 @@ php artisan route:list
 php artisan test --filter=Foundation
 ~~~
 
-The test command is **illustrative**: confirm actual Pest/PHPUnit test file names and supported filters before treating it as an executable gate. Do not interpret a default Laravel welcome page as proof that the Module Registry works.
+The old `--filter=Foundation` command is **illustrative**. The authored smoke-test file is now `BootstrapSmokeTest.php`; its precise `--filter=BootstrapSmokeTest` command is documented above but remains **unexecuted**. Do not interpret a default Laravel welcome page as proof that the Module Registry works.
 
 If installed and configured in the authorized implementation branch, run the appropriate formatting/static checks (e.g. `vendor/bin/pint --test`, configured PHPStan/Larastan) and capture results.
 
