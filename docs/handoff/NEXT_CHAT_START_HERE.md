@@ -7,7 +7,8 @@
 
 ## Read first — authoritative current snapshot
 
-1. **[LATEST: F0-01 Runner Triage + direct GitHub Actions retry — 2026-11-23](F0-01_RUNNER_TRIAGE_AND_TEST_GUARDS_2026-11-23.md)** — Includes ChatGPT-triggered rerun for #45217288046, resulting job #137850639683 failure before steps, [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3), test safeguards and next action.
+1. **[LATEST: F0-01 Private-repo runner diagnosis narrowed — 2026-11-23](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md)** — actual cross-repository comparison, official status/billing documentation and exact remaining GitHub UI checks. **Root cause still unconfirmed.**
+2. **[Prior: F0-01 Runner Triage + direct GitHub Actions retry — 2026-11-23](F0-01_RUNNER_TRIAGE_AND_TEST_GUARDS_2026-11-23.md)** — Includes ChatGPT-triggered rerun for #45217288046, resulting job #137850639683 failure before steps, [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3), test safeguards and next action.
 2. [Prior: T005 CI blocked / T006–T008 prepared](F0-01_T005_CI_BLOCKED_TESTS_PREPARED_2026-11-23.md) and [Laravel 13 source staged](F0-01_T005_SOURCE_STAGED_2026-11-23.md).
 3. [Owner's explicit T005 Option A implementation authorization](../reviews/F0-01-implementation-authorization.md) and [NO Codespaces workflow instruction](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md).
 4. [F0-01 task ledger](../../specs/001-laravel-bootstrap-module-registry/tasks.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [approved spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [research](../../specs/001-laravel-bootstrap-module-registry/research.md), [review](../reviews/F0-01-spec-review.md).
@@ -24,6 +25,10 @@
 - D-201 **OPEN**, BA-16 **DEFERRED**, BA-30 G3 **BLOCKED**.
 
 The connected GitHub connector can re-run jobs directly without Work mode; a direct retry of run `45217288046` was accepted but new job `137850639683` **failed before any steps**, so runner settings/billing remain an unresolved blocker. No user-run Codespaces tasks.
+
+## New narrow diagnostic finding — 2026-11-23
+
+The F0-01 repo is **private**, while another Elmo-Tech repo **restaurant-qr-platform (public)** has a successful GitHub Actions run [45189505578](https://github.com/Elmo-Tech/restaurant-qr-platform/actions/runs/45189505578) (17 job steps). [Official GitHub Status](https://www.githubstatus.com/) reported Actions operational with no incident on 2026-11-23. A private-repo **Actions budget/quota or runner-policy restriction is plausible, NOT verified**. GitHub's [billing docs](https://docs.github.com/en/billing/concepts/product-billing/github-actions) distinguish public free hosted runners from private metered runs. Current connector has repo admin and can rerun/read job metadata, but **no access to Org billing/Actions settings**, and the user's org-membership call returned no organizations (not evidence of actual owner role). Read [new dated handoff](F0-01_PRIVATE_REPO_RUNNER_TRIAGE_2026-11-23.md) and [Issue #3](https://github.com/Elmo-Tech/ecommerce_v2_api/issues/3). Do not run Codespaces or alter billing settings.
 
 ## Next exact action (no user-run Codespaces work)
 
