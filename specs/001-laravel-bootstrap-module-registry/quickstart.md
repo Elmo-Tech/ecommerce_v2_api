@@ -1,7 +1,18 @@
 # F0-01 — Planned Local Bootstrap & Verification Guide
 
-> **Status:** T001–T004 pre-code gates complete; T005 separately authorized and **PARTIALLY STAGED** (33 source/structure files committed via GitHub). Existing `composer.json` is **unlocked**: no `composer.lock`, `vendor/`, Composer installation, Laravel runtime tests or deployment. The owner requires **no further manual Codespaces work**.  
+> **Status (verified 2026-11-23):** **T001–T009 COMPLETE; T010–T026 PENDING.** Actual Laravel 13 scaffold and **authentic committed `composer.lock`** are on the feature branch; GitHub Actions [Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994) completed **success** using deterministic Composer install, platform checks, advisory audit, Laravel boot and DB-free Pest smoke (**1 pass / 9 assertions, no warnings**). Earlier pre-runner-blocker sections below are **historical**, not the current status. No owner-run Codespaces work, migration, deployment or merge.  
 > **Scope:** Development/test only. Never copy credentials, use a Production database, run migrations, connect to Merchant data or trigger deployment while following this F0-01 plan.
+
+## Latest actual bootstrap/lock verification — 2026-11-23
+
+**Canonical evidence:** [F0-01 Bootstrap Validated Handoff](../../docs/handoff/F0-01_BOOTSTRAP_VALIDATED_2026-11-23.md), verified successful [CI Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994) at tested source commit `a446e0be`. The owner confirmed earlier Actions failures were caused by a private-repository Actions limit; after that limit was addressed, the runner executed.
+
+- PHP `8.4.28`, Composer `2.11.2`, Laravel `13.43.0`; pinned `composer.lock` from CI, 74 production + 44 dev packages, recorded in Git commit `5d334ecd`.
+- `composer validate --strict --no-check-publish`, `composer check-platform-reqs --lock`, `composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress`, `composer check-platform-reqs`, `php artisan about --no-ansi`, `php artisan route:list --json` all **passed**.
+- `composer audit --locked --no-interaction` reported `No security vulnerability advisories found.` at that time. `route:list --json` returned `[]` after disabling framework `storage/{path}` routes via `config/filesystems.php` local `serve => false`.
+- `php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi` **1 test passed (9 assertions, zero warnings)**. An empty, private, gitignored `.env` is created solely in the ephemeral CI runner to avoid PHPUnit's warning about an absent dotenv file.
+- `git diff --exit-code` passed for tracked source including committed `composer.lock`; **no database migration, Tenant access, production credentials or deployment**.
+- No further bootstrap/lock generation is needed for the current baseline. **Future dependencies must be updated deliberately and reviewed in the same branch/PR; CI now runs `composer install` from the committed lock and audits it.**
 
 ## Preconditions and approval
 
