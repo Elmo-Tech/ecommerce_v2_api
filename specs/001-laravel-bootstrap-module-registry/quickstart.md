@@ -1,7 +1,33 @@
-# F0-01 — Planned Local Bootstrap & Verification Guide
+# F0-01 — Bootstrap & Verification Guide (current CI + historical preflight)
 
-> **Status (verified 2026-11-23):** **T001–T009 COMPLETE; T010–T026 PENDING.** Actual Laravel 13 scaffold and **authentic committed `composer.lock`** are on the feature branch; GitHub Actions [Run #45239265994](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45239265994) completed **success** using deterministic Composer install, platform checks, advisory audit, Laravel boot and DB-free Pest smoke (**1 pass / 9 assertions, no warnings**). Earlier pre-runner-blocker sections below are **historical**, not the current status. No owner-run Codespaces work, migration, deployment or merge.  
+> **Status (verified 2026-11-24): T001–T024 COMPLETE, T025–T026 pending.** The committed Laravel 13 application and Composer lock are fully validated through [GitHub Actions #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899): 26 passed / 116 assertions in both grouped and unfiltered Unit+Feature+Architecture suites, pinned install/platform/audit and PHP syntax lint. **Pint/PHPStan were not installed or run.** Earlier dry-run/blocked sections below are retained as historical logs, not current instructions. No Codespaces, deployment, production DB or merge.
 > **Scope:** Development/test only. Never copy credentials, use a Production database, run migrations, connect to Merchant data or trigger deployment while following this F0-01 plan.
+
+## Latest F0-01 real GitHub Actions verification — 2026-11-24
+
+**Canonical evidence:** [Full successful Actions Run #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) at source SHA `03a9d2cd`; [Architecture/prod route handoff](../../docs/handoff/F0-01_ARCHITECTURE_AND_PRODUCTION_PROBE_VERIFIED_2026-11-24.md), [Module Registry handoff](../../docs/handoff/F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md).
+
+The CI workflow in `.github/workflows/f0-01-laravel-bootstrap.yml` uses PHP **8.4.28**, Composer **2.11.2** and Laravel **13.43.0**, with **no automatic migrations, auth setup, database connections or deployment**. All of these were **actually run and passed**:
+
+```bash
+composer validate --strict --no-check-publish
+composer check-platform-reqs --lock
+composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+composer audit --locked --no-interaction
+composer check-platform-reqs
+php artisan about --no-ansi
+php artisan route:list --json
+COLUMNS=180 php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
+git diff --exit-code -- .
+```
+
+Test results: **26 passed, 116 assertions, 0 skipped/failing** for each Pest invocation; covers registry validation, fresh unlisted/invalid native boot, testing-only probe, architecture boundaries and production/local route exclusion with a genuine scratch production route-cache fixture. `composer audit --locked` found **no security advisories at run time** (not a permanent guarantee). The workflow creates an *empty*, ignored, runner-local `.env` for harmless dotenv test setup only; no secrets are checked in.
+
+**Quality-tool limitation (T023):** `vendor/bin/pint` and `vendor/bin/phpstan` are **not installed in the approved lock**; CI explicitly checked their availability and emitted notices. **Laravel Pint and PHPStan/Larastan did not run and must never be reported as passing.** Adding them requires an approved quality dependency scope (e.g. F0-04). PHP `-l` syntax lint did run and pass for all tracked PHP source.
+
+**Remaining:** T025 documentation/handoff and T026 independent PR review and upstream branch integration approvals. No Codesspaces/production migrations/deployment/merge. **Below are historical earlier milestones, which should not override these verified results.**
 
 ## Latest actual bootstrap/lock verification — 2026-11-23
 
