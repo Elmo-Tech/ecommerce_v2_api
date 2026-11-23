@@ -22,24 +22,23 @@
 - No Laravel skeleton (`composer.json`/`artisan`) existed at original commit `e730a5c`; no migrations, implementation tests, CI passing proof or deployment.
 - Business **D-201 OPEN**, **BA-16 DEFERRED**, **BA-30 G3 BLOCKED**. Approved architecture/decisions remain authoritative; no silent choice changes.
 
-## Exact next action: switch Codespaces safely to F0-01, then T002 runtime evidence
+## Current Codespaces evidence & exact next step (2026-11-23)
 
-**New owner-provided Codespaces evidence (2026-11-23):** clean local working tree, but checked out `feature/f0-spec-kit-setup` at `c58a78f`, **not** `feature/f0-01-laravel-bootstrap`. The upstream PR #1 head was `5665832a` at verification, so fetch before relying on local branch freshness. This partially informs T004; **T002 is still pending** because actual Codespaces PHP/Composer/extensions output has not been shared.
+**Owner-provided terminal output confirms successful switch to `feature/f0-01-laravel-bootstrap`:** `Already on` the correct branch, and it was up to date with `origin` at command time. A partial `php -m` tail shows `xml`, `xmlreader`, `xmlwriter`, `zlib`, and `Xdebug` among Zend Modules.
 
-Run in the authorized project Codespace:
+**Remaining gates:** Target Codespace PHP version, Composer version and full required extension checks have **not** been provided. Clean `git status --short` and current `git log -1 --oneline` **on F0-01** remain outstanding. Earlier clean status was from the separate upstream Spec Kit branch. T001 alone is complete; T002/T004 are partially evidenced but open, T003 unresolved, and T005–T026 unstarted.
+
+Read-only commands to run **in project Codespaces** and return output:
 
 ```bash
-git fetch origin
-git switch --track origin/feature/f0-01-laravel-bootstrap
-git status --short
-git branch --show-current
-git log -1 --oneline
 php -v
 composer --version
-php -m
+php -r '$r=["ctype","curl","dom","fileinfo","filter","hash","mbstring","openssl","pcre","pdo","session","tokenizer","xml"]; foreach($r as $x){echo $x,": ",extension_loaded($x)?"OK":"MISSING",PHP_EOL;}'
+git status --short
+git log -1 --oneline
 ```
 
-If `feature/f0-01-laravel-bootstrap` already exists locally, replace the `git switch --track` line with `git switch feature/f0-01-laravel-bootstrap`. Do not force reset/merge. Continue T003 and remaining T004 only after the above. **No T005 implementation, migrations or PR merge** until separate authorization and real runtime evidence. See the [dated snapshot](F0-01_preflight_2026-11-23.md).
+Remote head will advance after handoff updates; if needed, fetch and fast-forward only from a confirmed clean worktree. **Do not begin T005**, install Laravel, run migrations, use production credentials or merge either PR before verified gates and separate implementation authorization. See [dated snapshot](F0-01_preflight_2026-11-23.md) for full evidence.
 
 ## Product/decision continuity
 
