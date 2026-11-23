@@ -1,6 +1,6 @@
 # F0-01 — Feature Specification and Constitution Review
 
-> **Status: REVIEW COMPLETE / F0-01 OPTION A APPROVED (SPEC + PLAN)** — owner approval 2026-11-23. Code authorization, PHP/Composer runtime tests and CI remain pending.  
+> **Status: REVIEW COMPLETE / F0-01 OPTION A APPROVED (SPEC + PLAN)** — owner approval 2026-11-23. **T002 PHP/Composer prerequisites + T003 isolated Composer dry-run compatibility completed (owner-supplied Codespaces outputs).** Code authorization, final installed Laravel/runtime tests and CI remain pending.  
 > **Branch:** `feature/f0-01-laravel-bootstrap` (planning only; based on `feature/f0-spec-kit-setup`).  
 > **Canonical specification:** [F0-01 spec](../../specs/001-laravel-bootstrap-module-registry/spec.md); [Constitution v1.0.0](../../.specify/memory/constitution.md).
 
@@ -43,7 +43,7 @@ These are **owner-approved technical design choices** in [plan.md](../../specs/0
 | --- | --- | --- |
 | Spec approval | **APPROVED — Option A, 2026-11-23** | Scope and FR-001…014 / SC-001…007 accepted |
 | Technical plan approval | **APPROVED — Option A, 2026-11-23** | Explicit Provider Registry and test-only probe design accepted; actual runtime verification outstanding |
-| Runtime/framework compatibility | NOT RUN | Exact PHP/Composer versions; Laravel 13 `^13.0` and test tools resolve under real environment |
+| PHP/Composer + candidate dependency compatibility | **T002 + T003 PASS (preflight scope only)** | Codespaces PHP 8.4.27, Composer 2.10.3, all 13 required extensions; isolated Composer dry-run solver exit 0 (Laravel 13.43.0 / Pest 5.3.7 / Plugin 5.0.1 / PHPUnit 13.4.7). **No actual app install, project lock or runtime tests.** |
 | Test runner reliability | NOT VERIFIED | Codespaces/manual runs can produce evidence; GitHub Actions #45083043107/#45083678045 previously failed before steps |
 | Tasks authorization | DRAFT ONLY | Owner authorizes implementation after spec and plan approval |
 | Parent Spec Kit setup PR | OPEN / DRAFT | PR #1 must be approved and integrated separately before direct F0-01 merge into `development` |
@@ -51,6 +51,12 @@ These are **owner-approved technical design choices** in [plan.md](../../specs/0
 
 **Decision recorded:** On 2026-11-23, the owner replied **A** to the explicit question approving **F0-01 Specification + Technical Plan — Option A**. This records binding approval of the reviewed technical scope and design for further preflight, not authorization to run production operations, start Laravel implementation without its separate gate, touch Tenant DBs, declare CI passed or merge a PR.
 
-**Next separate gate:** Verify the isolated PHP/Composer/Laravel 13 environment and obtain explicit implementation authorization before T005–T026. Upstream Spec Kit PR #1 must be integrated before merging this stacked Feature into `development`.
+**Next separate gate:** Complete T004 non-destructive Git/credential hygiene and rollback checks and obtain explicit **separate implementation authorization** before T005–T026. The T002–T003 preflight outputs do not authorize or prove a Laravel app installation. Upstream Spec Kit PR #1 must be integrated before merging this stacked Feature into `development`.
+
+## Subsequent pre-implementation evidence — 2026-11-23
+
+The Codespaces owner provided (not independently executed via connector): PHP `8.4.27`, Composer `2.10.3`, and positive checks for all 13 Laravel-required extensions (**T002 complete**); and a strict Composer manifest validation plus **no-install/no-scripts/no-plugins Composer dry-run** in `/tmp/f0-01-composer-qwmppK` with exit `0` (**T003 complete**). It simulated 118 lock operations selecting Laravel `v13.43.0`, Pest `v5.3.7`, Laravel test plugin `v5.0.1`, PHPUnit `13.4.7`, and printed `No security vulnerability advisories found.`
+
+This is package **resolution evidence only**; no project `composer.lock`, packages, Laravel runtime/application, actual test runner execution or CI pass exists. GitHub comparisons through the former head showed only documentation changes on F0-01; local T004 safety/secret checks and rollback evidence still need to be completed. Neither prior owner approval nor this evidence relaxes the separate implementation permission or merge requirements. See [latest dated handoff](../handoff/F0-01_T003_COMPOSER_VERIFIED_2026-11-23.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), and [research](../../specs/001-laravel-bootstrap-module-registry/research.md).
 
 **Sources:** [Backend Architecture](../01-architecture/backend-architecture.md), [Module Architecture](../01-architecture/module-architecture.md), [Code Standards](../02-standards/code-standards.md), [Testing Standards](../02-standards/testing-standards.md), [FBR-02](FBR-02-architecture-gap-review.md), [Laravel 13 release notes](https://laravel.com/docs/13.x/releases), [Laravel 13 providers](https://laravel.com/docs/13.x/providers).
