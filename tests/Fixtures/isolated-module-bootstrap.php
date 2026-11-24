@@ -10,16 +10,11 @@ use App\Providers\AppServiceProvider;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
 use Illuminate\Support\Facades\Route;
+use Tests\Fixtures\AbstractModuleProvider;
 
 $root = dirname(__DIR__, 2);
 
 require $root.'/vendor/autoload.php';
-
-// Negative test fixture: valid ServiceProvider inheritance is insufficient
-// if the provider is abstract (must fail before any listed module activates).
-abstract class FoundationAbstractBootstrapProvider extends Illuminate\Support\ServiceProvider
-{
-}
 
 /** @var \Illuminate\Foundation\Application $app */
 $app = require $root.'/bootstrap/app.php';
@@ -47,7 +42,7 @@ $definitions = match ($scenario) {
     ],
     'abstract-after-demo' => [
         ...$valid,
-        ['id' => 'abstract', 'provider' => FoundationAbstractBootstrapProvider::class],
+        ['id' => 'abstract', 'provider' => AbstractModuleProvider::class],
     ],
     'missing-provider' => [
         ['id' => 'invalid', 'provider' => 'App\\Missing\\UnknownModuleProvider'],
