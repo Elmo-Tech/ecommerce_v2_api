@@ -1,6 +1,6 @@
 # Foundation — Technical Module Overview (F0)
 
-> **Status (2026-11-24):** **Laravel 13 + explicit Module Registry + FoundationDemo implemented and tested**. T001–T024 completed at defined scope; actual GitHub Actions [#45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) passed **26 tests / 116 assertions** including production/local route absence and genuine scratch production route cache exclusion. Pint/PHPStan unavailable (not claimed passed); T025 documentation COMPLETE; T026 independent review/conditional integration pending.  
+> **Status (2026-11-24): F0-01 CLOSED — T001–T026 COMPLETE, MERGED to `development`.** All substantive CodeRabbit findings resolved; [integrated CI #45405086930](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45405086930) passed **31 tests / 134 assertions**, standalone Architecture **3 / 23**, with no production route-cache leakage. Pint/PHPStan were not installed/run. See [final merged handoff](../../handoff/F0-01_MERGED_AND_CLOSED_2026-11-24.md).  
 > **Scope:** Technical Engineering Foundation, not one of the 16 business-domain data owners.  
 > **Source of truth:** [F0-01 Feature Specification](../../../specs/001-laravel-bootstrap-module-registry/spec.md), [technical plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md), [Constitution v1.0.0](../../../.specify/memory/constitution.md).
 
@@ -49,14 +49,14 @@ Native Laravel provider registration at application bootstrap has been verified 
 
 | Feature | Canonical artifacts | Status |
 | --- | --- | --- |
-| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T025 complete with explicit Pint/PHPStan limitation**, T026 independent PR review/conditional merge pending (2026-11-24) |
+| F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T026 complete (26/26), both upstream and feature PRs merged to `development` (2026-11-24)**; Pint/PHPStan limitation retained |
 | F0-02 / F0-03 / F0-04 / F0-05 | Planned F0 follow-ups per [WORKFLOW](../../WORKFLOW.md) | Not specified or implemented in F0-01 |
 
 ## Authorization, tests and gates
 
 - FoundationDemo's HTTP probe must exist **only in testing**; route caches/normal prod routing cannot expose it.
-- Approved/verified: owner-approved `spec/plan`, separate F0-01 implementation authorization, PHP/Composer locked real Laravel boot and positive/negative listed/unlisted/duplicate/missing/invalid Provider tests. Real [Module Registry CI Run #45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273): **19 passed, 63 assertions**. **Subsequently verified:** independent production/local route absence, generated scratch production route cache, focused Architecture boundaries, full Unit/Feature/Architecture tests and scoped diff review. **Not verified:** standalone Pint/PHPStan analysis (tools absent), independent final PR review/merge gate.
-- Parent Spec Kit [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and stacked F0-01 [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) remain **Draft/unmerged**. Neither successful Foundation tests nor this overview authorizes production deployment or migrations; the owner separately gave **conditional** authorization to merge into `development` only once T026 review, findings and CI gates all pass.
+- Approved/verified: owner-approved `spec/plan`, separate F0-01 implementation authorization, PHP/Composer locked real Laravel boot and positive/negative listed/unlisted/duplicate/missing/invalid Provider tests. Real [Module Registry CI Run #45283746273](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45283746273): **19 passed, 63 assertions**. **Subsequently verified:** independent production/local route absence, generated scratch production route cache, focused Architecture boundaries, full Unit/Feature/Architecture tests and scoped diff review. **Not verified:** standalone Pint/PHPStan analysis (tools absent). **Verified:** substantive CodeRabbit review remediation, final merged PRs, and integrated Laravel CI.
+- Parent Spec Kit [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and F0-01 [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) are **MERGED into `development`**. Neither successful Foundation tests nor this overview authorizes production deployment or migrations; the owner separately gave **conditional** authorization and the review, CI and development-only merge gates have since been satisfied.
 - Business/Release open items **D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED** remain unchanged.
 
 ## Dependencies and next modules
