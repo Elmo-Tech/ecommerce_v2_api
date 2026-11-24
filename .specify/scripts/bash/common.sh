@@ -117,11 +117,14 @@ read_feature_json_feature_directory() {
         fi
     fi
     if [[ -z "$_fd" ]]; then
-        # Last-resort single-line grep/sed fallback. The `|| true` guards against
-        # grep returning 1 (no match) aborting under `set -e` / `pipefail`.
-        _fd=$( { grep -E '"feature_directory"[[:space:]]*:' "$fj" 2>/dev/null || true; } \
-            | head -n 1 \
-            | sed -nE 's/^.*"feature_directory"[[:space:]]*:[[:space:]]*"([^"\\]*)".*$/\1/p' )
+        # No JSON parser: accept ONLY the strict single-line subset our writer
+        # can emit (optionally preceded by integer version metadata). This
+        # intentionally rejects malformed JSON or escaped values rather than
+        # treating grep/sed as a complete JSON parser.
+        if [[ $(grep -c . "$fj" 2>/dev/null || true) -eq 1 ]] &&
+            grep -Eq '^[[:space:]]*\{[[:space:]]*("version"[[:space:]]*:[[:space:]]*[0-9]+[[:space:]]*,[[:space:]]*)?"feature_directory"[[:space:]]*:[[:space:]]*"[^"\\]*"[[:space:]]*\}[[:space:]]*$' "$fj" 2>/dev/null; then
+            _fd=$(sed -nE 's/^.*"feature_directory"[[:space:]]*:[[:space:]]*"([^"\\]*)".*$/\1/p' "$fj")
+        fi
     fi
 
     printf '%s' "$_fd"
