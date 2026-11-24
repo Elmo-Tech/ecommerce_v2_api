@@ -428,7 +428,15 @@ SPEC_FILE="$FEATURE_DIR/spec.md"
 # Refuse creation BEFORE touching the new directory if a stale explicit
 # override would make setup-plan/setup-tasks select a different feature.
 if [ "$DRY_RUN" != true ] && [[ -n "${SPECIFY_FEATURE_DIRECTORY:-}" ]]; then
-    requested_feature="${SPECIFY_FEATURE_DIRECTORY#./}"
+    # Normalize harmless spelling differences without resolving a *different*
+    # feature path: ./ prefix and trailing / are accepted by get_feature_paths.
+    requested_feature="$SPECIFY_FEATURE_DIRECTORY"
+    while [[ "$requested_feature" == ./* ]]; do
+        requested_feature="${requested_feature#./}"
+    done
+    while [[ "$requested_feature" == */ && "$requested_feature" != "/" ]]; do
+        requested_feature="${requested_feature%/}"
+    done
     intended_relative="${FEATURE_DIR#"$REPO_ROOT/"}"
     if [[ "$requested_feature" != "$intended_relative" && "$requested_feature" != "$FEATURE_DIR" ]]; then
         >&2 echo "ERROR: SPECIFY_FEATURE_DIRECTORY points to '$SPECIFY_FEATURE_DIRECTORY', not the feature being created: '$FEATURE_DIR'."
