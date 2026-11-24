@@ -6,6 +6,8 @@ namespace App\Core\Http;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Throwable;
+use WeakReference;
 
 /** Request attributes only; no singleton stores mutable request or identity state. */
 final class ApiRequestContext
@@ -15,6 +17,7 @@ final class ApiRequestContext
     public const string ACTIVE = 'foundation.api.active';
     public const string REPORTED = 'foundation.api.reported';
     public const string MAPPED_RESPONSE = 'foundation.api.mapped_response';
+    public const string ESCAPED_FAILURE = 'foundation.api.boundary_failure';
 
     public static function matches(Request $request): bool
     {
@@ -44,6 +47,20 @@ final class ApiRequestContext
     public static function active(Request $request): bool
     {
         return self::matches($request) && $request->attributes->get(self::ACTIVE) === true;
+    }
+
+    /** An escaping middleware failure is reported after the native pipeline unwinds. */
+    public static function canReport(Request $request, Throwable $exception): bool
+    {
+        if (! self::matches($request)) {
+            return false;
+        }
+        if (self::active($request)) {
+            return true;
+        }
+        $failure = $request->attributes->get(self::ESCAPED_FAILURE);
+
+        return $failure instanceof WeakReference && $failure->get() === $exception;
     }
 
     private function __construct() {}

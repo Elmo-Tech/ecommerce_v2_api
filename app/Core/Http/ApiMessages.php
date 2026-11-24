@@ -24,6 +24,13 @@ final class ApiMessages
         // Missing translations are defects; never expose the raw key or input.
         if (app()->environment('local', 'development', 'testing')) {
             $context = ['locale' => $locale];
+            // Only known internal catalog codes are safe diagnostic labels.
+            $constant = ApiErrorCodes::class.'::'.$key;
+            if ($key === 'INVALID_FIELD'
+                || (preg_match('/\A[A-Z][A-Z0-9_]*\z/D', $key) === 1
+                    && defined($constant) && constant($constant) === $key)) {
+                $context['message_code'] = $key;
+            }
             if ($requestId !== null) {
                 $context['request_id'] = $requestId;
             }

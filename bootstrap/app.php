@@ -29,14 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Laravel otherwise reports unexpected exception messages/objects
-        // before rendering. Replace that reporting only during an active API
-        // attempt; never suppress unrelated web, CLI or later worker reports.
+        // before rendering. Scope safe reporting to an active API attempt or
+        // its exact escaping middleware failure; never suppress unrelated work.
         $exceptions->dontReportWhen(static function (Throwable $exception): bool {
             if (! app()->bound('request')) {
                 return false;
             }
             $request = app('request');
-            if (! $request instanceof Request || ! ApiRequestContext::active($request)) {
+            if (! $request instanceof Request || ! ApiRequestContext::canReport($request, $exception)) {
                 return false;
             }
             app(ApiExceptionMapper::class)->reportSafely($exception, $request);

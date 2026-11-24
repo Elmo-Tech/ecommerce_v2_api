@@ -68,29 +68,76 @@ final class ApiExceptionMapper
             return $response;
         }
 
-        if ($response->getStatusCode() >= 400
-            && $request->attributes->get(ApiRequestContext::MAPPED_RESPONSE) !== $response) {
-            $response = $this->errorResponse(
-                $exception,
-                $request,
-                $response->getStatusCode(),
-                $response->headers->all(),
-            );
-        }
-        $request->attributes->remove(ApiRequestContext::MAPPED_RESPONSE);
-        $response->headers->set('X-Request-ID', ApiRequestContext::id($request));
+        try {
+            $status = $response->getStatusCode();
 
-        return $response;
+            if ($status < 400 && ! $this->isNativeControlResponse($exception, $response)) {
+                // A custom renderer is not authority to turn an unexpected
+                // exception into a successful response or arbitrary redirect.
+                $status = $this->status($exception);
+                $response = $this->errorResponse($exception, $request, $status >= 400 ? $status : 500, []);
+            } elseif ($status >= 400
+                && $request->attributes->get(ApiRequestContext::MAPPED_RESPONSE) !== $response) {
+                $response = $this->errorResponse(
+                    $exception,
+                    $request,
+                    $status,
+                    $response->headers->all(),
+                );
+            }
+
+            $response->headers->set('X-Request-ID', ApiRequestContext::id($request));
+            $this->logRenderedFailure($exception, $request, $response->getStatusCode());
+
+            return $response;
+        } finally {
+            $request->attributes->remove(ApiRequestContext::MAPPED_RESPONSE);
+            $request->attributes->remove(ApiRequestContext::ESCAPED_FAILURE);
+            if (! ApiRequestContext::active($request)) {
+                // An outer pipeline can report after middleware cleanup.
+                $request->attributes->remove(ApiRequestContext::REPORTED);
+            }
+        }
+    }
+
+    private function isNativeControlResponse(Throwable $exception, Response $response): bool
+    {
+        return $exception instanceof HttpResponseException
+            || ($exception instanceof HttpExceptionInterface
+                && $exception->getStatusCode() === $response->getStatusCode()
+                && $response->isRedirection());
     }
 
     /**
-     * Called only by the request-scoped native reporting hook. Never send the
-     * exception object/message, SQL, request body, cookies or input to logs.
+     * Report the exception classification, not an HTTP status we have not
+     * rendered yet. Manual report() calls need not terminate the request.
      */
     public function reportSafely(Throwable $exception, Request $request): void
     {
         $status = $this->status($exception);
-        $this->logFailure($exception, $request, $status, $this->code($status));
+        if ($status < 500) {
+            return;
+        }
+
+        $reported = $request->attributes->get(ApiRequestContext::REPORTED);
+        if (! $reported instanceof WeakMap) {
+            $reported = new WeakMap;
+            $request->attributes->set(ApiRequestContext::REPORTED, $reported);
+        }
+        if (isset($reported[$exception])) {
+            return;
+        }
+
+        try {
+            Log::error('api.exception_reported', [
+                ...$this->safeDiagnosticContext($exception, $request),
+                'exception_status' => $status,
+                'exception_error_code' => $this->code($status),
+            ]);
+            $reported[$exception] = true;
+        } catch (Throwable) {
+            // A failed diagnostic must not change the HTTP outcome.
+        }
     }
 
     /** @param array<string, string|list<string>> $headers */
@@ -104,37 +151,16 @@ final class ApiExceptionMapper
         $locale = ApiRequestContext::locale($request, $this->localeResolver);
         $errors = [];
 
-        if ($exception instanceof ValidationException && $status === HttpStatusCode::UnprocessableContent->value) {
+        if ($exception instanceof ValidationException
+            && $status === HttpStatusCode::UnprocessableContent->value
+            && $exception->validator instanceof ApiFieldValidator) {
+            // Native rule metadata distinguishes declared fields from keys
+            // expanded out of untrusted data. Unknown validator provenance
+            // safely yields the generic 422, never an arbitrary error bag.
             $fieldMessage = $this->messages->get('INVALID_FIELD', $locale, $id);
-            // Native wildcard expansion may include user-supplied associative
-            // keys from a malformed list. Do not expose descendants when the
-            // declared parent list rule has failed.
-            $invalidLists = [];
-            foreach ($exception->validator->failed() as $field => $rules) {
-                if (is_string($field) && isset($rules['List'])) {
-                    $invalidLists[$field] = true;
-                }
-            }
-
-            foreach (array_keys($exception->errors()) as $field) {
-                // Features own declared fields and list rules; never recase
-                // arbitrary input or echo raw validator text.
-                if (! is_string($field) || ! ApiResponse::isWireFieldPath($field)) {
-                    continue;
-                }
-                $ancestor = $field;
-                while (($separator = strrpos($ancestor, '.')) !== false) {
-                    $ancestor = substr($ancestor, 0, $separator);
-                    if (isset($invalidLists[$ancestor])) {
-                        continue 2;
-                    }
-                }
+            foreach ($exception->validator->safeErrorPaths(array_keys($exception->errors())) as $field) {
                 $errors[$field] = [$fieldMessage];
             }
-        }
-
-        if ($status >= 500) {
-            $this->logFailure($exception, $request, $status, $code);
         }
 
         return ApiResponse::error(
@@ -179,38 +205,37 @@ final class ApiExceptionMapper
         };
     }
 
-    private function logFailure(Throwable $exception, Request $request, int $status, string $code): void
+    /**
+     * Record the actual sanitized exception response separately from an early
+     * report. Only one error-level report is emitted for the same exception.
+     */
+    private function logRenderedFailure(Throwable $exception, Request $request, int $status): void
     {
-        if ($status < 500) {
-            return;
-        }
-
-        // The same exception can pass through the native report and render
-        // hooks. Deduplicate per request, never with a static/global registry.
         $reported = $request->attributes->get(ApiRequestContext::REPORTED);
-        if (! $reported instanceof WeakMap) {
-            $reported = new WeakMap;
-            $request->attributes->set(ApiRequestContext::REPORTED, $reported);
-        }
-        if (isset($reported[$exception])) {
+        $alreadyReported = $reported instanceof WeakMap && isset($reported[$exception]);
+        if ($status < 500 && ! $alreadyReported) {
             return;
         }
-        // Weak object keys cannot accidentally deduplicate a later exception
-        // when PHP recycles an integer object ID.
-        $reported[$exception] = true;
-        $type = $exception::class;
 
         try {
-            Log::error('api.request_failed', [
-                'request_id' => ApiRequestContext::id($request),
+            Log::log($alreadyReported ? 'info' : 'error', 'api.request_failed', [
+                ...$this->safeDiagnosticContext($exception, $request),
                 'http_status' => $status,
-                'error_code' => $code,
-                'exception_type' => str_contains($type, '@anonymous') ? 'anonymous_throwable' : $type,
+                'error_code' => $this->code($status),
             ]);
         } catch (Throwable) {
-            // Technical logging failure is not authority to change the HTTP
-            // outcome or disclose the original exception to the caller.
+            // Do not expose original exception details if logging fails.
         }
     }
-}
 
+    /** @return array{request_id: string, exception_type: string} */
+    private function safeDiagnosticContext(Throwable $exception, Request $request): array
+    {
+        $type = $exception::class;
+
+        return [
+            'request_id' => ApiRequestContext::id($request),
+            'exception_type' => str_contains($type, '@anonymous') ? 'anonymous_throwable' : $type,
+        ];
+    }
+}

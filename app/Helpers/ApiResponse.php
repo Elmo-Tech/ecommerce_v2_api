@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Helpers;
 
+use App\Core\Http\ApiErrorCodes;
 use App\Enums\HttpStatusCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -65,8 +66,11 @@ final class ApiResponse
         if (preg_match('/\A[A-Z][A-Z0-9_]*\z/D', $errorCode) !== 1) {
             throw new InvalidArgumentException('An error response requires a stable machine-readable code.');
         }
-        if ($errors !== [] && $statusValue !== HttpStatusCode::UnprocessableContent->value) {
-            throw new InvalidArgumentException('Field validation errors require HTTP 422.');
+        if ($errorCode === ApiErrorCodes::VALIDATION_FAILED && $statusValue !== HttpStatusCode::UnprocessableContent->value) {
+            throw new InvalidArgumentException('VALIDATION_FAILED requires HTTP 422.');
+        }
+        if ($errors !== [] && $errorCode !== ApiErrorCodes::VALIDATION_FAILED) {
+            throw new InvalidArgumentException('Field errors require the shared validation error code.');
         }
         foreach ($errors as $field => $messages) {
             if (! is_string($field) || ! self::isWireFieldPath($field) || ! is_array($messages) || ! array_is_list($messages) || $messages === []) {
