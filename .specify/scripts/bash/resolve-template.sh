@@ -44,10 +44,11 @@ fi
 
 if $JSON_MODE; then
     if has_jq; then
-        jq -cn \
+        # A large template exceeds Linux's per-argument limit if passed via
+        # --arg; jq -Rs reads the full bytes from stdin without that limit.
+        printf '%s' "$TEMPLATE_CONTENT" | jq -Rs \
             --arg template_name "$TEMPLATE_NAME" \
-            --arg template_content "$TEMPLATE_CONTENT" \
-            '{TEMPLATE_NAME:$template_name,TEMPLATE_CONTENT:$template_content}'
+            '{TEMPLATE_NAME:$template_name,TEMPLATE_CONTENT:.}'
     else
         printf '{"TEMPLATE_NAME":"%s","TEMPLATE_CONTENT":"%s"}\n' \
             "$(json_escape "$TEMPLATE_NAME")" "$(json_escape "$TEMPLATE_CONTENT")"
