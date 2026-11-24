@@ -1,6 +1,6 @@
 # F0-02 API Foundation — Source and Runtime Discovery (2026-11-24)
 
-**Status:** DISCOVERY / REVISED DOCUMENT REVIEW ONLY; DEC-01…04 owner-approved on 2026-11-24; full Spec/Plan approval pending; no F0-02 implementation or CI.  
+**Status:** DISCOVERY / DOCUMENT REVIEW; DEC-01…04 and complete spec/plan owner-approved 2026-11-24; tasks and consistency analysis recorded; no F0-02 implementation or CI.  
 **Branch:** `feature/f0-02-api-foundation` based on merged `development` after F0-01 documentation reconciliation.
 
 ## Verified actual code state
@@ -37,10 +37,10 @@
 - **F0-02-DEC-03:** approved OpenAPI 3.1 JSON at `specs/002-api-foundation/contracts/openapi.json`, empty paths, no new packages and explicitly limited lightweight checks.
 - **F0-02-DEC-04:** approved empty native `routes/api.php` under `/api/v1`, preserving explicit providers and zero public routes.
 
-## Review findings and remaining approval
+## Review findings and approved direction
 
 - Route-group-only middleware cannot be assumed to execute for an unmatched route; early path-scoped handling and actual HTTP lifecycle tests are required. Scope the new v1 envelope to exact v1 path/descendants, retaining existing non-v1 and non-API behavior.
-- Final plan proposes `BAD_REQUEST`, `METHOD_NOT_ALLOWED`, `SERVICE_UNAVAILABLE` and a generic `HTTP_ERROR` fallback, preserving genuine HTTP statuses and protocol headers; these exact additional code strings are pending final owner Spec/Plan sign-off, not implied by DEC-02.
+- Final plan includes `BAD_REQUEST`, `METHOD_NOT_ALLOWED`, `SERVICE_UNAVAILABLE` and a generic `HTTP_ERROR` fallback, preserving genuine HTTP statuses and protocol headers; approved with complete spec/plan on 2026-11-24, not implied by DEC-02 alone.
 - Test successive requests including errors for ID/locale/diagnostic cleanup and no sensitive response/log leakage. No real Auth or rate-limiter behavior claimed.
 - Full OpenAPI validator is not installed; native structural checks plus response contract assertions are the approved approach, not proof of complete OpenAPI compliance.
 - At initial review PR #4 had 5 documentation-only files, 5 commits, no reviews/threads, and CodeRabbit explicitly skipped Draft auto-review. Feature was one documentation-only commit behind development (canonical handoff update `5155521f9574057d890f3f594f34f6f180af8a41`), not behind runtime code. No automatic synchronization or merge authorized.
@@ -48,4 +48,4 @@
 
 ## Actual execution statement
 
-**No F0-02 Laravel code, route registration, contract JSON, migrations, package installations or tests were created/executed.** This is documentation-only revision and review. Full specification and implementation plan approval, tasks/analysis and explicit implementation authorization remain required.
+**No F0-02 Laravel code, route registration, contract JSON, migrations, package installations or tests were created/executed.** This is documentation-only revision and review. Full specification and plan approval and [task/consistency preparation](consistency-analysis.md) completed 2026-11-24. Explicit implementation authorization remains required before runtime work.
