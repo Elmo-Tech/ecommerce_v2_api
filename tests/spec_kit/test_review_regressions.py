@@ -194,5 +194,35 @@ class ShellRegressions(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout)["TEMPLATE_CONTENT"], expected)
 
 
+    def test_large_tasks_setup_json_locator_matches_emitted_content(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+            root = Path(d)
+            override = root / ".specify/templates/overrides/tasks-template.md"
+            override.parent.mkdir(parents=True)
+            expected = "# Tasks template\\n" + ("z" * 150_000) + "\\n"
+            override.write_text(expected, encoding="utf-8")
+            feature = root / "specs/001-review"
+            feature.mkdir(parents=True)
+            (feature / "spec.md").write_text("# Spec\\n", encoding="utf-8")
+            (feature / "plan.md").write_text("# Plan\\n", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["SPECIFY_INIT_DIR"] = str(root)
+            env["SPECIFY_FEATURE_DIRECTORY"] = "specs/001-review"
+            result = subprocess.run(
+                ["bash", str(BASH_DIR / "setup-tasks.sh"), "--json"],
+                cwd=root,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            data = json.loads(result.stdout)
+            self.assertEqual(data["TASKS_TEMPLATE"], str(override))
+            self.assertEqual(data["TASKS_TEMPLATE_CONTENT"], expected)
+            self.assertEqual(data["FEATURE_DIR"], str(feature))
+
+
 if __name__ == "__main__":
     unittest.main()
