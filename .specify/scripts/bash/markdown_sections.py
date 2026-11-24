@@ -136,6 +136,14 @@ def replace_section(
     metadata = content.startswith(("---\n", "---\r\n"))
     html_comment = False
     offset = 0
+    # Inline Markdown code spans may contain line endings (CommonMark). Find
+    # only COMPLETE spans across the full source before inspecting <!-- markers
+    # on individual lines. Keep absolute offsets so a multiline code span
+    # cannot accidentally open an HTML comment and swallow a later heading.
+    complete_code_spans = [
+        (span.start(), span.end())
+        for span in re.finditer(_CODE_SPAN.pattern, content, re.DOTALL)
+    ]
     # splitlines() also splits on Unicode U+2028, which is NOT a Markdown line
     # ending. Keep exact offsets while recognizing only CR, LF, and CRLF.
     markdown_lines = re.finditer(r"[^\r\n]*(?:\r\n|\r|\n|\Z)", content)
@@ -159,8 +167,12 @@ def replace_section(
         visible_parts: list[str] = []
         cursor = 0
         # A literal `<!--` inside a complete inline code span is NOT a
-        # Markdown HTML-comment opener. Preserve the code span unchanged.
-        protected_spans = [(m.start(), m.end()) for m in _CODE_SPAN.finditer(text)]
+        # Markdown HTML-comment opener, including a span crossing line breaks.
+        protected_spans = [
+            (begin - start, finish - start)
+            for begin, finish in complete_code_spans
+            if begin < offset and finish > start
+        ]
         while cursor < len(text):
             if html_comment:
                 close = text.find("-->", cursor)
