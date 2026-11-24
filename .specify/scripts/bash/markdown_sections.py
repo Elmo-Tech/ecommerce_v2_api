@@ -145,9 +145,8 @@ def replace_section(
         for span in re.finditer(_CODE_SPAN.pattern, content, re.DOTALL)
         # A backtick inside a fenced block cannot open an inline code span
         # that closes in a later HTML comment. Reject candidates crossing
-        # a Markdown fence boundary (or a paragraph-breaking blank line).
+        # a Markdown fence delimiter without changing CRLF span handling.
         if not re.search(r"(?m)^ {0,3}(?:`{3,}|~{3,})", span.group())
-        and not re.search(r"(?:\r?\n|\r)[ \t]*(?:\r?\n|\r)", span.group())
     ]
     # splitlines() also splits on Unicode U+2028, which is NOT a Markdown line
     # ending. Keep exact offsets while recognizing only CR, LF, and CRLF.
