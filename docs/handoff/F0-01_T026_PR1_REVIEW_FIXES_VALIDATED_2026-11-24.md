@@ -16,7 +16,7 @@ CodeRabbit replied independently to the original ten review-thread fixes. Most w
 
 **Latest real green CI:** [FND-01 Actions Run #45295925134](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45295925134), job `138116149561`, verified PR #1 source HEAD **`ff1b5226208aee28e028228dcedabdcca25c542b`**. **16 Python unittest regressions passed**, all Spec Kit shell scripts parsed successfully with `bash -n`, tracked files unchanged. The earlier 13-test run #45294979463 is historical only.
 
-The author replied on the four follow-up threads with these fixes and latest evidence. **PR #1 remains Draft with 10 unresolved review discussions; CodeRabbit state is `COMMENTED`, not `APPROVED`. PR #2 still needs an independent review after the previously reported CodeRabbit rate limit. T026 remains OPEN (25/26), with no merge, retarget or deployment.** The existing one-time follow-up automation has been updated to read the latest handoff before checking reviews.
+The author replied on the four follow-up threads with these fixes and latest evidence. **PR #1 remains Draft. On latest re-check, CodeRabbit has resolved 1 of 10 threads; 9 remain unresolved, with review state `COMMENTED`, not `APPROVED`. Live GitHub thread status must always be re-fetched.** PR #2 still needs an independent review after the previously reported CodeRabbit rate limit. T026 remains OPEN (25/26), with no merge, retarget or deployment.** The existing one-time follow-up automation has been updated to read the latest handoff before checking reviews.
 
 ## Real review change since previous T026 snapshot
 
