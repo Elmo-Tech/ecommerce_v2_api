@@ -5,6 +5,19 @@
 **Stack:** PR #1 `feature/f0-spec-kit-setup` → `development` (Draft); PR #2 `feature/f0-01-laravel-bootstrap` → PR #1 branch (Draft). Neither merged or retargeted.  
 **Owner mandate:** Complete T026 before moving to any subsequent Feature; **maintain `docs/handoff/NEXT_CHAT_START_HERE.md` as canonical entrypoint** and dated snapshots, no Codespaces commands. No merge/deployment/production migration authorization.
 
+## LATEST addendum — CodeRabbit follow-up issues fixed, 16 tests passed (2026-11-24)
+
+CodeRabbit replied independently to the original ten review-thread fixes. Most were confirmed technically, but it highlighted **four follow-up improvements**, now also implemented on upstream `feature/f0-spec-kit-setup`:
+
+1. `get_feature_paths()` now **propagates errors** from failed `_persist_feature_json` writes, instead of reporting a successful selection backed by an old pin. An end-to-end regression tests the failure.
+2. `markdown_sections.py` ignores `<!--` openers protected inside complete **inline Markdown code spans**; a regression verifies a real next heading is still found.
+3. The `TASKS_TEMPLATE` locator now has tests for **non-conventional preset manifest paths** and **composed prepend templates** using a real, pinned **PyYAML 6.0.2 test-only CI dependency**; no Laravel Composer dependency changed.
+4. The parallel task template example now says **risk-selected tests** instead of `if tests requested`, consistent with Constitution VII.
+
+**Latest real green CI:** [FND-01 Actions Run #45295925134](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45295925134), job `138116149561`, verified PR #1 source HEAD **`ff1b5226208aee28e028228dcedabdcca25c542b`**. **16 Python unittest regressions passed**, all Spec Kit shell scripts parsed successfully with `bash -n`, tracked files unchanged. The earlier 13-test run #45294979463 is historical only.
+
+The author replied on the four follow-up threads with these fixes and latest evidence. **PR #1 remains Draft with 10 unresolved review discussions; CodeRabbit state is `COMMENTED`, not `APPROVED`. PR #2 still needs an independent review after the previously reported CodeRabbit rate limit. T026 remains OPEN (25/26), with no merge, retarget or deployment.** The existing one-time follow-up automation has been updated to read the latest handoff before checking reviews.
+
 ## Real review change since previous T026 snapshot
 
 **[CodeRabbit review on PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1#pullrequestreview-6031508007) completed** on 2026-11-24T00:02:01Z, state `COMMENTED`, **10 inline actionable comments** (2 Major / 8 Minor). Previous handoff's “review in progress” is superseded by this review result.
