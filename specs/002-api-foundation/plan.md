@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T003 approval/consistency checkpoints complete; T004 runtime preflight remains blocking. The approved T022 trigger-only path extension is performed early to trigger the baseline CI on this docs-only PR; all code/test source changes still follow successful T004.**
+**T001–T026 complete with actual baseline, RED, GREEN, review regression RED and final GREEN. The approved T022 trigger-only path extension was performed early to trigger baseline CI; all application/test source changes followed successful T004. See [quickstart](quickstart.md). Independent review and final merge gates remain open.**
 
 ## 5. Quality and security gates
 
@@ -143,7 +143,8 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 - [x] Owner approves this complete revised plan including lifecycle design, CI coverage and risk-selected test strategy in the same response.
 - [x] [Task ledger](tasks.md) generated and [consistency analysis](consistency-analysis.md) completed.
 - [x] T003 separate owner implementation authorization, 2026-11-24.
-- [ ] T004 real preflight and tests-first execution on `feature/f0-02-api-foundation`.
+- [x] T004 real preflight, tests-first RED, implementation, GREEN and scope review T005–T026 on `feature/f0-02-api-foundation`.
+- [ ] T027 independent review and final integrated candidate recheck.
 - [ ] Keep D-201/BA-16/BA-30 unchanged; no release or production access. No merge or deployment without separate authorization.
 
-**This is the approved plan. Separate implementation authorization is recorded; actual runtime results and merge authority remain separate.**
+**Approved and implemented plan; technical evidence at [quickstart](quickstart.md), independent review and separate development-only merge authority still pending.**

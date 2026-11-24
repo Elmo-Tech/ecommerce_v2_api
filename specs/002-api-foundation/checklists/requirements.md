@@ -1,4 +1,4 @@
-# F0-02 — Revised Specification Review Checklist (DEC-01…04 and full Spec/Plan approved; execution pending)
+# F0-02 — Revised Specification Review Checklist (DEC-01…04 and full Spec/Plan approved; technical implementation verified; review pending)
 
 **Prepared 2026-11-24.** Checklist represents draft completeness and approval gates, **not implementation test results**.
 
@@ -16,7 +16,9 @@
 - [x] Owner approves additional public error-code/status mappings and other detailed requirements as part of final Spec/Plan sign-off.
 - [x] Owner approves both **spec.md** and **plan.md** for F0-02 (2026-11-24).
 - [x] Risk-selected [task ledger](../tasks.md) and [consistency analysis](../consistency-analysis.md) recorded before code.
-- [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24); actual test execution remains to be evidenced.
-- [ ] F0-02 CI, code review and merge actually performed (NOT YET).
+- [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24).
+- [x] Actual baseline/RED/GREEN/full integrated CI, architecture and scope review recorded (T004–T026); see [quickstart](../quickstart.md).
+- [ ] Independent review/remediation and final candidate recheck (T027).
+- [ ] Separate owner merge authority, verified development integration and final handoff (T028–T030).
 
-**Current status:** Four decisions and full revised spec/plan approved; 3/30 documentation/authorization tasks completed, scoped execution authorized. No F0-02 runtime code, test source, CI result or merge yet. Do not mark outstanding gates complete without actual evidence and authorization.
+**Current status:** 26/30 tasks completed on feature branch with actual CI evidence, 4 gates open (independent review, separate merge approval, verified merge and closeout). No deployment, production readiness or full OpenAPI validation claim.

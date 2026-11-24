@@ -1,6 +1,6 @@
 # Feature Specification — F0-02: API Foundation
 
-**Status:** **OWNER-APPROVED SPEC — DEC-01…04 AND FULL SPEC/PLAN APPROVED; IMPLEMENTATION AUTHORIZED 2026-11-24**  
+**Status:** **OWNER-APPROVED SPEC — IMPLEMENTED AND TECHNICALLY VERIFIED 2026-11-24; INDEPENDENT REVIEW AND MERGE PENDING**  
 **Prepared/reviewed:** 2026-11-24 | **Working branch:** `feature/f0-02-api-foundation`  
 **Feature owner:** Backend Engineering Foundation / Core (not a business-domain writer)  
 **Dependency:** [F0-01 complete on `development`](../../docs/handoff/F0-01_MERGED_AND_CLOSED_2026-11-24.md) with [task ledger 26/26](../001-laravel-bootstrap-module-registry/tasks.md)  
@@ -106,7 +106,8 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 - [x] Owner approves the revised [implementation plan](plan.md) in the same explicit approval response, including additional error mappings, CI coverage and safe request lifecycle.
 - [x] Generate [tasks.md](tasks.md) and complete [documentation consistency analysis](consistency-analysis.md).
 - [x] Obtain separate explicit implementation authorization (T003, 2026-11-24).
-- [ ] Implement tests first and minimal runtime code on feature branch; collect actual CI and independent review evidence.
+- [x] Implement tests first and minimal runtime code; verified actual CI, including post-review hardening, per [quickstart](quickstart.md).
+- [ ] Independent PR review and final integrated candidate recheck (T027).
 - [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
 
-**Spec/Plan, task preparation and separate scoped implementation authorization are complete; real execution evidence is tracked in tasks.md. Merge remains unauthorized.**
+**T001–T026 complete on feature branch with real test evidence; independent review T027 and merge gates T028–T030 remain open. Not production-ready.**

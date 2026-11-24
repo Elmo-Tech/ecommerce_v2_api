@@ -1,6 +1,6 @@
 # F0-02 API Foundation — Source and Runtime Discovery (2026-11-24)
 
-**Status:** DISCOVERY / DOCUMENT REVIEW; DEC-01…04 and complete spec/plan owner-approved 2026-11-24; tasks and consistency analysis recorded; no F0-02 implementation or CI.  
+**Status:** DISCOVERY BASELINE RETAINED; DEC-01…04 and complete spec/plan approved; scoped implementation now verified in real CI on feature branch, independent review and merge pending.  
 **Branch:** `feature/f0-02-api-foundation` based on merged `development` after F0-01 documentation reconciliation.
 
 ## Verified actual code state
@@ -48,4 +48,4 @@
 
 ## Actual execution statement
 
-**No F0-02 Laravel code, route registration, contract JSON, migrations, package installations or tests were created/executed.** This is documentation-only revision and review. Full specification and plan approval and [task/consistency preparation](consistency-analysis.md) completed 2026-11-24. Explicit implementation authorization remains required before runtime work.
+Historical discovery findings above describe the pre-code baseline. T003 explicit implementation authorization was granted 2026-11-24. T004–T026 executed on the feature branch with real baseline/RED/GREEN and hardening evidence; [quickstart](quickstart.md) records exact SHA/run/outcomes, [tasks](tasks.md) records progress. No new package/lock, migrations, actual Auth/Tenancy/Redis, production endpoints or deployment. T027 independent review and T028 separate merge authority remain required.
