@@ -123,7 +123,7 @@ read_feature_json_feature_directory() {
         # treating grep/sed as a complete JSON parser.
         if [[ $(grep -c . "$fj" 2>/dev/null || true) -eq 1 ]] &&
             ! LC_ALL=C grep -q '[[:cntrl:]]' "$fj" 2>/dev/null &&
-            grep -Eq '^[[:space:]]*\{[[:space:]]*("version"[[:space:]]*:[[:space:]]*(0|[1-9][0-9]*)[[:space:]]*,[[:space:]]*)?"feature_directory"[[:space:]]*:[[:space:]]*"[^"\\]*"[[:space:]]*\}[[:space:]]*
+            grep -Eq '^[[:space:]]*\{[[:space:]]*("version"[[:space:]]*:[[:space:]]*(0|[1-9][0-9]*)[[:space:]]*,[[:space:]]*)?"feature_directory"[[:space:]]*:[[:space:]]*"[^"\\]*"[[:space:]]*\}[[:space:]]*$' "$fj" 2>/dev/null; then
             _fd=$(sed -nE 's/^.*"feature_directory"[[:space:]]*:[[:space:]]*"([^"\\]*)".*$/\1/p' "$fj")
         fi
     fi
