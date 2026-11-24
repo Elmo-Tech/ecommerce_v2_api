@@ -70,7 +70,7 @@ description: "F0-01 implementation task plan; spec and plan approved, code/testi
 
 ## Dependencies and execution order
 
-- **Phase 0 T001–T004** must complete before writing framework code; **T001–T003 completed** (T003 dry-run only), while **only the separate implementation authorization and a viable real test runner remain pending before executing T005**. Stop if PHP/Composer compatibility or authorized execution environment is missing.
+- **Phase 0 T001–T004** was completed before framework code. Separate owner T005 implementation authorization and a viable real PHP/Composer/Laravel test runner were subsequently obtained; **T005–T025 have been completed and verified at their documented scope**. **Current remaining gate is T026** independent PR review, resolution of actionable comments and conditional upstream-first `development` integration, not framework prerequisites.
 - **US1 T005–T009** prepares the skeleton; US2 registry work relies on actual framework bootstrap and test harness.
 - **US2 T010–T016** proves provider registration; US3 T017–T020 tests boundaries and route exposure once the registry exists.
 - **Final T021–T026** requires real test evidence, code review and upstream setup PR dependency handling.
