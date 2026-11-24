@@ -2,7 +2,7 @@
 
 **Verified date:** 2026-11-25 (Africa/Cairo). Repository `Elmo-Tech/ecommerce_v2_api`; integration branch `development`.
 
-**Status:** T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged.
+**Status:** T001–T029 verified; T030 closeout documentation complete in the proposed final state. **30/30 applies only when this closeout PR #6 is merged into development and the publication is verified**. Before that, T030 remains pending.
 
 ## Verified integration
 
@@ -16,4 +16,4 @@ Pint/PHPStan/Larastan not installed or run; current OpenAPI checks and supplemen
 
 ## Next action
 
-Publish this docs-only closeout through reviewed PR; verify the new development ref and files before closing T030. Then F0-03 Testing Foundation specification/planning (not implementation) under applicable owner approval. Use [tool-neutral workflow](../WORKFLOW.md): ChatGPT review, actual owner review/sign-off, relevant CI and explicit merge consent. Do not restart F0-02 code or use earlier unmerged snapshots as current status.
+Verify reviewed docs-only PR #6 merged and its files published on development. Then T030 is complete (30/30), with no additional documentation commit required for the checkbox. Then F0-03 Testing Foundation specification/planning (not implementation) under applicable owner approval. Use [tool-neutral workflow](../WORKFLOW.md): ChatGPT review, actual owner review/sign-off, relevant CI and explicit merge consent. Do not restart F0-02 code or use earlier unmerged snapshots as current status.

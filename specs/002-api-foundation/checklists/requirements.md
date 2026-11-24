@@ -21,6 +21,6 @@
 - [x] T026 permanent development handoff reconciled through reviewed PR #5; verified merge.
 - [x] Technical review/remediation, owner sign-off and final integrated candidate recheck (T027; 98/911, see quickstart).
 - [x] Separate owner merge authority and verified development integration (T028–T029).
-- [ ] T030 publication of closeout documentation to development.
+- [x] T030 closeout documentation (completion effective only after verified publication of PR #6).
 
-**Current status:** T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. No deployment or full OpenAPI validation claim.
+**Current status:** T001–T029 verified; T030 closeout documentation complete in the proposed final state. **30/30 applies only when this closeout PR #6 is merged into development and the publication is verified**. Before that, T030 remains pending. No deployment or full OpenAPI validation claim.

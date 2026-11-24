@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. See [quickstart](quickstart.md).**
+**T001–T029 verified; T030 closeout documentation complete in the proposed final state. **30/30 applies only when this closeout PR #6 is merged into development and the publication is verified**. Before that, T030 remains pending. See [quickstart](quickstart.md).**
 
 ## 5. Quality and security gates
 

@@ -110,4 +110,4 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 - [x] ChatGPT technical review, owner sign-off in response to review request and final integrated candidate recheck (T027).
 - [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
 
-**T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. Not production-ready.**
+**T001–T029 verified; T030 closeout documentation complete in the proposed final state. **30/30 applies only when this closeout PR #6 is merged into development and the publication is verified**. Before that, T030 remains pending. Not production-ready.**
