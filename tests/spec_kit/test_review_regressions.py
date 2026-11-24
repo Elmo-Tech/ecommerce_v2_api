@@ -162,6 +162,8 @@ class ShellRegressions(unittest.TestCase):
             malformed = [
                 '{"feature_directory":"specs/unsafe"',
                 '{"feature_directory":"specs/unsafe"}\\nNOT-JSON',
+                '{"version":01,"feature_directory":"specs/unsafe"}',
+                '{"feature_directory":"specs/\tunsafe"}',
                 '{"feature_directory":"specs/unsafe","invalid":}',
                 '{"feature_directory":"specs\\\\unsafe"}',
             ]
