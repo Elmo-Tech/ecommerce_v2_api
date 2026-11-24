@@ -4,6 +4,7 @@ namespace App\Core\Modules;
 
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
+use ReflectionClass;
 
 /**
  * Validates a reviewed list of providers before any module is registered.
@@ -55,6 +56,15 @@ final class ModuleRegistry
                 throw new InvalidArgumentException("Module provider [{$provider}] must extend Illuminate\\Support\\ServiceProvider.");
             }
 
+            $providerReflection = new ReflectionClass($provider);
+            if (! $providerReflection->isInstantiable()) {
+                throw new InvalidArgumentException("Module provider [{$provider}] must be instantiable.");
+            }
+
+            // PHP resolves class names case-insensitively after loading. Store
+            // the declaration's real identity to prevent alias/case duplicate
+            // registrations and register exactly the canonical class name.
+            $provider = $providerReflection->getName();
             if (isset($providerNames[$provider])) {
                 throw new InvalidArgumentException("Duplicate module provider [{$provider}].");
             }
