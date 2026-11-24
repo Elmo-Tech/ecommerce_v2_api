@@ -1,8 +1,8 @@
 # Feature Specification: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
-**Feature Branch**: `feature/f0-01-laravel-bootstrap` (authorized implementation on Draft stacked PR #2; NOT merged/deployed)  
+**Feature Branch**: `feature/f0-01-laravel-bootstrap` (historical implementation branch; [PR #2 MERGED](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) into `development`, not deployed)  
 **Created**: 2026-11-23  
-**Status (2026-11-24)**: **APPROVED Option A**, with separate owner implementation authorization recorded. **T001–T024 verified/completed at their defined scope**: Laravel 13/bootstrap, Module Registry, FoundationDemo, negative/architecture/production-route cache tests and successful pinned GitHub Actions CI [#45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) — **26 passed, 116 assertions**; Pint/PHPStan NOT installed or claimed passed. **T025 documentation reconciliation COMPLETE; T026 independent PR review/conditional merge gate still pending**; PRs remain Draft/unmerged.  
+**Status (2026-11-24)**: **APPROVED Option A; F0-01 COMPLETED T001–T026 (26/26), merged into `development`**. Laravel 13/bootstrap, explicit Module Registry/FoundationDemo and positive/negative/architecture/production-route cache checks verified in [integrated GitHub Actions #45405086930](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45405086930) — **31 tests / 134 assertions plus 3 standalone Architecture / 23 assertions**; upstream [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) merged. **Pint/PHPStan NOT installed or run**, no deployment or `main` promotion. Previous pre-implementation notes below are historical.  
 **Input**: Approved F0 Engineering Foundation architecture and FND-01 Module/Feature organization; first bounded technical capability in the backend API repository.
 
 ## User Scenarios & Testing *(mandatory)*
