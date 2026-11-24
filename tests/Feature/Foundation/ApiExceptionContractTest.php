@@ -56,3 +56,10 @@ it('keeps redirects downloads and non-v1 or unrelated native responses intact', 
     $this->get('/__f0-api-unregistered-html')->assertNotFound()->assertHeaderMissing('X-Request-ID');
 })->group('api-foundation');
 
+
+it('normalizes a custom exception-rendered error response at the native final response hook', function (): void {
+    $response = $this->getJson(ApiHttpFixtures::PREFIX.'/custom-error', ['Accept-Language' => 'en']);
+    $response->assertStatus(502)->assertJsonPath('errorCode', 'HTTP_ERROR')->assertHeader('X-Request-ID')
+        ->assertJsonPath('errors', []);
+    expect($response->getContent())->not->toContain(ApiHttpFixtures::PRIVATE_VALUE, '"private"', '"trace"');
+})->group('api-foundation');

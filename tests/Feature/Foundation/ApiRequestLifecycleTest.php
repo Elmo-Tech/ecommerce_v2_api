@@ -65,3 +65,24 @@ it('correlates safe technical diagnostics and restores unrelated logging and loc
     }
 })->group('api-foundation');
 
+
+it('reports distinct short-lived exceptions independently and does not suppress the next unrelated native report', function (): void {
+    $events = [];
+    Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
+        $events[] = $event;
+    });
+    $response = $this->getJson(ApiHttpFixtures::PREFIX.'/report-twice')->assertOk();
+    $id = $response->headers->get('X-Request-ID');
+    $apiReports = array_values(array_filter($events, static fn (MessageLogged $event): bool =>
+        ($event->context['request_id'] ?? null) === $id && $event->level === 'error'));
+    expect($apiReports)->toHaveCount(2);
+    foreach ($apiReports as $event) {
+        expect($event->message)->not->toContain('fixture-private-manual')
+            ->and($event->context)->not->toHaveKey('exception');
+    }
+    $this->getJson('/api/v10/__f0-api/legacy-fault')->assertStatus(500)->assertHeaderMissing('X-Request-ID');
+    $native = array_values(array_filter($events, static fn (MessageLogged $event): bool =>
+        str_contains($event->message, 'legacy-fixture-native-error')));
+    expect($native)->not->toBeEmpty()
+        ->and($native[0]->context)->not->toHaveKey('request_id');
+})->group('api-foundation');

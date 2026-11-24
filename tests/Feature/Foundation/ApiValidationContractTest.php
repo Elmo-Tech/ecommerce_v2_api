@@ -24,3 +24,14 @@ it('captures real FormRequest errors with stable declared nested fields and safe
         ->and($en->json('errors')['customerName'])->not->toBe($ar->json('errors')['customerName']);
 })->group('api-foundation');
 
+
+it('does not expose an untrusted associative key from an invalid declared list', function (): void {
+    $response = $this->postJson(ApiHttpFixtures::PREFIX.'/validate', [
+        'customerName' => 'Fixture',
+        'items' => ['fixturePrivateMapKey' => ['quantity' => 0]],
+    ], ['Accept-Language' => 'en']);
+    $response->assertUnprocessable()->assertJsonPath('errorCode', 'VALIDATION_FAILED');
+    $body = json_decode($response->getContent(), flags: JSON_THROW_ON_ERROR);
+    expect(array_keys(get_object_vars($body->errors)))->toBe(['items'])
+        ->and($response->getContent())->not->toContain('fixturePrivateMapKey');
+})->group('api-foundation');

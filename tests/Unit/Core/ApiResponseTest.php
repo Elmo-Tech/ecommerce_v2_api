@@ -77,3 +77,14 @@ it('rejects contradictory statuses and malformed field error or metadata shapes'
         ->and(fn () => ApiResponse::success(message: 'Invalid', meta: ['unkeyed']))->toThrow(InvalidArgumentException::class);
 })->group('api-foundation');
 
+
+it('does not permit noncanonical or malformed application-owned field paths in the response helper', function (): void {
+    expect(fn () => ApiResponse::error(
+        errorCode: 'VALIDATION_FAILED', message: 'Invalid', status: 422,
+        errors: ['customer_name' => ['Invalid']],
+    ))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => ApiResponse::error(
+            errorCode: 'VALIDATION_FAILED', message: 'Invalid', status: 422,
+            errors: ['items..quantity' => ['Invalid']],
+        ))->toThrow(InvalidArgumentException::class);
+})->group('api-foundation');

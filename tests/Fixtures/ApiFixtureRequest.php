@@ -18,7 +18,7 @@ final class ApiFixtureRequest extends FormRequest
     {
         return [
             'customerName' => ['required', 'string'],
-            'items' => ['required', 'array'],
+            'items' => ['required', 'array', 'list'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ];
     }

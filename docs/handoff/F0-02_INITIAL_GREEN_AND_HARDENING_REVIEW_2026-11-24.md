@@ -1,0 +1,7 @@
+# F0-02 — initial GREEN and scoped hardening review
+
+Initial [GREEN Actions #45464656708](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45464656708), job 138696216089, head `a0cd1496978e15d83929f3ebb1fa7a9e48799007`, actual checkout `5893376d8a70befbcd4742fa3e177040272f33ec` merged candidate against development `43f309749c544040385977a530e78fd378f43b91`: PHP 8.4.28/Composer 2.11.3/Laravel 13.43.0, old 31/134, full **83 passed / 703 assertions**, standalone Architecture **5/52**, audit, syntax, production/scratch route-cache checks and clean source diff successful. Pint/PHPStan unavailable; Node action deprecation warnings noted, no unapproved workflow modernization.
+
+T025 review identified a real possibility of untrusted associative wildcard keys in native validation errors, malformed field paths from direct helper, integer object-ID reuse in log deduplication. Added regression tests first, plus a positive check for custom exception finalizer and preservation of unrelated native error reporting. A declared list requires Laravel's list rule; avoid echoing any descendants when that list is malformed. Future Feature contracts own explicit allowed field names, wildcard list rules and reviewed safe dynamic-map behavior; no generic domain validation engine introduced.
+
+T001–T014 remain checked; T015–T026 need the final post-hardening actual run/evidence. No code fix in this regression-only commit, no merge authority. Next: inspect RED and implement the narrow safety fixes, rerun full CI.

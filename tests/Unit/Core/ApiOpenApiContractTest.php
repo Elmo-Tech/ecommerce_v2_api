@@ -18,6 +18,8 @@ it('contains a structurally reviewable shared OpenAPI 3.1 contract with no inven
         ->and($schemas->ErrorResponse->properties->errors->maxItems)->toBe(0)
         ->and($schemas->FieldErrors->type)->toBe('object')
         ->and($schemas->FieldErrors->minProperties)->toBe(1)
+        ->and($schemas->FieldErrors->propertyNames->maxLength)->toBe(256)
+        ->and($schemas->FieldErrors->propertyNames->pattern)->toBeString()
         ->and($schemas->FieldErrors->additionalProperties->items->type)->toBe('string')
         ->and($schemas->ValidationErrorResponse->properties->errors->{'$ref'})->toBe('#/components/schemas/FieldErrors')
         ->and($schemas->MoneyMinorUnits->type)->toBe('string')

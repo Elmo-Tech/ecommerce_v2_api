@@ -54,6 +54,22 @@ final class ApiHttpFixtures
             Route::get('fault', static function (): never {
                 throw new RuntimeException('SQL SELECT password FROM private_fixture: '.self::PRIVATE_VALUE.' /private/source.php');
             });
+            Route::get('custom-error', static function (): never {
+                throw new class extends RuntimeException
+                {
+                    public function render(): \Illuminate\Http\JsonResponse
+                    {
+                        return response()->json(['private' => ApiHttpFixtures::PRIVATE_VALUE], 502);
+                    }
+                };
+            });
+            Route::get('report-twice', static function () {
+                // Two distinct, short-lived exceptions in the same request.
+                report(new RuntimeException('fixture-private-manual-first'));
+                report(new RuntimeException('fixture-private-manual-second'));
+
+                return ApiResponse::success(message: 'Fixture done');
+            });
             Route::get('redirect', static function (): never {
                 throw new HttpResponseException(redirect('/fixture-native-target'));
             });
@@ -75,6 +91,9 @@ final class ApiHttpFixtures
             }
         });
 
+        Route::get('/api/v10/__f0-api/legacy-fault', static function (): never {
+            throw new RuntimeException('legacy-fixture-native-error');
+        });
         Route::get('/api/v10/__f0-api/legacy', static function (): never {
             throw new HttpException(404, 'Legacy response');
         });
