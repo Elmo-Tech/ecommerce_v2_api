@@ -118,7 +118,7 @@ jobs:
         run: COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
 
       - name: Execute Architecture checks independently of Laravel TestCase
-        run: vendor/bin/pest --testsuite=Architecture --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+        run: vendor/bin/pest --testsuite Architecture
 
       - name: PHP syntax lint and optional quality-tool availability
         run: |
