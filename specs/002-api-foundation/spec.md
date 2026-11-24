@@ -1,10 +1,10 @@
 # Feature Specification — F0-02: API Foundation
 
-**Status:** **DRAFT FOR OWNER REVIEW — NOT APPROVED, NOT IMPLEMENTED**  
-**Prepared:** 2026-11-24 | **Working branch:** `feature/f0-02-api-foundation`  
+**Status:** **REVISED FOR FINAL OWNER SPEC/PLAN REVIEW — DEC-01…04 APPROVED; FULL SPEC/PLAN NOT YET APPROVED; NOT IMPLEMENTED**  
+**Prepared/reviewed:** 2026-11-24 | **Working branch:** `feature/f0-02-api-foundation`  
 **Feature owner:** Backend Engineering Foundation / Core (not a business-domain writer)  
 **Dependency:** [F0-01 complete on `development`](../../docs/handoff/F0-01_MERGED_AND_CLOSED_2026-11-24.md) with [task ledger 26/26](../001-laravel-bootstrap-module-registry/tasks.md)  
-**Authority:** [Constitution v1.0.0](../../.specify/memory/constitution.md), [API Standards AS-01/02/03/08/09](../../docs/02-standards/api-standards.md), FBR-02-05/06/07, [Backend Architecture BA-11](../../docs/01-architecture/backend-architecture.md), [Module Architecture §§8/13/16](../../docs/01-architecture/module-architecture.md), [Code Standards CS-05/06/07/08/09](../../docs/02-standards/code-standards.md), [Testing Standards TEST-05](../../docs/02-standards/testing-standards.md).
+**Authority:** [Constitution v1.0.0](../../.specify/memory/constitution.md), [API Standards AS-01/02/03/08/09](../../docs/02-standards/api-standards.md), FBR-02-05/06/07, [Backend Architecture BA-11](../../docs/01-architecture/backend-architecture.md), [Module Architecture §§8/13/16](../../docs/01-architecture/module-architecture.md), [Code Standards CS-05/06/07/08/09](../../docs/02-standards/code-standards.md), [Testing Standards TEST-05](../../docs/02-standards/testing-standards.md), [Localization Standards LOC-ST-02](../../docs/02-standards/localization-standards.md#4-loc-st-02--supported-locales-resolution-preferences-and-fallback).
 
 > This is a **review proposal** for the next bounded F0 engineering Feature. It does not silently turn the complete API Standards into implemented behavior. An explicit owner approval of this spec and the technical plan is required **before writing API runtime code, installing packages, running migrations or merging the Feature**.
 
@@ -24,7 +24,7 @@ A later Feature author can invoke one technical response helper for completed su
 
 - Success uses `{"success":true,"message":"...","data":...}` and *optional only if meaningful* `meta` for real pagination; never invented totals or a forced envelope for downloads.
 - Failure uses `{"success":false,"message":"...","errorCode":"...","errors":[]}` with **stable machine-readable** `errorCode`; validation uses a field-keyed object with camelCase names, including nested paths.
-- HTTP status reflects the outcome (at minimum correctly handle representative 200/201/204 and 400/401/403/404/409/422/429/500/503); `204` has **no body**, not `{"success":true}`.
+- HTTP status reflects the outcome (at minimum correctly handle representative 200/201/204 and 400/401/403/404/405/409/422/429/500/503); `204` has **no body**, not `{"success":true}`.
 - An unclassified internal exception must yield a safe 500 without SQL, source paths, secrets or stack traces in the client response.
 - `App\Helpers\ApiResponse` and int-backed `App\Enums\HttpStatusCode` are the approved API Standards direction; F0-02 must not introduce business status Enums or invent monetary/identifier wire types.
 
@@ -37,7 +37,7 @@ For each independent `/api/v1` HTTP attempt, a safe generated `X-Request-ID` is 
 - Generate a trusted request ID per HTTP attempt; set `X-Request-ID` response header. Do not put it into the default JSON envelope or trust an arbitrary caller-supplied header as auth/identity.
 - Central handling of API exceptions selects stable HTTP status/errorCode while `message` is safe and localized (initial supported message languages **ar** and **en**). The same errorCode and field path remain stable across languages.
 - No raw Laravel exception trace, SQL, credentials, other Tenant record existence or sensitive body logged/returned. No globally retained request/Tenant identity.
-- **Localization fallback remains an explicit F0-02 review decision**; this draft does **not** select it silently.
+- **DEC-01 approved:** supported `ar`/`en`, regional forms mapped to supported parent language, bounded quality-weighted `Accept-Language` negotiation excluding `q=0` preferences; absent/unsupported/malformed input safely falls back to `ar` (also previously approved by LOC-ST-02). Request locale must not leak across attempts. Missing translations follow LOC-ST-02.
 
 ### US3 — Versioned, module-friendly HTTP foundation (P2)
 
@@ -45,7 +45,7 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 
 **Acceptance:**
 
-- Laravel-native version routing/integration matches `/api/v1`; paths use lower-case kebab-case for multiword resources and only future module-owned routes create real resources.
+- Laravel-native version routing/integration matches `/api/v1`; DEC-04 approves an empty native `routes/api.php` seam. Paths use lower-case kebab-case for multiword resources and only future module-owned routes create real resources.
 - The four approved logical surfaces (Platform, Merchant Dashboard, Public Storefront, Authenticated Customer) are **documented contracts**, not four open bypass routes.
 - F0-02 adds **no public business endpoint** and does not expose F0-01's technical probe outside `testing`. Production route collection and cached production routes must not accidentally include a test-only API.
 - One minimal, reviewed **OpenAPI shared response/error/correlation schema** is provided for future Feature-specific OpenAPI definitions; no generated SDK or new generator package required by this draft.
@@ -54,11 +54,11 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 
 - **FR-001 — Native integration:** extend the actual Laravel 13 bootstrap and Core technical layer; preserve explicitly registered Module Providers and F0-01 green behavior. No directory scan or HTTP calls between modules.
 - **FR-002 — Success API:** central helper for 200/201 successes with data/message, optional honest meta, and correct 204 **empty** response.
-- **FR-003 — Error API:** central helper and exception mapping for safe 400/401/403/404/409/422/429/500/503 outcomes and the compact shared error codes approved by API Standards. Never hide a failure behind 200/success=false.
-- **FR-004 — Validation:** Laravel-native Validation/Form Request error capture, camelCase field keys in the API contract and correct 422/VALIDATION_FAILED; exact domain Form Requests remain future Feature-owned.
-- **FR-005 — Correlation:** one server-generated trusted `X-Request-ID` per attempt; test header availability for handled success/error, header injection and absence of accidental request-global state.
-- **FR-006 — Localization:** ar/en generic message dictionaries and reviewed request negotiation. `errorCode` and fields remain language-neutral; fallback choice is **OPEN** for owner review.
-- **FR-007 — Contract:** small reviewable OpenAPI component definitions for envelope, generic errors, validation and request-ID header. Explicitly respect FBR-02-06/07: finalized Money minor units are decimal **strings** with currency; database BIGINT identifiers are decimal **strings**. Do not copy obsolete illustrative numeric wire examples as normative schema.
+- **FR-003 — Error API:** central helper and exception mapping for safe 400/401/403/404/405/409/422/429/500/503 outcomes. Use approved shared error codes; proposed additional generic 400/405/503 codes and a fallback for other genuine HTTP error statuses are listed in the plan for final owner review. Preserve genuine HTTP status and protocol headers (`Allow`, `Retry-After`, and `WWW-Authenticate` when applicable/provided); unexpected non-HTTP failures are safe 500. Never hide a failure behind 200/success=false.
+- **FR-004 — Validation:** Laravel-native Validation/Form Request error capture, camelCase field keys in the API contract and correct 422/VALIDATION_FAILED; exact domain Form Requests remain future Feature-owned. Preserve declared wire field paths, not arbitrary recasing of caller-supplied keys; ensure field messages do not disclose sensitive input or technical details.
+- **FR-005 — Correlation:** one server-generated trusted `X-Request-ID` per attempt; test header availability for handled success/error, including unmatched API routes and method mismatch, ignored client header, and absence of accidental request-global state. Attach a safe request ID to relevant technical diagnostics; no cross-request context retention or worker-level tracing implementation.
+- **FR-006 — Localization:** ar/en generic message dictionaries and bounded request negotiation; approved fallback `ar` (DEC-01/LOC-ST-02). `errorCode` and fields remain language-neutral. Verify locale and request-local logging cleanup, including exception paths and successive requests.
+- **FR-007 — Contract:** small reviewable OpenAPI 3.1 JSON component definitions for envelope, generic errors, validation and request-ID header at the DEC-03 approved path `contracts/openapi.json` relative to this spec. No public paths are invented. Native syntax/structure/ref and representative HTTP contract checks are not a full standards-conformance validator. Explicitly respect FBR-02-06/07: finalized Money minor units are decimal **strings** with currency; database BIGINT identifiers are decimal **strings**. Do not copy obsolete illustrative numeric wire examples as normative schema.
 - **FR-008 — Secure scope:** technical only; **no** Sanctum/session/CSRF installation, Central/Tenant DB, migrations, provisioning, Redis/Horizon, entitlement, stock, orders, payments, search/filter/Spatie Query Builder, idempotency persistence, business APIs or production demo route.
 - **FR-009 — Tests:** real Laravel/Pest unit+HTTP/negative/exception contract/locale/request-ID/architecture tests; include production/non-testing and production route-cache boundary checks; keep Composer pinned, avoid destructive test data.
 - **FR-010 — Evidence:** actual command, environment, full git SHA, test results and source diff recorded in feature review. Unrun Pint/PHPStan must remain explicit, not described as green.
@@ -80,27 +80,31 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 | AC-01 | Technical success with data, optional meta | 200/201, correct success shape; no fabricated counts |
 | AC-02 | No-content success | 204 and **zero response body** |
 | AC-03 | Validation failure with nested fields | 422, `VALIDATION_FAILED`, camelCase path keys and field errors |
-| AC-04 | Unknown API route / protected resource not found | 404, safe error envelope, no stack trace |
-| AC-05 | Unauthenticated, forbidden, conflict, throttled and service-unavailable synthetic exceptions | Corresponding real HTTP status and stable errorCode where approved; no auth/rate-limit engine assumed |
+| AC-04 | Unknown API route / method mismatch / resource not found fixture | Real 404 or 405, safe error envelope and server request ID; preserve `Allow` for 405; no stack trace |
+| AC-05 | Bad request, unauthenticated, forbidden, conflict, throttled and service-unavailable synthetic exceptions | Corresponding real HTTP status and stable errorCode per final reviewed mapping; preserve applicable protocol headers; no auth/rate-limit engine assumed |
 | AC-06 | Unhandled PHP/Laravel exception | Safe 500/INTERNAL_ERROR; exception details not exposed |
-| AC-07 | ar vs en request | Localized generic message, stable errorCode/path names |
-| AC-08 | Untrusted client `X-Request-ID` input / two successive attempts | Safe generated unique response header, not an authorization or business operation key |
+| AC-07 | ar/en, regional/weighted/unsupported/malformed headers and missing-key fallback | Correct request-local message and stable errorCode/path names; no previous request locale leak |
+| AC-08 | Untrusted client `X-Request-ID` input / successive normal and failing requests | Safe generated unique response header and scoped safe diagnostics; no identity/locale leakage; not an authorization or business operation key |
 | AC-09 | Production boot + generated route-cache fixture | No test-only probe route exposed; no new production business route |
 | AC-10 | Laravel Module Registry & previous Feature suite | Existing F0-01 behavior/26-task evidence unaffected; actual new suite and source/code SHA captured |
 
-## 6. Material open decisions — resolve in F0-02 review
+## 6. Owner decisions — approved 2026-11-24 (four of four)
 
-| ID | Decision for approval | Constraints |
+| ID | Owner-approved choice | Boundary |
 | --- | --- | --- |
-| **F0-02-DEC-01** | Which fallback response-message locale when `Accept-Language` is absent or unsupported? **ar** (Egypt-first candidate) vs **en**, or another explicitly approved fallback | API Standards AS-03 explicitly says fallback **TO SPECIFY**. Do not infer it from market alone. |
-| **F0-02-DEC-02** | Which minimal Core error-code transport in PHP? Compact constants/value objects versus dedicated int-backed enum/wire mapper | Preserve stable external strings; CS-05 requires **int-backed** project-defined Enums, so avoid a string-backed enum. |
-| **F0-02-DEC-03** | Concrete canonical shared OpenAPI path and lightweight schema validation approach, without introducing new dependencies without review | Feature-owned OpenAPI stays close to specs; one schema baseline, no duplicated independently editable definitions. |
-| **F0-02-DEC-04** | Whether to register an empty `routes/api.php` native `/api/v1` group now, or provide only configuration and test-scoped fixture for first integration | No public production routes, preserve tested F0-01 route-cache isolation. |
+| **F0-02-DEC-01** | **A — Arabic (ar) fallback**, validated ar/en and regional/weighted negotiation | Also ratifies existing LOC-ST-02; no actor preference DB, email policy, or Tenant/Identity switch. |
+| **F0-02-DEC-02** | Compact shared string constants in `ApiErrorCodes`; `HttpStatusCode` int-backed Enum; centralized mapper | No string-backed PHP Enum or global domain catalog. Exact proposed new generic code/status mappings remain for final Spec/Plan review. |
+| **F0-02-DEC-03** | OpenAPI 3.1 JSON at `specs/002-api-foundation/contracts/openapi.json`, no new packages, empty paths and shared components | Lightweight structural/contract tests only; do not claim full OpenAPI conformance or generated clients. |
+| **F0-02-DEC-04** | Register the empty native `routes/api.php` under `/api/v1` now | Explicit module-owned routes remain authoritative; no public debug, probe, business or health route added. |
+
+**Authority:** owner response “1- A; 2- تمام موافق على ترشيحك; 3- موافق; 4- مظبوط موافق على كلامك” in the F0-02 review on 2026-11-24. See [dated decision handoff](../../docs/handoff/F0-02_OWNER_DECISIONS_AND_REVIEW_2026-11-24.md). AS-03's historical unspecified locale is resolved by the later approved LOC-ST-02 and this explicit confirmation.
 
 ## 7. Review/approval checklist
 
-- [ ] Owner approves or amends this exact bounded F0-02 scope, exclusions and DEC-01…04.
-- [ ] Engineering review verifies Constitution, AS-01/02/03/08/09, CS-05/06/07/08 and MA-08/13 boundaries; approved no-migration/no-auth plan.
-- [ ] [F0-02 plan](plan.md) independently reviewed and approved with source/config/test paths and error mapping table.
-- [ ] Only after both approvals, generate final `tasks.md`, implement on this feature branch with real test/CI evidence and PR review.
-- [ ] Do not merge to `development` or promote `main` merely because this draft exists.
+- [x] Owner approved DEC-01…04.
+- [ ] Owner approves the complete revised specification, scope, exclusions and proposed detailed HTTP/locale/contract behavior.
+- [ ] Owner separately approves the revised [implementation plan](plan.md), including proposed error mappings, CI coverage and safe request lifecycle.
+- [ ] Only after both approvals, generate final `tasks.md`, analyze consistency, implement tests first and runtime code on this feature branch after authorization; collect real CI evidence and PR review.
+- [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
+
+**Decision approval is not full Spec/Plan approval or implementation authorization.**
