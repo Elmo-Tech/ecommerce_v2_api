@@ -87,6 +87,19 @@ class MarkdownSectionRegressions(unittest.TestCase):
         )
 
 
+    def test_fenced_backtick_cannot_mask_real_comment(self) -> None:
+        # The first backtick is inside a fenced block. It must not pair with
+        # the later backtick inside an HTML comment across the fence boundary.
+        source = "~~~\\n`\\n~~~\\n<!-- `\\n## B\\n-->\\n## B\\nreal\\n"
+        expected = "~~~\\n`\\n~~~\\n<!-- `\\n## B\\n-->\\n## B\\nnew"
+        self.assertEqual(self.replace(source, "new", "b"), expected)
+
+    def test_backtick_fence_cannot_mask_real_comment(self) -> None:
+        source = "```\\n`\\n```\\n<!-- `\\n## B\\n-->\\n## B\\nreal\\n"
+        expected = "```\\n`\\n```\\n<!-- `\\n## B\\n-->\\n## B\\nnew"
+        self.assertEqual(self.replace(source, "new", "b"), expected)
+
+
 class ShellRegressions(unittest.TestCase):
     def run_bash(self, command: str, root: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
