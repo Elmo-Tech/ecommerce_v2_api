@@ -50,7 +50,7 @@ Native Laravel provider registration at application bootstrap has been verified 
 | Feature | Canonical artifacts | Status |
 | --- | --- | --- |
 | F0-01 — Laravel Bootstrap + Explicit Module Registry | [spec](../../../specs/001-laravel-bootstrap-module-registry/spec.md) · [plan](../../../specs/001-laravel-bootstrap-module-registry/plan.md) · [tasks](../../../specs/001-laravel-bootstrap-module-registry/tasks.md) | **T001–T026 complete (26/26), both upstream and feature PRs merged to `development` (2026-11-24)**; Pint/PHPStan limitation retained |
-| F0-02 — API Foundation | [spec](../../../specs/002-api-foundation/spec.md) · [plan](../../../specs/002-api-foundation/plan.md) · [tasks](../../../specs/002-api-foundation/tasks.md) | **Implemented/technically verified on feature branch; 26/30 complete, T026 verified; PR #4 Ready; IR-01…06 fixed/98 tests 911 assertions, ChatGPT technical review performed; owner/qualified human review pending; pointer PR #5 merged; not merged** (2026-11-24), [CI evidence](../../../specs/002-api-foundation/quickstart.md) |
+| F0-02 — API Foundation | [spec](../../../specs/002-api-foundation/spec.md) · [plan](../../../specs/002-api-foundation/plan.md) · [tasks](../../../specs/002-api-foundation/tasks.md) | **Merged and verified on development; T001–T029 complete, T030 closeout publication pending; PR #4 and #5 merged; 98 tests / 911 assertions** (2026-11-25), [CI evidence](../../../specs/002-api-foundation/quickstart.md) |
 | F0-03 / F0-04 / F0-05 | Planned F0 follow-ups per [WORKFLOW](../../WORKFLOW.md) | Not implemented in F0-01/F0-02 |
 
 ## Authorization, tests and gates

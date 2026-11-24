@@ -1,6 +1,6 @@
 # F0-02 — Quickstart and real CI evidence
 
-**Status:** T001–T026 complete. PR #5 pointer merged. ChatGPT technical review performed; owner/qualified human review and latest candidate CI pending. PR #4 unmerged; T027–T030 open. CodeRabbit optional.
+**Status:** T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged.
 
 ## Actual GitHub Actions runs (2026-11-24)
 
@@ -54,7 +54,7 @@ No DB/migrations/production credentials. Isolated test config: array cache/sessi
 
 Pint and PHPStan/Larastan absent; workflow emitted notices, no pass claimed. Existing Node action version deprecation warning recorded; modernization belongs to F0-04 separately. Real Auth/CSRF, sensitive rate-limiter fallback, Tenant DB/PostgreSQL, Redis/Horizon, Octane workers, performance and production security are later applicable features, not proved here. Milestone tests for zero production routes/no new packages/no migrations must be evolved under explicitly approved subsequent Features, not silently disabled. D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED.
 
-T026 complete via verified PR #5 merge. T027 latest-head review blocked by CodeRabbit rate limit; owner consent recorded but T028 remains open until review and final current integrated CI. T029–T030 require verified merge and final handoff. No main promotion, deploy or automatic merge. Rollback remains a reviewed revert of feature changes in a later PR.
+Historical pre-merge gate: PR #5 merged, earlier CodeRabbit quota interrupted optional review. Superseded by the actual merge evidence below. Rollback remains a reviewed revert of feature changes; no database rollback is needed.
 
 
 ## Independent review remediation limits
@@ -71,3 +71,10 @@ Owner explicitly authorized approval then integration into development only (rep
 ## 2026-11-25 — tool-neutral review and human review gate
 
 Owner approved tool-neutral review on 2026-11-25, including ChatGPT technical review followed by the owner's actual review. [Development workflow](../../docs/WORKFLOW.md#review-and-development-merge-workflow--owner-approved-2026-11-25). The earlier CodeRabbit rate-limit result remains historical; CodeRabbit is optional, not a substitute for human review. Latest source/CI verified: `2cea5f1973183952e6c44b5dac00f2fa9728d4a7`, [CI #45495108997](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45495108997), job 138803410405, actual integration checkout `d95c2bbc94fd0eb4aeb417112baaf9e1ac6486d8` against development `f0febe3acdd20f84230476629aa9cb759df5ca7e`: 98 tests/911 assertions, Architecture 5/52, original group 31/134, all steps green. The remediation source from `1ad96e19ab8aceb6c33678720d2474d1c97417a4` is unchanged (subsequent commits documentation-only). ChatGPT reread the eight modified runtime files and prior regression/CI evidence; IR-01…06 fixes align with the approved scope; no additional blocking defect identified in this bounded source review. No independent human approval is claimed. IR-07 merged via PR #5. T027 awaits the owner/qualified independent human review and current integrated CI after this docs update. Earlier merge consent is recorded, but per the new workflow request the owner must review this candidate and explicitly confirm merge before T028–T030 proceed. No merge or deployment now.
+
+
+## Verified development merge (2026-11-25)
+
+[PR #4](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4) was merged to development on 2026-11-25 after the owner responded “قم بالدمج” to the explicit final human-review request. This is owner merge sign-off, not independently observed personal line-by-line inspection or a formal GitHub APPROVED submission. The tool-neutral workflow adopted by the owner makes CodeRabbit/Copilot optional; no new CodeRabbit review pass is claimed. [ChatGPT technical review](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4#issuecomment-7145747255) and regression evidence cover IR-01…06; IR-07 pointer was merged in [PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5) at `f0febe3acdd20f84230476629aa9cb759df5ca7e`. Final source `b44df87d7943ea58a620e39ad4a5b669e6fd5826`, base `f0febe3acdd20f84230476629aa9cb759df5ca7e`, actual integrated [CI #45497208466](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45497208466), job 138810749871, checkout `d7bf664f7df454eb4dd596c21ce6427f60fe050a`: **98 tests / 911 assertions**, standalone Architecture **5/52**, original foundation **31/134**, all steps succeeded, locked Composer validate/install/platform/audit, PHP syntax and route/cache isolation, clean tracked runtime diff. PHP 8.4.28, Composer 2.11.3, Laravel 13.43.0. GitHub confirmed merged=true and development ref `2220a2afc0d97aeb1cf705e21da86af910ee6dda`, parents are exact tested base and feature head. Actual merged Git tree `7e9c840b3b83ee9ea95739217078670e4439ff8e` exactly matches the tested candidate's tree. This is verified integrated tree equivalence, not a separate post-merge CI execution. No open inline review threads at merge. No main promotion, deployment, new packages, business APIs, DB or migration.
+
+T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged.

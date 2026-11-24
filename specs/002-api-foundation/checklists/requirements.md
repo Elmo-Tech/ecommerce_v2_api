@@ -19,7 +19,8 @@
 - [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24).
 - [x] Actual baseline/RED/GREEN/full integrated CI, architecture and scope review recorded (T004–T025); see [quickstart](../quickstart.md).
 - [x] T026 permanent development handoff reconciled through reviewed PR #5; verified merge.
-- [ ] Independent review/remediation and final candidate recheck (T027; IR-01…06 fixes verified 98/911; latest-head review pending).
-- [ ] Separate owner merge authority, verified development integration and final handoff (T028–T030).
+- [x] Technical review/remediation, owner sign-off and final integrated candidate recheck (T027; 98/911, see quickstart).
+- [x] Separate owner merge authority and verified development integration (T028–T029).
+- [ ] T030 publication of closeout documentation to development.
 
-**Current status:** 26/30 complete; ChatGPT technical review performed, owner/qualified human review and latest CI pending (T027); T028–T030 open. CodeRabbit optional. No deployment or full OpenAPI validation claim.
+**Current status:** T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. No deployment or full OpenAPI validation claim.

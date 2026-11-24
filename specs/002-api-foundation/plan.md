@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T026 complete with real RED/GREEN evidence and verified pointer merge via PR #5. IR-01…06 fixed and verified. Review uses the owner-approved tool-neutral workflow: ChatGPT technical review followed by owner/qualified human review. Latest review and integration gate remain open. See [quickstart](quickstart.md).**
+**T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. See [quickstart](quickstart.md).**
 
 ## 5. Quality and security gates
 
@@ -145,7 +145,7 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 - [x] T003 separate owner implementation authorization, 2026-11-24.
 - [x] T004 real preflight, tests-first RED, implementation, GREEN and scope review T005–T025 on `feature/f0-02-api-foundation`.
 - [x] T026 feature docs/dated handoff complete; canonical pointer merged and verified via PR #5.
-- [ ] T027 independent review and final integrated candidate recheck.
+- [x] T027 ChatGPT technical review, owner merge sign-off after review request, and final integrated candidate recheck.
 - [ ] Keep D-201/BA-16/BA-30 unchanged; no release or production access. No merge or deployment without separate authorization.
 
 **Approved and implemented plan; technical evidence at [quickstart](quickstart.md), independent review and separate development-only merge authority still pending.**
@@ -157,3 +157,8 @@ The six technical findings in [independent review](https://github.com/Elmo-Tech/
 
 
 **Review procedure (owner-approved 2026-11-25):** Follow [Development workflow](../../docs/WORKFLOW.md#review-and-development-merge-workflow--owner-approved-2026-11-25). CodeRabbit/Copilot are optional; actual human review after ChatGPT's technical review and applicable CI/repository gates remain mandatory. No automatic approval or merge.
+
+
+## Verified integration
+
+[PR #4](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4) was merged to development on 2026-11-25 after the owner responded “قم بالدمج” to the explicit final human-review request. This is owner merge sign-off, not independently observed personal line-by-line inspection or a formal GitHub APPROVED submission. The tool-neutral workflow adopted by the owner makes CodeRabbit/Copilot optional; no new CodeRabbit review pass is claimed. [ChatGPT technical review](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4#issuecomment-7145747255) and regression evidence cover IR-01…06; IR-07 pointer was merged in [PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5) at `f0febe3acdd20f84230476629aa9cb759df5ca7e`. Final source `b44df87d7943ea58a620e39ad4a5b669e6fd5826`, base `f0febe3acdd20f84230476629aa9cb759df5ca7e`, actual integrated [CI #45497208466](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45497208466), job 138810749871, checkout `d7bf664f7df454eb4dd596c21ce6427f60fe050a`: **98 tests / 911 assertions**, standalone Architecture **5/52**, original foundation **31/134**, all steps succeeded, locked Composer validate/install/platform/audit, PHP syntax and route/cache isolation, clean tracked runtime diff. PHP 8.4.28, Composer 2.11.3, Laravel 13.43.0. GitHub confirmed merged=true and development ref `2220a2afc0d97aeb1cf705e21da86af910ee6dda`, parents are exact tested base and feature head. Actual merged Git tree `7e9c840b3b83ee9ea95739217078670e4439ff8e` exactly matches the tested candidate's tree. This is verified integrated tree equivalence, not a separate post-merge CI execution. No open inline review threads at merge. No main promotion, deployment, new packages, business APIs, DB or migration.

@@ -1,6 +1,6 @@
 # Feature Specification — F0-02: API Foundation
 
-**Status:** **OWNER-APPROVED SPEC — IMPLEMENTED AND TECHNICALLY VERIFIED 2026-11-24; INDEPENDENT REVIEW AND MERGE PENDING**  
+**Status:** **OWNER-APPROVED SPEC — IMPLEMENTED, TECHNICALLY VERIFIED AND MERGED TO DEVELOPMENT 2026-11-25; CLOSEOUT PUBLICATION PENDING**  
 **Prepared/reviewed:** 2026-11-24 | **Working branch:** `feature/f0-02-api-foundation`  
 **Feature owner:** Backend Engineering Foundation / Core (not a business-domain writer)  
 **Dependency:** [F0-01 complete on `development`](../../docs/handoff/F0-01_MERGED_AND_CLOSED_2026-11-24.md) with [task ledger 26/26](../001-laravel-bootstrap-module-registry/tasks.md)  
@@ -107,7 +107,7 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 - [x] Generate [tasks.md](tasks.md) and complete [documentation consistency analysis](consistency-analysis.md).
 - [x] Obtain separate explicit implementation authorization (T003, 2026-11-24).
 - [x] Implement tests first and minimal runtime code; verified actual CI, including post-review hardening, per [quickstart](quickstart.md).
-- [ ] Independent PR review and final integrated candidate recheck (T027).
+- [x] ChatGPT technical review, owner sign-off in response to review request and final integrated candidate recheck (T027).
 - [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
 
-**T001–T026 complete; PR #5 merged and verified. T027 ChatGPT technical review plus owner/qualified human review and current candidate CI required; owner review pending. CodeRabbit optional. T028–T030 open. Not production-ready.**
+**T001–T029 complete; T030 final documentation prepared in a separate docs-only closeout PR. T030 becomes complete only after actual publication of this closeout to development and verification. This snapshot does not claim the closeout PR has already merged. Not production-ready.**
