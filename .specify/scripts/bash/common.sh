@@ -214,7 +214,10 @@ get_feature_paths() {
         # Persist to feature.json so future sessions without the env var still
         # work — unless the caller opted out for read-only resolution (#3025).
         if [[ "$no_persist" != true ]]; then
-            _persist_feature_json "$repo_root" "$SPECIFY_FEATURE_DIRECTORY"
+            if ! _persist_feature_json "$repo_root" "$SPECIFY_FEATURE_DIRECTORY"; then
+                echo "ERROR: Could not persist the selected feature_directory; the previous feature pin was preserved." >&2
+                return 1
+            fi
         fi
     elif [[ -f "$repo_root/.specify/feature.json" ]]; then
         local _fd
