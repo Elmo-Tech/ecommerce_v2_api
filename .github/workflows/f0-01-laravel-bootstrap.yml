@@ -1,0 +1,141 @@
+name: F0-01 Laravel bootstrap validation
+
+on:
+  push:
+    branches:
+      - feature/f0-01-laravel-bootstrap
+    paths:
+      - composer.json
+      - composer.lock
+      - artisan
+      - app/**
+      - bootstrap/**
+      - config/**
+      - public/**
+      - routes/**
+      - tests/**
+      - phpunit.xml
+      - .github/workflows/f0-01-laravel-bootstrap.yml
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+    branches:
+      - feature/f0-spec-kit-setup
+      - development
+    paths:
+      - composer.json
+      - composer.lock
+      - artisan
+      - app/**
+      - bootstrap/**
+      - config/**
+      - public/**
+      - routes/**
+      - tests/**
+      - phpunit.xml
+      - .github/workflows/f0-01-laravel-bootstrap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f0-01-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    name: Isolated PHP 8.4 Composer and Laravel smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_NAME: EcommerceSaaSAPI
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_URL: http://localhost
+      APP_KEY: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      MAIL_MAILER: log
+      XDEBUG_MODE: off
+    steps:
+      - name: Checkout the reviewed feature branch
+        uses: actions/checkout@v4
+
+      - name: Install PHP 8.4 and required extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite
+          tools: composer:v2
+
+      - name: Verify PHP and validate minimal Composer manifest
+        run: |
+          php -v
+          composer --version
+          composer validate --strict --no-check-publish
+
+      - name: Validate committed dependency lock and platform
+        run: |
+          test -s composer.lock
+          composer validate --strict --no-check-publish
+          composer check-platform-reqs --lock
+
+      - name: Publish committed lockfile for reproducibility review
+        uses: actions/upload-artifact@v4
+        with:
+          name: f0-01-committed-composer-lock
+          path: composer.lock
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Install pinned dependencies without Composer scripts or plugins
+        run: composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+
+      - name: Audit pinned dependency versions
+        run: composer audit --locked --no-interaction
+
+      - name: Verify actual installed packages and framework bootstrap
+        run: |
+          composer check-platform-reqs
+          php -l bootstrap/app.php
+          php -l routes/console.php
+          php artisan about --no-ansi
+          php artisan route:list --json
+
+      - name: Execute foundation smoke test without migrations or real database
+        run: |
+          # PHPUnit treats Dotenv's optional missing-file notice as a warning.
+          # Create a private EMPTY test-runner-local file; never commit secrets.
+          umask 077
+          : > .env
+          test ! -s .env
+          git check-ignore -q .env
+          COLUMNS=180 php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+
+      - name: Execute complete F0-01 Unit Feature Architecture suite
+        run: COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+
+      - name: Execute Architecture checks independently of Laravel TestCase
+        run: vendor/bin/pest --testsuite Architecture
+
+      - name: PHP syntax lint and optional quality-tool availability
+        run: |
+          git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
+          if [ -x vendor/bin/pint ]; then
+            vendor/bin/pint --test
+          else
+            echo "::notice title=Pint unavailable::Laravel Pint is not in the approved F0-01 composer.lock; no Pint pass is claimed."
+          fi
+          if [ -x vendor/bin/phpstan ]; then
+            vendor/bin/phpstan analyse --no-progress
+          else
+            echo "::notice title=PHPStan unavailable::PHPStan/Larastan is not in the approved F0-01 composer.lock; no static-analyzer pass is claimed."
+          fi
+
+      - name: Verify runtime did not change any tracked repository file
+        run: git diff --exit-code -- .
+

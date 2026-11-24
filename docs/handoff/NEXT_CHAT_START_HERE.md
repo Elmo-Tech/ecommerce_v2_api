@@ -1,38 +1,45 @@
-# START HERE — E-commerce SaaS V2 API — next chat
+# START HERE — E-commerce SaaS V2 API — authoritative next-chat handoff
 
-**GitHub:** https://github.com/Elmo-Tech/ecommerce_v2_api  
-**Organization:** Elmo-Tech  
-**Default branch:** `main` (stable). **Development integration branch:** `development`.  
-**Stage:** business decisions collected; code scaffolding and technical architecture **not yet approved**.
+**Latest verified:** 2026-11-24, Africa/Cairo
+**GitHub:** https://github.com/Elmo-Tech/ecommerce_v2_api
+**Integration branch:** `development`; **feature branch:** `feature/f0-01-laravel-bootstrap` (Draft PR #2 stacked on Draft PR #1).
+**F0-01:** **T001–T025 COMPLETE (25/26); T026 PENDING**. Both PRs are still Draft/unmerged. No Codespaces, no production deployment, migrations or `main` changes.
 
-## Read these in order
+**OWNER'S CONDITIONAL MERGE PERMISSION:** The owner said **"لو خلصوا اعمل الmerge بتاعك"** and later **"تمام قم بذلك"** — allowed to merge **PR #1 then PR #2 into `development` ONLY AFTER independent review, applicable required approvals, review findings and green CI are genuinely complete.** This does not authorize bypassing required reviews or self-approval; no merge has happened.
 
-1. [Latest canonical D-152 onward decision register](../decisions/ecommerce_saas_decision_register_D152_onward_2026-11-15.md).
-2. [Full Business Discovery Handoff v5.48, approved through D-200](ecommerce_saas_handoff_v5_48_2026-11-16.md).
-3. [Open decisions & MVP gates](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md).
-4. [Original historical handoff](ecommerce_saas_business_discovery_handoff_ar.md).
+**LATEST LIVE FACTS:** [PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) is Draft/open at **`8c56c91e6f94ca95a1c6152bd9ab21055e7f9784`**; [FND-01 CI #45392426656](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45392426656) **SUCCESS (22 Python regressions, Bash syntax, clean diff)**; CodeRabbit has **9/10 threads resolved, 1 still OPEN** (atomic feature pin `4673695004`, code+tests fixed and submitted for re-check). New [CodeRabbit review request](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1#issuecomment-7132370771) was **accepted/"Review triggered"**; current CodeRabbit check was `in_progress` at checkpoint — do not call it approval. [PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) is Draft/open, stacked, source HEAD **`89f33cab013f00571ebeeddce7c225240c7936b2`** *before the latest docs-only updates*; [F0-01 CI #45389634039](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45389634039) **SUCCESS (31 Pest tests / 134 assertions, 3 standalone Architecture / 23 assertions)**, and **all 7/7 CodeRabbit findings resolved**. **Neither PR has a formal `APPROVED` review.** `development` metadata currently reports unprotected with no repository rulesets, but detailed protections were inaccessible (403). Owner's independent review gate remains. Pint/PHPStan not installed/not run.
 
-## Decision status at transition
+**READ THIS FIRST AFTER THIS PAGE:** [LATEST F0-01 T026 REVIEW RECHECK — 2026-11-24 15:05 Cairo](F0-01_T026_REVIEW_RECHECK_2026-11-24_1505.md). Includes live references, exact outstanding reviewer comment, test SHA and safe merge sequence. **This supersedes older handoff status summaries.** Keep historic dated handoffs for evidence; refresh live GitHub before any action.
 
-- The newest approved decision is **D-200, choice A**: show alternative fulfillment locations compatible with the customer's current Delivery/Pickup method first, then locations requiring a method change. Inside each group, prioritize lower **reliable and comparable indicative order totals**. Keep unknown costs visible as **“needs review”**, not ranked by imaginary numbers. This internal ordering is **not FIFO** and does not reserve stock or change the order.
-- **D-201 remains OPEN**: A) internal “awaiting customer response” indicator for a proposed alternative location (previous recommendation); B) communication notes only. **No choice has been accepted yet**.
-- Historical OPEN proposals in the long handoff are not active if a newer approved decision supersedes them.
-- Business rules that are APPROVED are **not automatically MVP implementation commitments**.
+## FIRST: Exact source / review reading order for a new chat or monitor
 
-## Product goals already agreed
+1. **[LATEST T026 RECHECK](F0-01_T026_REVIEW_RECHECK_2026-11-24_1505.md)**, then [conditional owner merge authorization](F0-01_T026_CONDITIONAL_MERGE_AUTH_2026-11-24.md). These are authoritative for the requested merge gates.
+2. **[F0-01 tasks.md](../../specs/001-laravel-bootstrap-module-registry/tasks.md)** — T001–T025 checked, T026 unchecked; [approved Spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [quickstart](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [Foundation module overview](../03-modules/foundation/module-overview.md) and [Constitution](../../.specify/memory/constitution.md).
+3. **[PR #1 live state](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1)** (review threads/approval/checks/mergeable/current SHA): `.specify/scripts/bash/{common.sh,markdown_sections.py,create-new-feature.sh,resolve-template.sh,setup-tasks.sh}`, `tests/spec_kit/test_review_regressions.py`, `.github/workflows/fnd-01-spec-kit-review.yml`, [22-test CI #45392426656](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45392426656).
+4. **[PR #2 live state](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2)** (reviews, all 7 resolved, checks and current SHA): `app/Core/Modules/ModuleRegistry.php`, `app/Providers/ModuleRegistryServiceProvider.php`, `app/Modules/FoundationDemo/`, `bootstrap/providers.php`, `config/modules.php`, `tests/{Unit,Feature,Architecture,Fixtures}/`, `phpunit.xml`, `.github/workflows/f0-01-laravel-bootstrap.yml`, [31-test CI #45389634039](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45389634039).
+5. [Implementation authorization](../reviews/F0-01-implementation-authorization.md), [spec review](../reviews/F0-01-spec-review.md), [no-Codespaces policy](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md), [branch workflow](../WORKFLOW.md), [previous validated foundation](F0-01_FINAL_REVIEW_READY_2026-11-24.md). Older snapshots are historical, not latest state.
 
-Egypt-first pilot for small/medium omnichannel retailers; multi-tenant independent merchant storefronts; Online Orders, Manual Orders, basic Direct Sales; a catalog with variants, discounts, coupons, taxes/shipping, location-separated inventory, and single-location **full-order** fulfillment. **Not** a full ERP/POS; no Split Fulfillment in MVP.
+## Exact verified engineering results (NOT planning claims)
 
-## Technology direction, not an approved architecture
+- **[CI run #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899)** SUCCESS, tested code/CI SHA **`03a9d2cd31f341da987102b92a57ea009f4f5f28`**, job `138080142151` (source-only/documentation updates later did not change the tested runtime code). Ubuntu PHP **8.4.28**, Composer **2.11.2**, Laravel **13.43.0**, real committed and locked `composer.lock` (118 packages).
+- `composer validate --strict`, platform checks, pinned Composer install (no scripts/plugins), `composer audit --locked` (**no advisories reported at run time**), Artisan bootstrap/route listing and tracked-file diff all **passed**.
+- Pest Foundation group **26 tests passed / 116 assertions / 0 failures**; separately ran full **unfiltered** Unit+Feature+Architecture suite **26 passed / 116 assertions / 0 failures or skips**; every tracked PHP file passed `php -l`.
+- Explicit Module Registry listed-only/native Service Provider lifecycle, invalid/duplicate/missing/unlisted negative tests, non-business FoundationDemo marker, and testing-only HTTP probe work. The test probe is **absent** in independent `production`/`local` boot. The real app has **no production routes** and Laravel refuses caching an empty route set; isolated scratch app with only a benign redirect generated a **genuine production route cache without the probe**, then deleted the scratch app. **No production probe has been shipped**.
+- **T023 quality tools:** Laravel Pint and PHPStan/Larastan are **not installed in approved Composer lock**; CI explicitly checked availability and printed notices. **Their checks DID NOT RUN and CANNOT be claimed as passing**. PHP syntax lint passed but is not an equivalent substitute; optional future F0-04/approved quality-scope work.
+- **T024 scoped PR safety:** scanned readable PR #2 change patches for common credential/token patterns (zero hits), reviewed the real large Composer lock separately (118 packages; no Sanctum/Stancl/Octane/Horizon), compared runtime diff against pre-code branch and confirmed no migrations, User/Auth/Tenancy, actual `.env`, vendor commit, business API or unapproved production code. **Not a full repository-history secret audit**.
+- **No production/live DB, Secrets, Auth/Sanctum, Tenancy, migrations, merchant data or deployment**. No user Codespaces activity requested. D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED unchanged.
 
-Laravel API + PostgreSQL + Next.js + GitHub Spec Kit were stated as the preferred direction. Precise API/module architecture, tenant isolation, CI, deployment and infrastructure need project kickoff decisions and design review.
+## NEXT EXACT ACTION — T026 independent review, then guarded development merges
 
-## The instruction for the next conversation
+1. PR #1: re-check CodeRabbit's new in-progress head review and last open thread `4673695004` (atomic feature pin), which has tested source fix and an author follow-up. Ensure every **actionable** finding is genuinely resolved with reviewer verification, any **required non-author approval** exists and [latest 22-test CI](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45392426656) is green at reviewed HEAD.
+2. PR #2: all seven CodeRabbit findings resolved; ensure no newly reported issues, review and any required non-author approval, and genuine green integrated CI. **CodeRabbit `COMMENTED` review is not a GitHub `APPROVED` review.**
+3. Only when both branches satisfy applicable review/protection/CI gates and safe diff, the owner's existing conditional authorization permits: merge **PR #1 to `development` first**, verify its GitHub merge SHA; then **sync/retarget PR #2**, preserve all upstream changes, recheck approval and execute fresh integrated CI, and merge PR #2 into `development` with guarded head SHA. Do not force merge/retarget prematurely.
+4. After both merges actually verified, mark T026 complete **on `development`**, update this handoff with exact reviewed commits, CI and merge SHAs, disable the existing monitor and only then discuss the next separately approved Feature. Otherwise leave T026 open. Never run owner Codespaces commands, main release, migration or deployment.
 
-> We created `Elmo-Tech/ecommerce_v2_api`, with `main` and `development`, and archived full Business Discovery handoffs. Read all linked repository documentation before responding. Start **Project Kickoff and MVP Scope v1**. Identify **only blocking decisions**, then discuss architecture and an incremental Laravel API implementation plan, modular features, tests, CI and branch workflow. Keep D-201 OPEN and discuss it when we reach Orders & Fulfillment. Do not silently approve any option, assume every business decision is mandatory in MVP, or start application coding without approving the plan.
+## Product and decision continuity
 
-## Non-negotiable checks
+Egypt-first multi-tenant e-commerce SaaS for SMB merchants with independent stores, Online/Manual/Direct Sales, location-separated inventory and one-location full-order fulfillment in the MVP; **not** a full ERP/POS. Last historical approved decision D-200 A; **D-201 OPEN** (customer response marker for alternative stock location) to revisit during Orders/Fulfillment, not during F0-01.
 
-- Tenant isolation and staff permissions, auditability and payment/inventory consistency need rigorous implementation.
-- Do not imply that the pilot is compliant with Egypt's statutory e-invoicing or e-receipt obligations without verifying actual merchant eligibility and compliance.
-- Preserve the complete older decision history. The handoff notes a missing original historic v0.2 file for some early decision wording; ask for it only if it materially affects a rule.
+## Permanent instruction for future sessions
+
+**Always refresh this file** when work advances. For each milestone, keep a dated snapshot in `docs/handoff/` containing precise approvals, task status, Git SHA/PR status, evidence source/environment, blockers and next action. Keep historical handoffs and decisions for traceability.

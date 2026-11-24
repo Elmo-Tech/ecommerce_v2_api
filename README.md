@@ -2,12 +2,12 @@
 
 Private **Elmo-Tech** repository for the **E-commerce SaaS V2 API**.
 
-**Status:** project kickoff and architecture planning; documentation only. No Laravel application code yet.
+**Status (2026-11-24):** F0-01 Laravel 13 API Foundation and explicit Module Registry/FoundationDemo **implemented and validated in GitHub Actions**: real `composer.lock`, Laravel 13.43.0 bootstrap, **26 passing Unit/Feature/Architecture tests (116 assertions)** on [Run #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899). Pint/PHPStan are **not installed**; no merge/deployment, Auth, Tenancy or migrations. [Current verified handoff and read-first order](docs/handoff/NEXT_CHAT_START_HERE.md).
 
 ## Product direction
 Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pilot for small/medium omnichannel retailers: online orders, manual orders and simple direct sales, with catalog/pricing, taxes/discounts, basic per-location inventory and single-location full-order fulfillment. Not a full ERP or POS.
 
-**Tech direction (architecture NOT finalized):** Laravel API, PostgreSQL, Next.js and GitHub Spec Kit.
+**Approved F0 technical direction:** Laravel 13 API-first Modular Monolith with explicit Module Registry, PostgreSQL for later database Features, separate Next.js frontend, and GitHub Spec Kit. This does not imply tenancy/identity/business module implementation.
 
 ## Essential documentation
 
@@ -27,4 +27,4 @@ Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pil
 - `feature/*` and `fix/*`: new work from `development`, PR back into it.
 - Promote reviewed, tested changes from `development` into `main`.
 
-The next chat should start with MVP Scope v1 and blocking architecture decisions. Approving implementation requires a separate user decision.
+New chats must resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md), then read the latest dated `docs/handoff/` snapshot, live F0-01 tasks/spec/plan and actual code. The owner approved F0-01 implementation, **not merge/deployment**. Latest CI/lock/runtime gates are green; independent PR review and upstream PR #1 integration remain separate. **No Codespaces commands** are required from the owner.
