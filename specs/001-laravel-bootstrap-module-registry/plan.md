@@ -1,7 +1,7 @@
 # Implementation Plan: F0-01 — Laravel Bootstrap & Explicit Module Registry
 
 **Branch**: `feature/f0-01-laravel-bootstrap` | **Prepared**: 2026-11-23 | **Spec**: [spec.md](spec.md)  
-**Status (2026-11-24)**: **APPROVED F0-01 Option A, T001–T024 COMPLETE (24/26), T025–T026 pending.** Native Laravel 13.43.0 + explicit Module Registry/FoundationDemo, fresh-boot negative validation, production/local route absence and isolated production route-cache isolation verified. [Actions #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899): **26 Unit/Feature/Architecture tests / 116 assertions passed**, pinned Composer/platform/audit, full PHP syntax lint. **Pint/PHPStan NOT in approved lock; not claimed passed**. No Auth/Tenancy/migrations, merge or deployment.
+**Status (2026-11-24)**: **APPROVED F0-01 Option A, T001–T025 COMPLETE (25/26), T026 independent PR review and conditional merge PENDING.** Native Laravel 13.43.0 + explicit Module Registry/FoundationDemo, fresh-boot negative validation, production/local route absence and isolated production route-cache isolation verified. [Actions #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899): **26 Unit/Feature/Architecture tests / 116 assertions passed**, pinned Composer/platform/audit, full PHP syntax lint. **Pint/PHPStan NOT in approved lock; not claimed passed**. No Auth/Tenancy/migrations, merge or deployment.
 **Input**: Reviewed F0-01 `spec.md` v0.2 and ratified [E-commerce SaaS V2 Constitution v1.0.0](../../.specify/memory/constitution.md).  
 **Method**: Reviewer-authored against official Spec Kit v1.4.3 `plan-template.md` using agent-neutral `none` integration; not a run of `/speckit.plan`.
 
@@ -9,19 +9,19 @@
 
 Create a minimal reproducible **Laravel 13 API-first backend** in the **existing repository root**, preserving approved documents, Spec Kit, history and branch conventions. Demonstrate a **small explicit Module Registry** loading only listed Providers through the Laravel lifecycle, with one **non-business FoundationDemo module**. The only demonstration route is test-only, with automated proof that it does **not** exist in a non-testing/production application. Provide runtime/bootstrap, positive and negative registration, and architectural tests without building Auth, Tenancy, business schemas, production endpoints, infrastructure or deployment.
 
-The owner approved this **technical design approach** under F0-01 Option A on 2026-11-23. A **separate later owner response, A**, expressly authorized **starting T005** on `feature/f0-01-laravel-bootstrap`, recorded in [F0-01 implementation authorization](../../docs/reviews/F0-01-implementation-authorization.md). This is not approval to deploy/merge or to skip real Composer/project runtime tests. The [T005 staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md) records what source actually exists and why T005 remains open.
+The owner approved this **technical design approach** under F0-01 Option A on 2026-11-23. A **separate later owner response, A**, expressly authorized **starting T005** on `feature/f0-01-laravel-bootstrap`, recorded in [F0-01 implementation authorization](../../docs/reviews/F0-01-implementation-authorization.md). This is not approval to deploy/merge or to skip real Composer/project runtime tests. The [T005 staging handoff](../../docs/handoff/F0-01_T005_SOURCE_STAGED_2026-11-23.md) is a **historical** source-staging record; T005 was subsequently verified COMPLETE by the locked Laravel 13 CI.
 
 ## Current implementation evidence (addendum; original approved design retained)
 
 The approved D2/D3 registry architecture was implemented in `config/modules.php`, `app/Core/Modules/ModuleRegistry.php`, `app/Providers/ModuleRegistryServiceProvider.php` and `app/Modules/FoundationDemo/`. Tests in `tests/{Unit,Feature,Architecture,Fixtures}/` passed on actual Laravel 13.43.0. See [T010–T016 handoff](../../docs/handoff/F0-01_MODULE_REGISTRY_VERIFIED_2026-11-24.md), [T017–T020 route/cache verification](../../docs/handoff/F0-01_ARCHITECTURE_AND_PRODUCTION_PROBE_VERIFIED_2026-11-24.md), and [complete CI #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899). The **real app has no Production routes**; Laravel's `route:cache` does not create a cache for an empty route collection; a scratch app containing a harmless non-business redirect was used to prove the actual production route cache excludes the test probe. No scratch cache is shipped.
 
-**Remain open:** T025 documentation closure and T026 independent PR/approval gates. Optional Pint/PHPStan/Larastan are not in the approved F0-01 lock and were **not executed**; PHP syntax lint was actually executed. The planning-only statuses elsewhere in this document describe historical review checkpoints; refer to this addendum for verified execution status.
+**Remain open:** Only T026 independent PR review, review findings and conditional integration gates. T025 documentation/handoff reconciliation was completed and subsequently updated for CodeRabbit feedback. Optional Pint/PHPStan/Larastan are not in the approved F0-01 lock and were **not executed**; PHP syntax lint was actually executed. The planning-only statuses elsewhere in this document describe historical review checkpoints; refer to this addendum for verified execution status.
 
 ## Technical Context
 
 | Field | Proposed target / current evidence |
 | --- | --- |
-| Language / version | **PHP >=8.3**, within Laravel 13's currently documented support set (PHP 8.3–8.5); exact PHP minor/patch **TO VALIDATE**, no silent downgrade |
+| Language / version | **PHP ^8.4** per committed `composer.json` and `composer.lock`; actually validated with **PHP 8.4.28** in GitHub Actions. PHP 8.3 is **not supported** by this project's locked dependencies; PHP 8.5 not separately verified |
 | Framework | Laravel Framework **`^13.0`** in a versioned Composer lock; exact patch **TO RESOLVE/VERIFY** |
 | Existing project | Documentation-only Laravel API repo with `docs/`, `specs/`, `.specify/` and `README.md`; **no verified framework skeleton at planning time** |
 | Primary dependencies | Laravel native providers and service container only; no `stancl/tenancy`, Sanctum, Redis/Horizon, Octane or generic Modules package at this step |
@@ -48,7 +48,7 @@ The approved D2/D3 registry architecture was implemented in `config/modules.php`
 | VII — Tests / evidence | **VERIFIED for F0-01 Unit/Feature/Architecture suite** — 26 passed / 116 assertions | Real Actions #45285351899 and prior T017–T020 CI; independent PR approval remains open |
 | VIII — Simplicity / releases | **Design and isolated CI runtime verified; release PENDING** — native Laravel + minimal registry | Composer lock/platform passed, no migrations; Pint/PHPStan not installed; PR review remains open |
 
-**Implementation gate (updated 2026-11-24):** F0-01 design approval, separate implementation authorization, locked dependencies, actual native Laravel 13 Provider lifecycle, negative/unlisted registration, test-only and production route-cache isolation, all 26 tests and bounded secret/diff review are **verified/completed (T001–T024)**. **T025 documentation completion and T026 independent review/merge approval remain pending.** No production deployment or migrations.
+**Implementation gate (updated 2026-11-24):** F0-01 design approval, separate implementation authorization, locked dependencies, actual native Laravel 13 Provider lifecycle, negative/unlisted registration, test-only and production route-cache isolation, all 26 tests and bounded secret/diff review are **verified/completed (T001–T024)**. **T025 documentation/handoff completion is verified; T026 independent review/conditional merge remains pending.** No production deployment or migrations.
 
 ## Phase 0 — Research (Documentary Only)
 
@@ -132,7 +132,7 @@ specs/001-laravel-bootstrap-module-registry/
   spec.md                 # One canonical feature specification
   plan.md                 # This reviewed technical design draft
   research.md             # External/source evidence and open compatibility items
-  quickstart.md           # Planned setup/verification procedure, NOT yet executed
+  quickstart.md           # Verified actual CI/runtime commands and historical preflight context
   contracts/
     foundation-probe.md   # Internal TEST-ONLY contract; no production API
   checklists/
