@@ -53,6 +53,12 @@ fi
 TASKS_TEMPLATE=$(resolve_template "tasks-template" "$REPO_ROOT") || true
 if TASKS_TEMPLATE_CONTENT=$(resolve_template_content "tasks-template" "$REPO_ROOT"; status=$?; printf x; exit "$status"); then
     TASKS_TEMPLATE_CONTENT="${TASKS_TEMPLATE_CONTENT%x}"
+    # The resolver can COMPOSE multiple layers or load a manifest-declared
+    # nonstandard file. Do not report a misleading single-file path if it
+    # does not byte-match the actual content supplied to consumers.
+    if [[ -z "$TASKS_TEMPLATE" || ! -f "$TASKS_TEMPLATE" ]] || ! cmp -s "$TASKS_TEMPLATE" <(printf '%s' "$TASKS_TEMPLATE_CONTENT"); then
+        TASKS_TEMPLATE=""
+    fi
 else
     echo "ERROR: Could not resolve required tasks-template from the template override stack for $REPO_ROOT" >&2
     echo "Template 'tasks-template' was not found in any supported location (overrides, presets, extensions, or shared core). Add an override at .specify/templates/overrides/tasks-template.md, or run 'specify init' / reinstall shared infra to restore the core .specify/templates/tasks-template.md template." >&2
@@ -85,7 +91,7 @@ if $JSON_MODE; then
     fi
 else
     echo "FEATURE_DIR: $FEATURE_DIR"
-    echo "TASKS_TEMPLATE: ${TASKS_TEMPLATE:-not found}"
+    echo "TASKS_TEMPLATE: ${TASKS_TEMPLATE:-composed content (no single matching source file)}"
     echo "AVAILABLE_DOCS:"
     check_file "$RESEARCH" "research.md"
     check_file "$DATA_MODEL" "data-model.md"
