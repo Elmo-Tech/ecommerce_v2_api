@@ -2,11 +2,7 @@
 
 use App\Core\Modules\ModuleRegistry;
 use App\Providers\AppServiceProvider;
-
-abstract class FoundationUninstantiableProvider extends Illuminate\Support\ServiceProvider
-{
-    // Abstract despite extending the correct Laravel ServiceProvider.
-}
+use Tests\Fixtures\AbstractModuleProvider;
 
 it('accepts a reviewed explicit provider list without loading providers', function (): void {
     $registry = new ModuleRegistry([
@@ -48,9 +44,9 @@ it('rejects malformed, duplicate or unsafe module definitions', function (array 
     'abstract provider following valid provider' => [
         [
             ['id' => 'valid', 'provider' => AppServiceProvider::class],
-            ['id' => 'abstract', 'provider' => FoundationUninstantiableProvider::class],
+            ['id' => 'abstract', 'provider' => AbstractModuleProvider::class],
         ],
-        'Module provider ['.FoundationUninstantiableProvider::class.'] must be instantiable.',
+        'Module provider ['.AbstractModuleProvider::class.'] must be instantiable.',
     ],
     'empty id' => [
         [['id' => '   ', 'provider' => AppServiceProvider::class]],
