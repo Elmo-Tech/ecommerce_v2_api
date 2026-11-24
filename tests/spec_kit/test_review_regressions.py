@@ -199,12 +199,12 @@ class ShellRegressions(unittest.TestCase):
             root = Path(d)
             override = root / ".specify/templates/overrides/tasks-template.md"
             override.parent.mkdir(parents=True)
-            expected = "# Tasks template\\n" + ("z" * 150_000) + "\\n"
+            expected = "# Tasks template\n" + ("z" * 150_000) + "\n"
             override.write_text(expected, encoding="utf-8")
             feature = root / "specs/001-review"
             feature.mkdir(parents=True)
-            (feature / "spec.md").write_text("# Spec\\n", encoding="utf-8")
-            (feature / "plan.md").write_text("# Plan\\n", encoding="utf-8")
+            (feature / "spec.md").write_text("# Spec\n", encoding="utf-8")
+            (feature / "plan.md").write_text("# Plan\n", encoding="utf-8")
 
             env = os.environ.copy()
             env["SPECIFY_INIT_DIR"] = str(root)
