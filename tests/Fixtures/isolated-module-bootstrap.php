@@ -15,6 +15,12 @@ $root = dirname(__DIR__, 2);
 
 require $root.'/vendor/autoload.php';
 
+// Negative test fixture: valid ServiceProvider inheritance is insufficient
+// if the provider is abstract (must fail before any listed module activates).
+abstract class FoundationAbstractBootstrapProvider extends Illuminate\Support\ServiceProvider
+{
+}
+
 /** @var \Illuminate\Foundation\Application $app */
 $app = require $root.'/bootstrap/app.php';
 
@@ -34,6 +40,14 @@ $definitions = match ($scenario) {
     'duplicate-provider' => [
         ['id' => 'one', 'provider' => FoundationDemoServiceProvider::class],
         ['id' => 'two', 'provider' => FoundationDemoServiceProvider::class],
+    ],
+    'duplicate-provider-by-case' => [
+        ['id' => 'foundation-demo', 'provider' => FoundationDemoServiceProvider::class],
+        ['id' => 'same-provider', 'provider' => strtolower(FoundationDemoServiceProvider::class)],
+    ],
+    'abstract-after-demo' => [
+        ...$valid,
+        ['id' => 'abstract', 'provider' => FoundationAbstractBootstrapProvider::class],
     ],
     'missing-provider' => [
         ['id' => 'invalid', 'provider' => 'App\\Missing\\UnknownModuleProvider'],
@@ -71,6 +85,10 @@ try {
         'ok' => false,
         'type' => get_class($exception),
         'message' => $exception->getMessage(),
+        // Assert no earlier "valid" module was activated before full
+        // validation rejected a later invalid or abstract definition.
+        'provider_loaded' => $app->getProvider(FoundationDemoServiceProvider::class) !== null,
+        'marker_bound' => $app->bound(FoundationMarker::class),
     ];
 }
 
