@@ -159,10 +159,21 @@ def replace_section(
             if closing and closing[1][0] == fence_marker and len(closing[1]) >= fence_length:
                 fence_marker = ""
             continue
+        # A valid opening fence wins over its info string (including <!--).
+        # Never interpret a fence inside an HTML comment or code span.
+        if not html_comment and start >= code_span_end:
+            early_fence = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", text)
+            if early_fence and not (early_fence[1][0] == "`" and "`" in early_fence[2]):
+                fence_marker, fence_length = early_fence[1][0], len(early_fence[1])
+                code_span_end = 0
+                continue
         # Mask multiline HTML comments before scanning opening fences or ATX
         # headings. In particular, a commented "`" fence must never alter the
         # parser state for the rest of the document.
         visible_parts: list[str] = []
+        # An HTML comment block consumes its closing line, even when text
+        # after --> looks like a heading or a fenced-code opener.
+        comment_block_line = html_comment
         cursor = 0
         while cursor < len(text):
             if html_comment:
@@ -184,6 +195,8 @@ def replace_section(
             visible_parts.append(text[cursor:token.start()])
             cursor = token.end()
             if token[0] == "<!--":
+                if not text[:token.start()].strip():
+                    comment_block_line = True
                 html_comment = True
                 continue
             span = multiline_code_span.match(content, start + token.start())
@@ -193,6 +206,8 @@ def replace_section(
             else:
                 visible_parts.append(token[0])
         text = "".join(visible_parts)
+        if comment_block_line:
+            continue
         opening = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", text)
         if opening and not (opening[1][0] == "`" and "`" in opening[2]):
             fence_marker, fence_length = opening[1][0], len(opening[1])
