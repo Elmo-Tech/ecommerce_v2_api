@@ -7,6 +7,7 @@ on:
     paths:
       - composer.json
       - composer.lock
+      - artisan
       - app/**
       - bootstrap/**
       - config/**
@@ -21,6 +22,7 @@ on:
     paths:
       - composer.json
       - composer.lock
+      - artisan
       - app/**
       - bootstrap/**
       - config/**
@@ -114,6 +116,9 @@ jobs:
 
       - name: Execute complete F0-01 Unit Feature Architecture suite
         run: COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+
+      - name: Execute Architecture checks independently of Laravel TestCase
+        run: vendor/bin/pest --testsuite=Architecture --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
 
       - name: PHP syntax lint and optional quality-tool availability
         run: |
