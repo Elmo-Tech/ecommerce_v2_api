@@ -5,7 +5,7 @@
 // Resolve source paths from the test file's location, never from a Laravel
 // application container: these tests must run as a standalone Architecture suite.
 
-const F0_01_ARCH_ROOT = dirname(__DIR__, 2);
+define('F0_01_ARCH_ROOT', dirname(__DIR__, 2));
 
 it('does not dynamically discover providers from module directories', function (): void {
     $registrySource = file_get_contents(F0_01_ARCH_ROOT.'/app/Core/Modules/ModuleRegistry.php');
