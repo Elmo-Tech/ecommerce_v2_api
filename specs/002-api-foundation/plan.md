@@ -1,7 +1,7 @@
-# Implementation Plan — F0-02 API Foundation (OWNER-APPROVED; IMPLEMENTATION GATE OPEN)
+# Implementation Plan — F0-02 API Foundation (OWNER-APPROVED; IMPLEMENTATION AUTHORIZED)
 
 **Date:** 2026-11-24 | **Branch:** `feature/f0-02-api-foundation`  
-**Approval:** **DEC-01…04 AND COMPLETE REVISED SPEC + PLAN APPROVED 2026-11-24 (reviewed baseline `c9897aac60975b2e5aa90583480972c02152bb0d`). IMPLEMENTATION AUTHORIZATION PENDING.**  
+**Approval:** **DEC-01…04 AND COMPLETE REVISED SPEC + PLAN APPROVED 2026-11-24 (reviewed baseline `c9897aac60975b2e5aa90583480972c02152bb0d`). SCOPED IMPLEMENTATION AUTHORIZED 2026-11-24 (T003); SEPARATE MERGE AUTHORIZATION PENDING.**  
 **Canonical requirements:** [F0-02 spec](spec.md) | **Approved source:** [API Standards AS-01–09](../../docs/02-standards/api-standards.md), [Constitution](../../.specify/memory/constitution.md), [Module Architecture](../../docs/01-architecture/module-architecture.md), [Code Standards](../../docs/02-standards/code-standards.md), [Testing Standards](../../docs/02-standards/testing-standards.md), [Localization Standards LOC-ST-02](../../docs/02-standards/localization-standards.md#4-loc-st-02--supported-locales-resolution-preferences-and-fallback), [FBR-02](../../docs/reviews/FBR-02-architecture-gap-review.md).
 
 ## 1. Verified starting point and boundaries
@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**Only the documentation approval/consistency checkpoints T001/T002 are complete; execution remains gated by T003.**
+**T001–T003 approval/consistency checkpoints complete; T004 runtime preflight remains blocking. The approved T022 trigger-only path extension is performed early to trigger the baseline CI on this docs-only PR; all code/test source changes still follow successful T004.**
 
 ## 5. Quality and security gates
 
@@ -142,7 +142,8 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 - [x] Owner approves the complete revised [spec.md](spec.md) including non-goals and new generic HTTP wire mappings.
 - [x] Owner approves this complete revised plan including lifecycle design, CI coverage and risk-selected test strategy in the same response.
 - [x] [Task ledger](tasks.md) generated and [consistency analysis](consistency-analysis.md) completed.
-- [ ] T003 separate owner implementation authorization, then T004 preflight and tests-first execution on `feature/f0-02-api-foundation`.
+- [x] T003 separate owner implementation authorization, 2026-11-24.
+- [ ] T004 real preflight and tests-first execution on `feature/f0-02-api-foundation`.
 - [ ] Keep D-201/BA-16/BA-30 unchanged; no release or production access. No merge or deployment without separate authorization.
 
-**This is the approved plan, not a tested result or an implementation authorization.**
+**This is the approved plan. Separate implementation authorization is recorded; actual runtime results and merge authority remain separate.**

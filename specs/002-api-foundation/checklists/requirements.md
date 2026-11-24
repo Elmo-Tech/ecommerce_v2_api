@@ -16,7 +16,7 @@
 - [x] Owner approves additional public error-code/status mappings and other detailed requirements as part of final Spec/Plan sign-off.
 - [x] Owner approves both **spec.md** and **plan.md** for F0-02 (2026-11-24).
 - [x] Risk-selected [task ledger](../tasks.md) and [consistency analysis](../consistency-analysis.md) recorded before code.
-- [ ] Explicit owner implementation authorization of the prepared tasks (T003); actual test execution later.
+- [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24); actual test execution remains to be evidenced.
 - [ ] F0-02 CI, code review and merge actually performed (NOT YET).
 
-**Current status:** Four decisions and full revised spec/plan approved; 2/30 documentation tasks completed, execution authorization remains open. No runtime code, tests, CI verification or merge. Do not mark outstanding gates complete without actual evidence and authorization.
+**Current status:** Four decisions and full revised spec/plan approved; 3/30 documentation/authorization tasks completed, scoped execution authorized. No F0-02 runtime code, test source, CI result or merge yet. Do not mark outstanding gates complete without actual evidence and authorization.

@@ -1,12 +1,12 @@
 # Feature Specification — F0-02: API Foundation
 
-**Status:** **OWNER-APPROVED SPEC — DEC-01…04 AND FULL SPEC/PLAN APPROVED 2026-11-24; IMPLEMENTATION AUTHORIZATION PENDING**  
+**Status:** **OWNER-APPROVED SPEC — DEC-01…04 AND FULL SPEC/PLAN APPROVED; IMPLEMENTATION AUTHORIZED 2026-11-24**  
 **Prepared/reviewed:** 2026-11-24 | **Working branch:** `feature/f0-02-api-foundation`  
 **Feature owner:** Backend Engineering Foundation / Core (not a business-domain writer)  
 **Dependency:** [F0-01 complete on `development`](../../docs/handoff/F0-01_MERGED_AND_CLOSED_2026-11-24.md) with [task ledger 26/26](../001-laravel-bootstrap-module-registry/tasks.md)  
 **Authority:** [Constitution v1.0.0](../../.specify/memory/constitution.md), [API Standards AS-01/02/03/08/09](../../docs/02-standards/api-standards.md), FBR-02-05/06/07, [Backend Architecture BA-11](../../docs/01-architecture/backend-architecture.md), [Module Architecture §§8/13/16](../../docs/01-architecture/module-architecture.md), [Code Standards CS-05/06/07/08/09](../../docs/02-standards/code-standards.md), [Testing Standards TEST-05](../../docs/02-standards/testing-standards.md), [Localization Standards LOC-ST-02](../../docs/02-standards/localization-standards.md#4-loc-st-02--supported-locales-resolution-preferences-and-fallback).
 
-> This is the **owner-approved bounded F0 engineering Feature specification** (reviewed baseline `c9897aac60975b2e5aa90583480972c02152bb0d`). Approval covers the revised spec and plan; it does not turn all API Standards into implemented behavior or authorize code. Separate implementation authorization, evidence and merge approval remain required. See [tasks](tasks.md), [consistency analysis](consistency-analysis.md) and [approval handoff](../../docs/handoff/F0-02_SPEC_PLAN_APPROVED_TASKS_ANALYZED_2026-11-24.md).
+> This is the **owner-approved bounded F0 engineering Feature specification** (reviewed baseline `c9897aac60975b2e5aa90583480972c02152bb0d`). Approval covers the revised spec and plan; the owner separately authorized scoped implementation on 2026-11-24 (T003). This does not turn all API Standards into implemented behavior; actual evidence and separate merge approval remain required. See [tasks](tasks.md), [consistency analysis](consistency-analysis.md) and [approval handoff](../../docs/handoff/F0-02_SPEC_PLAN_APPROVED_TASKS_ANALYZED_2026-11-24.md).
 
 ## 1. Problem and intended outcome
 
@@ -105,7 +105,8 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 - [x] Owner approves the complete revised specification, scope, exclusions and detailed HTTP/locale/contract behavior (2026-11-24, reviewed baseline SHA above).
 - [x] Owner approves the revised [implementation plan](plan.md) in the same explicit approval response, including additional error mappings, CI coverage and safe request lifecycle.
 - [x] Generate [tasks.md](tasks.md) and complete [documentation consistency analysis](consistency-analysis.md).
-- [ ] Obtain separate explicit implementation authorization (T003); implement tests first and minimal runtime code on feature branch; collect actual CI and independent review evidence.
+- [x] Obtain separate explicit implementation authorization (T003, 2026-11-24).
+- [ ] Implement tests first and minimal runtime code on feature branch; collect actual CI and independent review evidence.
 - [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
 
-**Spec/Plan approval and task preparation are complete; implementation, tests, CI and merge remain unauthorized/not executed.**
+**Spec/Plan, task preparation and separate scoped implementation authorization are complete; real execution evidence is tracked in tasks.md. Merge remains unauthorized.**
