@@ -72,6 +72,20 @@ class MarkdownSectionRegressions(unittest.TestCase):
         source = "Example: `<!--`\n## B\nbody\n"
         self.assertEqual(self.replace(source, "new", "b"), "Example: `<!--`\n## B\nnew")
 
+    def test_multiline_code_span_html_marker_does_not_hide_heading(self) -> None:
+        source = "Example: `literal <!--\nmarker`\n## B\nbody\n"
+        self.assertEqual(
+            self.replace(source, "new", "b"),
+            "Example: `literal <!--\nmarker`\n## B\nnew",
+        )
+
+    def test_multiline_code_span_with_crlf_does_not_hide_heading(self) -> None:
+        source = "Example: `literal <!--\r\nmarker`\r\n## B\r\nbody\r\n"
+        self.assertEqual(
+            self.replace(source, "new", "b"),
+            "Example: `literal <!--\r\nmarker`\r\n## B\r\nnew",
+        )
+
 
 class ShellRegressions(unittest.TestCase):
     def run_bash(self, command: str, root: Path) -> subprocess.CompletedProcess[str]:
