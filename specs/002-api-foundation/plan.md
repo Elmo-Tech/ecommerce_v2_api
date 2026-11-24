@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T025 complete with actual baseline, RED, GREEN, review regression RED and final GREEN; T026 feature docs complete, permanent pointer staged in [docs-only PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5); IR-01…06 independent review remediation verified in 98/911 GREEN. The approved T022 trigger-only path extension was performed early to trigger baseline CI; all application/test source changes followed successful T004. See [quickstart](quickstart.md). Independent review and final merge gates remain open.**
+**T001–T026 complete with real RED/GREEN evidence and verified pointer merge via PR #5. IR-01…06 fixed and verified; latest PR #4 review rate limited. Owner merge consent is recorded subject to outstanding gates. See [quickstart](quickstart.md).**
 
 ## 5. Quality and security gates
 
@@ -144,7 +144,7 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 - [x] [Task ledger](tasks.md) generated and [consistency analysis](consistency-analysis.md) completed.
 - [x] T003 separate owner implementation authorization, 2026-11-24.
 - [x] T004 real preflight, tests-first RED, implementation, GREEN and scope review T005–T025 on `feature/f0-02-api-foundation`.
-- [ ] T026 feature docs/dated handoff complete; canonical pointer proposed in [docs-only PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5), await separately authorized integration.
+- [x] T026 feature docs/dated handoff complete; canonical pointer merged and verified via PR #5.
 - [ ] T027 independent review and final integrated candidate recheck.
 - [ ] Keep D-201/BA-16/BA-30 unchanged; no release or production access. No merge or deployment without separate authorization.
 
