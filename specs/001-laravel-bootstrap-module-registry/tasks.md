@@ -1,5 +1,5 @@
 ---
-description: "F0-01 implementation task plan; spec and plan approved, code/testing pending"
+description: "F0-01 implementation and real CI verified; T026 independent PR review and conditional integration pending"
 ---
 
 # Tasks: F0-01 — Laravel Bootstrap & Explicit Module Registry
