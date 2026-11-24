@@ -12,6 +12,8 @@ use InvalidArgumentException;
 /** Stateless response formatting; the caller owns the actual outcome and data. */
 final class ApiResponse
 {
+    public const int MAX_FIELD_PATH_BYTES = 256;
+
     /**
      * @param array<string, mixed>|null $meta Only metadata actually computed by the caller.
      */
@@ -67,7 +69,7 @@ final class ApiResponse
             throw new InvalidArgumentException('Field validation errors require HTTP 422.');
         }
         foreach ($errors as $field => $messages) {
-            if (! is_string($field) || $field === '' || ! is_array($messages) || ! array_is_list($messages) || $messages === []) {
+            if (! is_string($field) || ! self::isWireFieldPath($field) || ! is_array($messages) || ! array_is_list($messages) || $messages === []) {
                 throw new InvalidArgumentException('Validation errors must be keyed by field and contain message lists.');
             }
             foreach ($messages as $fieldMessage) {
@@ -91,6 +93,13 @@ final class ApiResponse
         $response->headers->remove('Transfer-Encoding');
 
         return $response;
+    }
+
+    /** Application-owned camelCase segments and numeric list indices only. */
+    public static function isWireFieldPath(string $field): bool
+    {
+        return strlen($field) <= self::MAX_FIELD_PATH_BYTES
+            && preg_match('/\A[a-z][a-zA-Z0-9]*(?:\.(?:[a-z][a-zA-Z0-9]*|[0-9]+))*\z/D', $field) === 1;
     }
 
     private static function assertMessage(string $message): void

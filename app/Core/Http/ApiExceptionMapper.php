@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
+use WeakMap;
 
 /** Native Laravel exception classification, scoped strictly to the v1 boundary. */
 final class ApiExceptionMapper
@@ -105,15 +106,30 @@ final class ApiExceptionMapper
 
         if ($exception instanceof ValidationException && $status === HttpStatusCode::UnprocessableContent->value) {
             $fieldMessage = $this->messages->get('INVALID_FIELD', $locale, $id);
-            foreach (array_keys($exception->errors()) as $field) {
-                // Form Requests own the declared wire paths. Never recase
-                // arbitrary input, echo raw validator text, or emit malformed
-                // paths/control characters. Safe generic per-field messages
-                // suffice until a Feature defines reviewed specific wording.
-                if (is_string($field) && strlen($field) <= 256
-                    && preg_match('/\A[a-z][a-zA-Z0-9]*(?:\.(?:[a-z][a-zA-Z0-9]*|[0-9]+))*\z/D', $field) === 1) {
-                    $errors[$field] = [$fieldMessage];
+            // Native wildcard expansion may include user-supplied associative
+            // keys from a malformed list. Do not expose descendants when the
+            // declared parent list rule has failed.
+            $invalidLists = [];
+            foreach ($exception->validator->failed() as $field => $rules) {
+                if (is_string($field) && isset($rules['List'])) {
+                    $invalidLists[$field] = true;
                 }
+            }
+
+            foreach (array_keys($exception->errors()) as $field) {
+                // Features own declared fields and list rules; never recase
+                // arbitrary input or echo raw validator text.
+                if (! is_string($field) || ! ApiResponse::isWireFieldPath($field)) {
+                    continue;
+                }
+                $ancestor = $field;
+                while (($separator = strrpos($ancestor, '.')) !== false) {
+                    $ancestor = substr($ancestor, 0, $separator);
+                    if (isset($invalidLists[$ancestor])) {
+                        continue 2;
+                    }
+                }
+                $errors[$field] = [$fieldMessage];
             }
         }
 
@@ -171,13 +187,17 @@ final class ApiExceptionMapper
 
         // The same exception can pass through the native report and render
         // hooks. Deduplicate per request, never with a static/global registry.
-        $reported = $request->attributes->get(ApiRequestContext::REPORTED, []);
-        $identity = spl_object_id($exception);
-        if (isset($reported[$identity])) {
+        $reported = $request->attributes->get(ApiRequestContext::REPORTED);
+        if (! $reported instanceof WeakMap) {
+            $reported = new WeakMap;
+            $request->attributes->set(ApiRequestContext::REPORTED, $reported);
+        }
+        if (isset($reported[$exception])) {
             return;
         }
-        $reported[$identity] = true;
-        $request->attributes->set(ApiRequestContext::REPORTED, $reported);
+        // Weak object keys cannot accidentally deduplicate a later exception
+        // when PHP recycles an integer object ID.
+        $reported[$exception] = true;
         $type = $exception::class;
 
         try {

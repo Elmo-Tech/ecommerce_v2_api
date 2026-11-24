@@ -46,11 +46,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(
             static fn (Throwable $exception, Request $request): ?Response =>
-                app(ApiExceptionMapper::class)->render($exception, $request),
+                ApiRequestContext::matches($request)
+                    ? app(ApiExceptionMapper::class)->render($exception, $request)
+                    : null,
         );
         $exceptions->respond(
             static fn (Response $response, Throwable $exception, Request $request): Response =>
-                app(ApiExceptionMapper::class)->finalize($response, $exception, $request),
+                ApiRequestContext::matches($request)
+                    ? app(ApiExceptionMapper::class)->finalize($response, $exception, $request)
+                    : $response,
         );
     })->create();
 
