@@ -134,6 +134,31 @@ class ShellRegressions(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "")
 
+    def test_fallback_rejects_malformed_json_without_parsers(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+            root = Path(d)
+            (root / ".specify").mkdir()
+            pin = root / ".specify/feature.json"
+            command = (
+                f'source "{BASH_DIR / "common.sh"}"; '
+                'command() { '
+                'if [[ "$1" == "-v" && ( "$2" == "jq" || "$2" == "python3" ) ]]; '
+                'then return 1; fi; builtin command "$@"; }; '
+                'read_feature_json_feature_directory "$1"'
+            )
+            malformed = [
+                '{"feature_directory":"specs/unsafe"',
+                '{"feature_directory":"specs/unsafe"}\\nNOT-JSON',
+                '{"feature_directory":"specs/unsafe","invalid":}',
+                '{"feature_directory":"specs\\\\unsafe"}',
+            ]
+            for value in malformed:
+                with self.subTest(value=value):
+                    pin.write_text(value.replace("\\\\n", "\\n"), encoding="utf-8")
+                    result = self.run_bash(command, root)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, "")
+
     def test_failed_pin_writer_keeps_existing_file_byte_identical(self) -> None:
         with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
             root = Path(d)
