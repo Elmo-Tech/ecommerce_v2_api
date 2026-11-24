@@ -18,8 +18,8 @@
 - [x] Risk-selected [task ledger](../tasks.md) and [consistency analysis](../consistency-analysis.md) recorded before code.
 - [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24).
 - [x] Actual baseline/RED/GREEN/full integrated CI, architecture and scope review recorded (T004–T025); see [quickstart](../quickstart.md).
-- [ ] T026 permanent development handoff reconciliation; feature docs and dated handoff complete but direct development update blocked.
-- [ ] Independent review/remediation and final candidate recheck (T027; CodeRabbit requested).
+- [ ] T026 permanent development handoff reconciliation; feature docs complete, pointer staged via [docs-only PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5) (unmerged).
+- [ ] Independent review/remediation and final candidate recheck (T027; IR-01…06 fixes verified 98/911; latest-head review pending).
 - [ ] Separate owner merge authority, verified development integration and final handoff (T028–T030).
 
-**Current status:** 25/30 fully complete with actual CI evidence, T026 partial and T027–T030 open. PR Ready for Review; no substantive CodeRabbit result yet. No deployment, production readiness or full OpenAPI validation claim.
+**Current status:** 25/30 fully complete with actual CI evidence, T026 partial and T027–T030 open. PR Ready; initial CodeRabbit zero actionable comments, independent technical review fixed and verified; latest review pending. No deployment, production readiness or full OpenAPI validation claim.

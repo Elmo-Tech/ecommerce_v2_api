@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T025 complete with actual baseline, RED, GREEN, review regression RED and final GREEN; T026 feature docs complete, permanent development pointer update blocked. The approved T022 trigger-only path extension was performed early to trigger baseline CI; all application/test source changes followed successful T004. See [quickstart](quickstart.md). Independent review and final merge gates remain open.**
+**T001–T025 complete with actual baseline, RED, GREEN, review regression RED and final GREEN; T026 feature docs complete, permanent pointer staged in [docs-only PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5); IR-01…06 independent review remediation verified in 98/911 GREEN. The approved T022 trigger-only path extension was performed early to trigger baseline CI; all application/test source changes followed successful T004. See [quickstart](quickstart.md). Independent review and final merge gates remain open.**
 
 ## 5. Quality and security gates
 
@@ -144,8 +144,13 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 - [x] [Task ledger](tasks.md) generated and [consistency analysis](consistency-analysis.md) completed.
 - [x] T003 separate owner implementation authorization, 2026-11-24.
 - [x] T004 real preflight, tests-first RED, implementation, GREEN and scope review T005–T025 on `feature/f0-02-api-foundation`.
-- [ ] T026 feature docs/dated handoff complete; permanent development handoff update blocked, must reconcile through authorized workflow.
+- [ ] T026 feature docs/dated handoff complete; canonical pointer proposed in [docs-only PR #5](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/5), await separately authorized integration.
 - [ ] T027 independent review and final integrated candidate recheck.
 - [ ] Keep D-201/BA-16/BA-30 unchanged; no release or production access. No merge or deployment without separate authorization.
 
 **Approved and implemented plan; technical evidence at [quickstart](quickstart.md), independent review and separate development-only merge authority still pending.**
+
+
+## Independent review remediation (owner-authorized, within F0-02)
+
+The six technical findings in [independent review](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4#issuecomment-7144653211) were reproduced and fixed tests-first. See [actual evidence](quickstart.md) and [dated remediation handoff](../../docs/handoff/F0-02_INDEPENDENT_REVIEW_FIXES_2026-11-24.md). Native Validator factory adapter exposes field provenance only; rule engine and module/authorization ownership remain native and unchanged. Factory callback checks the current active request and returns the normal Validator elsewhere. Explicit native control-flow responses are retained, unexpected custom non-errors become safe failures. No new wire codes, dependencies or domain behavior. IR-07 pointer follows separately reviewed docs-only PR #5 to avoid conflicts. Final review/merge remain gated.
