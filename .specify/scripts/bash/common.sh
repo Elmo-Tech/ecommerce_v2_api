@@ -121,7 +121,7 @@ read_feature_json_feature_directory() {
         # grep returning 1 (no match) aborting under `set -e` / `pipefail`.
         _fd=$( { grep -E '"feature_directory"[[:space:]]*:' "$fj" 2>/dev/null || true; } \
             | head -n 1 \
-            | sed -E 's/^[^:]*:[[:space:]]*"([^"]*)".*$/\1/' )
+            | sed -nE 's/^.*"feature_directory"[[:space:]]*:[[:space:]]*"([^"\\]*)".*$/\1/p' )
     fi
 
     printf '%s' "$_fd"
@@ -149,14 +149,32 @@ _persist_feature_json() {
         return 0
     fi
 
-    # Ensure .specify/ directory exists
-    mkdir -p "$repo_root/.specify"
+    # Never truncate the last known good feature pin on a serialization error.
+    # mktemp creates a private file on the SAME filesystem as the final pin.
+    mkdir -p "$repo_root/.specify" || return 1
+    local temp_file
+    temp_file=$(mktemp "$repo_root/.specify/.feature.json.XXXXXXXX") || return 1
 
-    # Write feature.json — prefer jq for safe JSON, fall back to printf
     if command -v jq >/dev/null 2>&1; then
-        jq -cn --arg fd "$feature_dir_value" '{feature_directory:$fd}' > "$fj"
+        if ! jq -cn --arg fd "$feature_dir_value" '{feature_directory:$fd}' > "$temp_file"; then
+            rm -f -- "$temp_file"
+            return 1
+        fi
     else
-        printf '{"feature_directory":"%s"}\n' "$(json_escape "$feature_dir_value")" > "$fj"
+        local escaped
+        if ! escaped=$(json_escape "$feature_dir_value"); then
+            rm -f -- "$temp_file"
+            return 1
+        fi
+        if ! printf '{"feature_directory":"%s"}\n' "$escaped" > "$temp_file"; then
+            rm -f -- "$temp_file"
+            return 1
+        fi
+    fi
+
+    if ! mv -f -- "$temp_file" "$fj"; then
+        rm -f -- "$temp_file"
+        return 1
     fi
 }
 
