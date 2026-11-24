@@ -158,6 +158,9 @@ def replace_section(
         # parser state for the rest of the document.
         visible_parts: list[str] = []
         cursor = 0
+        # A literal `<!--` inside a complete inline code span is NOT a
+        # Markdown HTML-comment opener. Preserve the code span unchanged.
+        protected_spans = [(m.start(), m.end()) for m in _CODE_SPAN.finditer(text)]
         while cursor < len(text):
             if html_comment:
                 close = text.find("-->", cursor)
@@ -168,6 +171,10 @@ def replace_section(
                 cursor = close + 3
                 continue
             opening_comment = text.find("<!--", cursor)
+            while opening_comment >= 0 and any(
+                begin <= opening_comment < end for begin, end in protected_spans
+            ):
+                opening_comment = text.find("<!--", opening_comment + 4)
             if opening_comment < 0:
                 visible_parts.append(text[cursor:])
                 break
