@@ -88,3 +88,15 @@ it('does not permit noncanonical or malformed application-owned field paths in t
             errors: ['items..quantity' => ['Invalid']],
         ))->toThrow(InvalidArgumentException::class);
 })->group('api-foundation');
+
+it('only permits field error objects with the shared validation error code and HTTP 422', function (): void {
+    expect(fn () => ApiResponse::error(
+        errorCode: 'RESOURCE_CONFLICT', message: 'Invalid', status: 422,
+        errors: ['customerName' => ['Invalid']],
+    ))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => ApiResponse::error(
+            errorCode: 'VALIDATION_FAILED', message: 'Invalid', status: 409,
+        ))->toThrow(InvalidArgumentException::class);
+    $generic = ApiResponse::error(errorCode: 'INVALID_FILTER', message: 'Invalid filter', status: 422);
+    expect(json_decode($generic->getContent(), flags: JSON_THROW_ON_ERROR)->errors)->toBe([]);
+})->group('api-foundation');

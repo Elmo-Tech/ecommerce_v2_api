@@ -47,3 +47,35 @@ it('falls back to Arabic and then safe human-readable wording without a raw tran
     expect(array_filter($events, static fn (MessageLogged $event): bool => $event->level === 'warning'))->not->toBeEmpty();
 })->group('api-foundation');
 
+
+it('has complete nonempty critical shared error translations for both supported locales', function (): void {
+    $codes = array_values((new ReflectionClass(\App\Core\Http\ApiErrorCodes::class))->getConstants());
+    $expected = [...$codes, 'INVALID_FIELD'];
+    $translator = $this->app['translator'];
+    foreach (['ar', 'en'] as $locale) {
+        $catalog = require base_path('lang/'.$locale.'/api.php');
+        expect(array_keys($catalog))->toEqualCanonicalizing($expected);
+        foreach ($expected as $code) {
+            expect($catalog[$code])->toBeString()->not->toBeEmpty()
+                ->and(trim($catalog[$code]))->not->toBe('')
+                ->and($translator->get('api.'.$code, [], $locale, false))->toBe($catalog[$code]);
+        }
+    }
+})->group('api-foundation');
+
+it('identifies known missing translation codes without logging an arbitrary supplied key', function (): void {
+    $events = [];
+    Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
+        if ($event->message === 'api.translation_missing') {
+            $events[] = $event;
+        }
+    });
+    $translator = $this->app['translator'];
+    $translator->addLines(['api.BAD_REQUEST' => ''], 'en');
+    $messages = new ApiMessages($translator);
+    expect($messages->get('BAD_REQUEST', 'en'))->toBe($translator->get('api.BAD_REQUEST', [], 'ar', false));
+    $messages->get('fixturePrivateArbitraryKey', 'en');
+    expect($events)->toHaveCount(2)
+        ->and($events[0]->context['message_code'] ?? null)->toBe('BAD_REQUEST')
+        ->and(json_encode($events[1]->context, JSON_THROW_ON_ERROR))->not->toContain('fixturePrivateArbitraryKey');
+})->group('api-foundation');

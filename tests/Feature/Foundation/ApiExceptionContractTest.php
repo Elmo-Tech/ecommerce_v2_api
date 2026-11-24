@@ -63,3 +63,10 @@ it('normalizes a custom exception-rendered error response at the native final re
         ->assertJsonPath('errors', []);
     expect($response->getContent())->not->toContain(ApiHttpFixtures::PRIVATE_VALUE, '"private"', '"trace"');
 })->group('api-foundation');
+
+it('does not allow an unexpected custom exception to masquerade as success or redirect', function (string $path): void {
+    $response = $this->getJson(ApiHttpFixtures::PREFIX.$path);
+    $response->assertStatus(500)->assertJsonPath('errorCode', 'INTERNAL_ERROR')
+        ->assertJsonPath('success', false)->assertHeader('X-Request-ID')->assertHeaderMissing('Location');
+    expect($response->getContent())->not->toContain(ApiHttpFixtures::PRIVATE_VALUE, 'fixture-private-target');
+})->with(['/misleading-success', '/misleading-redirect'])->group('api-foundation');

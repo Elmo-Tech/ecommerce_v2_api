@@ -63,6 +63,42 @@ final class ApiHttpFixtures
                     }
                 };
             });
+            Route::get('misleading-success', static function (): never {
+                throw new class extends RuntimeException
+                {
+                    public function render(): \Illuminate\Http\JsonResponse
+                    {
+                        return response()->json(['private' => ApiHttpFixtures::PRIVATE_VALUE], 200);
+                    }
+                };
+            });
+            Route::get('misleading-redirect', static function (): never {
+                throw new class extends RuntimeException
+                {
+                    public function render(): \Illuminate\Http\RedirectResponse
+                    {
+                        return redirect('/fixture-private-target');
+                    }
+                };
+            });
+            Route::post('validate-wildcard', static function (\Illuminate\Http\Request $request) {
+                $request->validate([
+                    'customer.name' => ['required', 'string'],
+                    'items.*.quantity' => ['required', 'integer', 'min:1'],
+                ]);
+
+                return ApiResponse::success(message: 'Fixture validated');
+            });
+            Route::post('validate-root-wildcard', static function (\Illuminate\Http\Request $request) {
+                $request->validate(['*.quantity' => ['required', 'integer', 'min:1']]);
+
+                return ApiResponse::success(message: 'Fixture validated');
+            });
+            Route::post('validate-manual', static function (\Illuminate\Http\Request $request): never {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    (string) $request->input('field') => ['fixture-private-manual'],
+                ]);
+            });
             Route::get('report-twice', static function () {
                 // Two distinct, short-lived exceptions in the same request.
                 report(new RuntimeException('fixture-private-manual-first'));
