@@ -107,7 +107,7 @@ This is a **technical Foundation Feature**; it introduces **no approved commerce
 - The 16 logical business domains are **not** a mandate to create 16 physical module directories/providers at bootstrap.
 - FND-01 mandates `docs/03-modules/` for module overviews and `specs/` for the single canonical Feature specification.
 - Official Specify CLI **v1.4.3** agent-neutral initialization (`--integration none`) has been completed and pushed, as recorded in [Spec Kit bootstrap](../../docs/foundation/spec-kit-bootstrap.md). The canonical [Project Constitution v1.0.0](../../.specify/memory/constitution.md) was **ratified under FND-02 Option A on 2026-11-23**; F0-01 Feature specification and technical plan were approved by the owner under **F0-01 Option A on 2026-11-23**. PHP/Composer compatibility, separate code implementation authorization and runtime tests were **subsequently satisfied and verified** in GitHub Actions; only independent PR review and conditional integration remain open. The `none` integration does not provide agent shortcut commands; reviewer-authored `plan.md`, `tasks.md`, and supporting artifacts are **DRAFTS**, not the output of agent shortcut commands, and implementation **was subsequently authorized, implemented and CI verified**; the historical draft note is superseded.
-- The backend repository remains separate from the Next.js frontend. No real Tenant DB, hosting, CI or live Pilot evidence is asserted here.
+- The backend repository remains separate from the Next.js frontend. **Real isolated GitHub Actions CI evidence is recorded** (PHP 8.4/Laravel 13, Composer and F0-01 tests); no Central/Tenant DB, hosting/deployment or live Pilot evidence is claimed.
 
 ## Scope Boundaries and Deferred Details
 
@@ -115,12 +115,12 @@ This is a **technical Foundation Feature**; it introduces **no approved commerce
 
 **Out of scope**: Central/Tenant migrations, real Tenant resolution, authentication/CSRF/session integration, money/stock/order APIs, Redis/Horizon/Outbox, file storage, deployment, business module scaffolding, actual API envelope/OpenAPI design beyond a safe demo. Those are F0-02/F0-03/F0-04/F1/F2/F3 or later Features.
 
-**Plan-time validations required**: exact supported Laravel 13/PHP/Composer versions and module/PSR-4 boot approach, placement of demonstration route and its non-production exposure, suitability of the chosen test framework/tool versions, and actual runtime smoke-test evidence. These are not silently settled by this draft.
+**Plan-time validations completed with real evidence**: PHP ^8.4/Laravel 13.43.0/Composer 2.x and committed lock, native ModuleRegistry/Provider boot, testing-only demonstration route absent from non-testing and production-generated scratch cache, Pest unit/feature/architecture tests and DB-free runtime smoke verified in GitHub Actions. **Remaining:** independent review, outstanding findings and conditional `development` PR integration. Pint/PHPStan were not installed or executed.
 
 ## Review Clarifications — Not Additional Business Decisions
 
 - The **non-business** module used for verification is test-only: a genuine module registration path must be exercised, while the probe endpoint is disabled outside testing and cannot appear as an approved public API.
-- The approved architecture uses a lightweight **explicit** Provider/Module Registry; the concrete config, class and route paths in the proposed `plan.md` are subject to owner acceptance, real Laravel compatibility and tests.
+- The approved lightweight **explicit** Provider/Module Registry now exists at the concrete `config/modules.php`, `app/Core/Modules/ModuleRegistry.php` and FoundationDemo paths; owner-approved Option A and actual Laravel 13 CI verified registration and isolation. Remaining dependency is T026 review/conditional merge, **not** implementation authorization.
 - The first Laravel skeleton is added to this **existing** repository without overwriting Spec Kit or project documentation, without silently introducing guest/merchant Authentication, and without running migrations.
 - Test design must include negative registration and no-data/no-network boot checks; real multi-Tenant integration tests belong to the later Tenancy Feature, not this pure Foundation baseline.
 - **Spec + Plan sign-off recorded:** F0-01 Option A (2026-11-23). **Satisfied:** PHP/Composer runtime, package/Pest compatibility, implementation authorization and real GitHub Actions CI. **Still open:** independent PR review, actionable finding remediation and conditional `development` integration.
