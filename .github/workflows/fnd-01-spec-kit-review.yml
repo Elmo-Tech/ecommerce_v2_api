@@ -35,9 +35,18 @@ jobs:
       - name: Checkout reviewed source
         uses: actions/checkout@v4
 
+      - name: Set up isolated Python for real YAML manifest fixtures
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test-only preset manifest parser
+        run: python3 -m pip install --disable-pip-version-check 'PyYAML==6.0.2'
+
       - name: Verify expected host tools
         run: |
           python3 --version
+          python3 -c "import yaml; print('PyYAML', yaml.__version__)"
           jq --version
           bash --version | head -n 1
 
