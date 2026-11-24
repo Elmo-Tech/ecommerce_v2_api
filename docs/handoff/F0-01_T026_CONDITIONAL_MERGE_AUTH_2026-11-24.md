@@ -15,6 +15,8 @@ The owner said **"لو خلصوا اعمل الmerge بتاعك"**, granting **c
 - F0-01 task ledger stays **T001–T025 COMPLETE (25/26), T026 PENDING**; do not start next Feature.
 - The repository reports public visibility in GitHub; not modified. No Codespaces commands. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
 
+**Active conditional review-and-merge watcher:** Existing F0-01 automation was **re-enabled and updated**, ID `6b04d2ee76dc81918794c538f0c0aec3`, on an **hourly condition-watch** schedule (timezone `Africa/Cairo`; first next run reported 2026-11-24 13:33:40 Cairo). It will re-check GitHub reviews, PR discussion gates, latest CI and merged SHAs, and under the owner's **conditional** approval only merge safely when ALL gates are met; otherwise preserve Draft branches and report blockers. It must disable itself after both merges. **No merge is claimed now.**
+
 ## Exact conditions for permitted integration (must VERIFY, not infer)
 
 1. **Review PR #1** at live HEAD: CodeRabbit feedback and any required separate reviewer complete; ALL actionable comments/follow-ups resolved or explicitly verified non-applicable, no unresolved important security/correctness concern, required independent approvals under project policy and GitHub branch rules received. Confirm [FND-01 workflow](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/workflows/fnd-01-spec-kit-review.yml) is green for current HEAD, including multiline regressions.
