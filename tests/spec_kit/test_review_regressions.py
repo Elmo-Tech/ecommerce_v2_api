@@ -68,6 +68,10 @@ class MarkdownSectionRegressions(unittest.TestCase):
             "## A\nText\u2028## B\n## B\nnew",
         )
 
+    def test_inline_code_html_marker_does_not_comment_out_next_heading(self) -> None:
+        source = "Example: `<!--`\n## B\nbody\n"
+        self.assertEqual(self.replace(source, "new", "b"), "Example: `<!--`\n## B\nnew")
+
 
 class ShellRegressions(unittest.TestCase):
     def run_bash(self, command: str, root: Path) -> subprocess.CompletedProcess[str]:
@@ -132,6 +136,25 @@ class ShellRegressions(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(pin.read_bytes(), before)
             self.assertEqual(list(pin.parent.glob(".feature.json.*")), [])
+
+    def test_get_feature_paths_propagates_pin_write_failure(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+            root = Path(d)
+            pin = root / ".specify/feature.json"
+            pin.parent.mkdir()
+            original = b'{"feature_directory":"specs/001-original"}\n'
+            pin.write_bytes(original)
+            command = (
+                f'source "{BASH_DIR / "common.sh"}"; '
+                'jq() { return 42; }; '
+                'SPECIFY_INIT_DIR="$1"; '
+                'SPECIFY_FEATURE_DIRECTORY="specs/002-new"; '
+                'get_feature_paths'
+            )
+            result = self.run_bash(command, root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Could not persist", result.stderr)
+            self.assertEqual(pin.read_bytes(), original)
 
     def test_successful_pin_replacement_is_valid_json(self) -> None:
         with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
@@ -222,6 +245,68 @@ class ShellRegressions(unittest.TestCase):
             self.assertEqual(data["TASKS_TEMPLATE"], str(override))
             self.assertEqual(data["TASKS_TEMPLATE_CONTENT"], expected)
             self.assertEqual(data["FEATURE_DIR"], str(feature))
+
+    def test_manifest_custom_path_and_composition_never_misreport_locator(self) -> None:
+        try:
+            import yaml  # noqa: F401 -- real PyYAML parses the .yml fixtures
+        except ImportError:
+            self.fail("PyYAML must be installed by the isolated CI test workflow")
+
+        for strategy in ("replace", "prepend"):
+            with self.subTest(strategy=strategy):
+                with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+                    root = Path(d)
+                    preset = root / ".specify/presets/example"
+                    preset.mkdir(parents=True)
+                    (root / ".specify/presets/.registry").write_text(
+                        '{"presets":{"example":{"priority":1,"enabled":true}}}',
+                        encoding="utf-8",
+                    )
+                    manifest = {
+                        "provides": {
+                            "templates": [{
+                                "type": "template",
+                                "name": "tasks-template",
+                                "file": "templates/alternate.md",
+                                "strategy": strategy,
+                            }]
+                        }
+                    }
+                    (preset / "preset.yml").write_text(
+                        json.dumps(manifest), encoding="utf-8"
+                    )
+                    alt = preset / "templates/alternate.md"
+                    alt.parent.mkdir(parents=True)
+                    alt.write_text("# Alternate tasks\n", encoding="utf-8")
+                    core = root / ".specify/templates/tasks-template.md"
+                    core.parent.mkdir(parents=True)
+                    core.write_text("# Core tasks\n", encoding="utf-8")
+
+                    feature = root / "specs/001-review"
+                    feature.mkdir(parents=True)
+                    (feature / "spec.md").write_text("# Spec\n", encoding="utf-8")
+                    (feature / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+                    env = os.environ.copy()
+                    env["SPECIFY_INIT_DIR"] = str(root)
+                    env["SPECIFY_FEATURE_DIRECTORY"] = "specs/001-review"
+                    result = subprocess.run(
+                        ["bash", str(BASH_DIR / "setup-tasks.sh"), "--json"],
+                        cwd=root,
+                        env=env,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    data = json.loads(result.stdout)
+                    self.assertEqual(data["TASKS_TEMPLATE"], "")
+                    self.assertTrue(data["TASKS_TEMPLATE_CONTENT"].startswith("# Alternate tasks"))
+                    if strategy == "prepend":
+                        self.assertIn("# Core tasks", data["TASKS_TEMPLATE_CONTENT"])
+                    else:
+                        self.assertEqual(data["TASKS_TEMPLATE_CONTENT"], "# Alternate tasks\n")
+
 
 
 if __name__ == "__main__":
