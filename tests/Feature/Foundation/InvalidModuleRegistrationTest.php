@@ -15,7 +15,7 @@ it('rejects invalid registry entries during isolated Laravel provider registrati
     'duplicate id' => ['duplicate-id', 'Duplicate module id [collision].'],
     'duplicate provider' => ['duplicate-provider', 'Duplicate module provider [App\\Modules\\FoundationDemo\\FoundationDemoServiceProvider].'],
     'duplicate canonical identity' => ['duplicate-provider-by-case', 'Duplicate module provider [App\\Modules\\FoundationDemo\\FoundationDemoServiceProvider].'],
-    'abstract provider after valid provider' => ['abstract-after-demo', 'Module provider [FoundationAbstractBootstrapProvider] must be instantiable.'],
+    'abstract provider after valid provider' => ['abstract-after-demo', 'Module provider [Tests\\Fixtures\\AbstractModuleProvider] must be instantiable.'],
     'unknown provider' => ['missing-provider', 'Module provider class [App\\Missing\\UnknownModuleProvider] does not exist.'],
     'invalid provider type' => ['wrong-provider', 'Module provider [stdClass] must extend Illuminate\\Support\\ServiceProvider.'],
     'empty id' => ['empty-id', 'Module id must be a non-empty string.'],
