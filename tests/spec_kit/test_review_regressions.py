@@ -161,7 +161,7 @@ class ShellRegressions(unittest.TestCase):
             )
             malformed = [
                 '{"feature_directory":"specs/unsafe"',
-                '{"feature_directory":"specs/unsafe"}\\nNOT-JSON',
+                '{"feature_directory":"specs/unsafe"}' + "\n" + "NOT-JSON",
                 '{"version":01,"feature_directory":"specs/unsafe"}',
                 '{"feature_directory":"specs/\tunsafe"}',
                 '{"feature_directory":"specs/unsafe","invalid":}',
@@ -169,7 +169,7 @@ class ShellRegressions(unittest.TestCase):
             ]
             for value in malformed:
                 with self.subTest(value=value):
-                    pin.write_text(value.replace("\\\\n", "\\n"), encoding="utf-8")
+                    pin.write_text(value, encoding="utf-8")
                     result = self.run_bash(command, root)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout, "")
