@@ -1,8 +1,8 @@
 # ecommerce_v2_api
 
-Private **Elmo-Tech** repository for the **E-commerce SaaS V2 API**.
+**Elmo-Tech** repository for the **E-commerce SaaS V2 API**.
 
-**Status (2026-11-24):** F0-01 Laravel 13 API Foundation and explicit Module Registry/FoundationDemo **implemented and validated in GitHub Actions**: real `composer.lock`, Laravel 13.43.0 bootstrap, **26 passing Unit/Feature/Architecture tests (116 assertions)** on [Run #45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899). Pint/PHPStan are **not installed**; no merge/deployment, Auth, Tenancy or migrations. [Current verified handoff and read-first order](docs/handoff/NEXT_CHAT_START_HERE.md).
+**Status (2026-11-24): F0-01 COMPLETED (26/26) and MERGED to `development`.** [Spec Kit PR #1](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/1) and [Laravel Module Registry PR #2](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/2) were reviewed and merged; [integrated CI #45405086930](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45405086930) and [ready recheck #45405284525](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45405284525) passed **31 Laravel tests / 134 assertions** plus **3 independent Architecture tests / 23 assertions**. Pint/PHPStan are **not installed/run**. No deployment, `main` merge, Auth, Tenancy or migrations. **Next:** F0-02 API Foundation specification/planning. [Current handoff](docs/handoff/NEXT_CHAT_START_HERE.md).
 
 ## Product direction
 Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pilot for small/medium omnichannel retailers: online orders, manual orders and simple direct sales, with catalog/pricing, taxes/discounts, basic per-location inventory and single-location full-order fulfillment. Not a full ERP or POS.
@@ -27,4 +27,4 @@ Multi-tenant commerce SaaS, independent stores per merchant. Egypt-first MVP pil
 - `feature/*` and `fix/*`: new work from `development`, PR back into it.
 - Promote reviewed, tested changes from `development` into `main`.
 
-New chats must resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md), then read the latest dated `docs/handoff/` snapshot, live F0-01 tasks/spec/plan and actual code. The owner approved F0-01 implementation, **not merge/deployment**. Latest CI/lock/runtime gates are green; independent PR review and upstream PR #1 integration remain separate. **No Codespaces commands** are required from the owner.
+New chats must resume from [NEXT_CHAT_START_HERE](docs/handoff/NEXT_CHAT_START_HERE.md), then read the latest dated `docs/handoff/` snapshot, live F0-01 tasks/spec/plan and actual code. The owner subsequently gave **conditional merge authorization**; both reviewed PRs have since merged into `development`, with green integrated CI. **No permission to deploy, migrate or merge to `main`**, and F0-02 requires a separately reviewed specification and plan. **No Codespaces commands** are required from the owner.
