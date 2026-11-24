@@ -100,6 +100,13 @@ class MarkdownSectionRegressions(unittest.TestCase):
         self.assertEqual(self.replace(source, "new", "b"), expected)
 
 
+    def test_backticks_in_separate_html_comments_cannot_mask_comment(self) -> None:
+        for newline in ("\n", "\r\n", "\r"):
+            with self.subTest(newline=repr(newline)):
+                prefix = newline.join(("<!-- `", "-->", "<!-- `", "## B", "-->", "## B", ""))
+                self.assertEqual(self.replace(prefix + "real" + newline, "new", "b"), prefix + "new")
+
+
 class ShellRegressions(unittest.TestCase):
     def run_bash(self, command: str, root: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(

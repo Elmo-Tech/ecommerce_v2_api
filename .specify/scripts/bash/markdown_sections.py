@@ -136,18 +136,12 @@ def replace_section(
     metadata = content.startswith(("---\n", "---\r\n"))
     html_comment = False
     offset = 0
-    # Inline Markdown code spans may contain line endings (CommonMark). Find
-    # only COMPLETE spans across the full source before inspecting <!-- markers
-    # on individual lines. Keep absolute offsets so a multiline code span
-    # cannot accidentally open an HTML comment and swallow a later heading.
-    complete_code_spans = [
-        (span.start(), span.end())
-        for span in re.finditer(_CODE_SPAN.pattern, content, re.DOTALL)
-        # A backtick inside a fenced block cannot open an inline code span
-        # that closes in a later HTML comment. Reject candidates crossing
-        # a Markdown fence delimiter without changing CRLF span handling.
-        if not re.search(r"(?m)^ {0,3}(?:`{3,}|~{3,})", span.group())
-    ]
+    # Discover code spans only when their opener is visible, not inside an
+    # HTML comment or fenced block. A complete span can cross line endings,
+    # but must not cross a fence delimiter.
+    multiline_code_span = re.compile(_CODE_SPAN.pattern, re.DOTALL)
+    inline_token = re.compile(r"<!--|(?<!`)(`+)(?!`)")
+    code_span_end = 0
     # splitlines() also splits on Unicode U+2028, which is NOT a Markdown line
     # ending. Keep exact offsets while recognizing only CR, LF, and CRLF.
     markdown_lines = re.finditer(r"[^\r\n]*(?:\r\n|\r|\n|\Z)", content)
@@ -170,37 +164,39 @@ def replace_section(
         # parser state for the rest of the document.
         visible_parts: list[str] = []
         cursor = 0
-        # A literal `<!--` inside a complete inline code span is NOT a
-        # Markdown HTML-comment opener, including a span crossing line breaks.
-        protected_spans = [
-            (begin - start, finish - start)
-            for begin, finish in complete_code_spans
-            if begin < offset and finish > start
-        ]
         while cursor < len(text):
             if html_comment:
                 close = text.find("-->", cursor)
                 if close < 0:
-                    cursor = len(text)
                     break
                 html_comment = False
                 cursor = close + 3
                 continue
-            opening_comment = text.find("<!--", cursor)
-            while opening_comment >= 0 and any(
-                begin <= opening_comment < end for begin, end in protected_spans
-            ):
-                opening_comment = text.find("<!--", opening_comment + 4)
-            if opening_comment < 0:
+            if start + cursor < code_span_end:
+                end = min(len(text), code_span_end - start)
+                visible_parts.append(text[cursor:end])
+                cursor = end
+                continue
+            token = inline_token.search(text, cursor)
+            if token is None:
                 visible_parts.append(text[cursor:])
                 break
-            visible_parts.append(text[cursor:opening_comment])
-            html_comment = True
-            cursor = opening_comment + 4
+            visible_parts.append(text[cursor:token.start()])
+            cursor = token.end()
+            if token[0] == "<!--":
+                html_comment = True
+                continue
+            span = multiline_code_span.match(content, start + token.start())
+            if span and not re.search(r"(?:^|[\r\n]) {0,3}(?:`{3,}|~{3,})", span.group()):
+                code_span_end = span.end()
+                cursor = token.start()
+            else:
+                visible_parts.append(token[0])
         text = "".join(visible_parts)
         opening = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", text)
         if opening and not (opening[1][0] == "`" and "`" in opening[2]):
             fence_marker, fence_length = opening[1][0], len(opening[1])
+            code_span_end = 0
             continue
         heading = re.fullmatch(r" {0,3}(#{1,6})(?:[ \t]+(.*?)|)[ \t]*", text)
         if heading:
