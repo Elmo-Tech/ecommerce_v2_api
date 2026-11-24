@@ -107,6 +107,35 @@ class MarkdownSectionRegressions(unittest.TestCase):
                 self.assertEqual(self.replace(prefix + "real" + newline, "new", "b"), prefix + "new")
 
 
+    def test_tilde_fence_info_html_marker_does_not_hide_next_heading(self) -> None:
+        source = "~~~ <!--\nexample\n~~~\n## B\nbody\n"
+        self.assertEqual(
+            self.replace(source, "new", "b"),
+            "~~~ <!--\nexample\n~~~\n## B\nnew",
+        )
+
+    def test_fence_inside_actual_comment_does_not_activate(self) -> None:
+        source = "<!--\n~~~ <!--\n-->\n## B\nbody\n"
+        self.assertEqual(
+            self.replace(source, "new", "b"),
+            "<!--\n~~~ <!--\n-->\n## B\nnew",
+        )
+
+    def test_closing_comment_line_cannot_create_heading_boundary(self) -> None:
+        source = "## A\nold\n<!-- note -->## B\nremaining old body\n## C\ntail\n"
+        self.assertEqual(
+            self.replace(source, "new", "a"),
+            "## A\nnew\n## C\ntail\n",
+        )
+
+    def test_closing_comment_line_cannot_create_heading_crlf(self) -> None:
+        source = "## A\r\nold\r\n<!-- note -->## B\r\nremaining\r\n## C\r\ntail\r\n"
+        self.assertEqual(
+            self.replace(source, "new", "a"),
+            "## A\r\nnew\r\n## C\r\ntail\r\n",
+        )
+
+
 class ShellRegressions(unittest.TestCase):
     def run_bash(self, command: str, root: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -230,6 +259,62 @@ class ShellRegressions(unittest.TestCase):
             parsed = json.loads((root / ".specify/feature.json").read_text())
             self.assertEqual(parsed["feature_directory"], "specs/002-new")
             self.assertEqual(list((root / ".specify").glob(".feature.json.*")), [])
+
+    def test_equivalent_feature_override_spellings_are_accepted(self) -> None:
+        for kind in ("trailing-slash", "leading-dot-and-slashes", "absolute-with-slash"):
+            with self.subTest(kind=kind):
+                with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+                    root = Path(d)
+                    (root / ".specify").mkdir()
+                    expected = root / "specs/998-review-new"
+                    variants = {
+                        "trailing-slash": "specs/998-review-new/",
+                        "leading-dot-and-slashes": "./specs/998-review-new///",
+                        "absolute-with-slash": str(expected) + "/",
+                    }
+                    env = os.environ.copy()
+                    env["SPECIFY_INIT_DIR"] = str(root)
+                    env["SPECIFY_FEATURE_DIRECTORY"] = variants[kind]
+                    env["SPECIFY_FEATURE_NO_PERSIST"] = "1"
+                    result = subprocess.run(
+                        [
+                            "bash", str(BASH_DIR / "create-new-feature.sh"),
+                            "--number", "998",
+                            "--short-name", "review-new",
+                            "Review new feature",
+                        ],
+                        cwd=root,
+                        env=env,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertTrue((expected / "spec.md").exists())
+
+    def test_similar_but_different_feature_override_stays_rejected(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
+            root = Path(d)
+            (root / ".specify").mkdir()
+            env = os.environ.copy()
+            env["SPECIFY_INIT_DIR"] = str(root)
+            env["SPECIFY_FEATURE_DIRECTORY"] = "./specs/998-review-new-other/"
+            result = subprocess.run(
+                [
+                    "bash", str(BASH_DIR / "create-new-feature.sh"),
+                    "--number", "998",
+                    "--short-name", "review-new",
+                    "Review new feature",
+                ],
+                cwd=root,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("SPECIFY_FEATURE_DIRECTORY", result.stderr)
+            self.assertFalse((root / "specs/998-review-new").exists())
 
     def test_conflicting_override_is_rejected_before_feature_creation(self) -> None:
         with tempfile.TemporaryDirectory(prefix="spec-kit-review-") as d:
