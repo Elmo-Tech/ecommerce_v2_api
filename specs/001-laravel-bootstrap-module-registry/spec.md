@@ -2,7 +2,7 @@
 
 **Feature Branch**: `feature/f0-01-laravel-bootstrap` (authorized implementation on Draft stacked PR #2; NOT merged/deployed)  
 **Created**: 2026-11-23  
-**Status (2026-11-24)**: **APPROVED Option A**, with separate owner implementation authorization recorded. **T001–T024 verified/completed at their defined scope**: Laravel 13/bootstrap, Module Registry, FoundationDemo, negative/architecture/production-route cache tests and successful pinned GitHub Actions CI [#45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) — **26 passed, 116 assertions**; Pint/PHPStan NOT installed or claimed passed. **T025 documentation reconciliation and T026 independent PR review/merge gate still pending**; PRs remain Draft/unmerged.  
+**Status (2026-11-24)**: **APPROVED Option A**, with separate owner implementation authorization recorded. **T001–T024 verified/completed at their defined scope**: Laravel 13/bootstrap, Module Registry, FoundationDemo, negative/architecture/production-route cache tests and successful pinned GitHub Actions CI [#45285351899](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45285351899) — **26 passed, 116 assertions**; Pint/PHPStan NOT installed or claimed passed. **T025 documentation reconciliation COMPLETE; T026 independent PR review/conditional merge gate still pending**; PRs remain Draft/unmerged.  
 **Input**: Approved F0 Engineering Foundation architecture and FND-01 Module/Feature organization; first bounded technical capability in the backend API repository.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -106,7 +106,7 @@ This is a **technical Foundation Feature**; it introduces **no approved commerce
 - Approved target is Laravel 13 API-first Modular Monolith, with an initially conditional PHP/Stancl/Sanctum/Redis compatibility baseline; unsupported packages are not force-installed.
 - The 16 logical business domains are **not** a mandate to create 16 physical module directories/providers at bootstrap.
 - FND-01 mandates `docs/03-modules/` for module overviews and `specs/` for the single canonical Feature specification.
-- Official Specify CLI **v1.4.3** agent-neutral initialization (`--integration none`) has been completed and pushed, as recorded in [Spec Kit bootstrap](../../docs/foundation/spec-kit-bootstrap.md). The canonical [Project Constitution v1.0.0](../../.specify/memory/constitution.md) was **ratified under FND-02 Option A on 2026-11-23**; F0-01 Feature specification and technical plan were approved by the owner under **F0-01 Option A on 2026-11-23**. PHP/Composer compatibility, separate code implementation authorization and runtime tests remain pending. The `none` integration does not provide agent shortcut commands; reviewer-authored `plan.md`, `tasks.md`, and supporting artifacts are **DRAFTS**, not the output of agent shortcut commands, and implementation has **not** been authorized or completed.
+- Official Specify CLI **v1.4.3** agent-neutral initialization (`--integration none`) has been completed and pushed, as recorded in [Spec Kit bootstrap](../../docs/foundation/spec-kit-bootstrap.md). The canonical [Project Constitution v1.0.0](../../.specify/memory/constitution.md) was **ratified under FND-02 Option A on 2026-11-23**; F0-01 Feature specification and technical plan were approved by the owner under **F0-01 Option A on 2026-11-23**. PHP/Composer compatibility, separate code implementation authorization and runtime tests were **subsequently satisfied and verified** in GitHub Actions; only independent PR review and conditional integration remain open. The `none` integration does not provide agent shortcut commands; reviewer-authored `plan.md`, `tasks.md`, and supporting artifacts are **DRAFTS**, not the output of agent shortcut commands, and implementation **was subsequently authorized, implemented and CI verified**; the historical draft note is superseded.
 - The backend repository remains separate from the Next.js frontend. No real Tenant DB, hosting, CI or live Pilot evidence is asserted here.
 
 ## Scope Boundaries and Deferred Details
@@ -123,7 +123,7 @@ This is a **technical Foundation Feature**; it introduces **no approved commerce
 - The approved architecture uses a lightweight **explicit** Provider/Module Registry; the concrete config, class and route paths in the proposed `plan.md` are subject to owner acceptance, real Laravel compatibility and tests.
 - The first Laravel skeleton is added to this **existing** repository without overwriting Spec Kit or project documentation, without silently introducing guest/merchant Authentication, and without running migrations.
 - Test design must include negative registration and no-data/no-network boot checks; real multi-Tenant integration tests belong to the later Tenancy Feature, not this pure Foundation baseline.
-- **Spec + Plan sign-off recorded:** F0-01 Option A (2026-11-23). Still open: PHP/Composer runtime patch, package/Pest compatibility, implementation authorization, branch promotion and actual CI availability.
+- **Spec + Plan sign-off recorded:** F0-01 Option A (2026-11-23). **Satisfied:** PHP/Composer runtime, package/Pest compatibility, implementation authorization and real GitHub Actions CI. **Still open:** independent PR review, actionable finding remediation and conditional `development` integration.
 
 ## References
 
