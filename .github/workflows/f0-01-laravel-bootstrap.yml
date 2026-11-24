@@ -17,8 +17,10 @@ on:
       - phpunit.xml
       - .github/workflows/f0-01-laravel-bootstrap.yml
   pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
     branches:
       - feature/f0-spec-kit-setup
+      - development
     paths:
       - composer.json
       - composer.lock
