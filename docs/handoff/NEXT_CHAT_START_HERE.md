@@ -3,7 +3,7 @@
 **Last verified:** 2026-11-24 (Africa/Cairo)  
 **Repository:** https://github.com/Elmo-Tech/ecommerce_v2_api  
 **Integration branch:** `development`  
-**Current phase:** **F0-01 CLOSED (26/26 tasks)**; move to **F0-02 API Foundation — requirements/specification and architecture planning first**. No production deployment, `main` merge, schema migration or Codespaces commands.
+**Current phase:** **F0-01 CLOSED (26/26)**; **F0-02 API Foundation discovery/spec/plan DRAFT OPEN** on branch `feature/f0-02-api-foundation` in **[Draft PR #4](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4)**. **No F0-02 owner approval or runtime implementation yet**. No production deployment, `main` merge, schema migration or Codespaces commands.
 
 ## MUST READ FIRST — newly completed integration
 
@@ -16,20 +16,20 @@
 
 **Quality caveats:** Pint, PHPStan/Larastan were **not installed or run**; do not claim they passed. Review was substantive CodeRabbit `COMMENTED` with all actionable threads resolved; no formal GitHub `APPROVED` submission, which visible branch settings did not require. Owner conditionally approved the two merges. This milestone **does not** authorize production release or additional business/identity/tenancy behavior. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
 
-## NEXT EXACT ACTION — F0-02 API Foundation (do not skip specification gate)
+## NEXT EXACT ACTION — REVIEW F0-02 DRAFT PR #4, THEN SPEC/PLAN APPROVAL
 
-1. Read [project workflow](../WORKFLOW.md), [Constitution v1.0.0](../../.specify/memory/constitution.md), [API Standards](../02-standards/api-standards.md), [Backend Architecture](../01-architecture/backend-architecture.md), [Module Architecture](../01-architecture/module-architecture.md), [relevant Open Decisions](../decisions/OPEN_DECISIONS_AND_MVP_GATES.md), [F0-01 actual source](../../app/Core/Modules/ModuleRegistry.php), [current composer manifest](../../composer.json) and [current routes](../../bootstrap/app.php).
-2. Identify the approved **F0-02 API Foundation** responsibilities and exclusions from existing standards/decisions. Do not infer auth/Sanctum, Tenant provisioning, migrations or business APIs are approved by the name F0-02. Record a bounded scope and any open decisions.
-3. Use a dedicated `feature/f0-02-api-foundation` branch from current `development` for **draft `spec.md`, `plan.md`, `research.md`/Contracts and tasks after review**. Cross-check Foundation module ownership, `/api/v1` conventions, expected envelope and errors; do not duplicate existing approved API Standards.
-4. Obtain the required **owner approval of F0-02 specification and plan before implementation**. Do not claim tests passed or open/move PR to ready/merge without actual execution. Keep the latest source/CI and all future work handoffs current.
-5. **No Codespaces commands**, deployment, production databases, Tenant migration, main promotion or undocumented automated workflows.
+1. Open **[F0-02 Draft PR #4](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4)** and read [spec.md](https://github.com/Elmo-Tech/ecommerce_v2_api/blob/feature/f0-02-api-foundation/specs/002-api-foundation/spec.md), [plan.md](https://github.com/Elmo-Tech/ecommerce_v2_api/blob/feature/f0-02-api-foundation/specs/002-api-foundation/plan.md), [research](https://github.com/Elmo-Tech/ecommerce_v2_api/blob/feature/f0-02-api-foundation/specs/002-api-foundation/research.md), and [requirements checklist](https://github.com/Elmo-Tech/ecommerce_v2_api/blob/feature/f0-02-api-foundation/specs/002-api-foundation/checklists/requirements.md). Read the [dated F0-02 handoff](https://github.com/Elmo-Tech/ecommerce_v2_api/blob/feature/f0-02-api-foundation/docs/handoff/F0-02_DISCOVERY_AND_DRAFT_PR_2026-11-24.md) on the **feature branch**.
+2. **Resolve four explicit review decisions** from spec/plan: F0-02-DEC-01 ar/en fallback locale; DEC-02 stable error-code representation under int-backed PHP Enum rules; DEC-03 canonical OpenAPI format/path without new packages; DEC-04 empty native API route seam versus deferred. The document proposes safe defaults but **none are pre-approved**.
+3. Owner reviews and approves/revises **both** F0-02 spec and implementation plan. Only after approval, generate final tasks and tests, then implement authorized API Foundation scope on `feature/f0-02-api-foundation` with real CI and PR review. Draft PR #4 is **documentation-only** and must stay Draft/unmerged until its required gates.
+4. Governing references: [Constitution](../../.specify/memory/constitution.md), [API Standards AS-01/02/03/08/09](../02-standards/api-standards.md) plus FBR-02-05/06/07, [Module Architecture](../01-architecture/module-architecture.md), [Code Standards](../02-standards/code-standards.md), [Testing Standards](../02-standards/testing-standards.md), and real merged F0-01 baseline. **Do not copy older numeric Money/ID illustrative examples as wire contracts; FBR-02 requires decimal strings.**
+5. **No Codespaces commands**, production DB, Tenant/Auth implementation, migration, deployment, `main` promotion or unapproved API implementation.
 
 ## Other useful context and exact files
 
 - [Approved F0-01 Spec](../../specs/001-laravel-bootstrap-module-registry/spec.md), [Plan](../../specs/001-laravel-bootstrap-module-registry/plan.md), [Quickstart and actual CI](../../specs/001-laravel-bootstrap-module-registry/quickstart.md), [F0-01 final review handoff](F0-01_FINAL_REVIEW_READY_2026-11-24.md).
 - [Current technical modules](../../config/modules.php), `app/Modules/FoundationDemo/`, `app/Providers/ModuleRegistryServiceProvider.php`, `tests/Unit/Core/`, `tests/Feature/Foundation/`, `tests/Architecture/`, `.github/workflows/f0-01-laravel-bootstrap.yml`.
 - [No-Codespaces owner workflow](F0-01_WORKFLOW_NO_CODESPACES_2026-11-23.md), [separate original implementation approval](../reviews/F0-01-implementation-authorization.md), [historical T026 review/merge snapshot](F0-01_T026_REVIEW_RECHECK_2026-11-24_1505.md).
-- The old F0-01 hourly conditional PR review/merge monitor is **obsolete and must be disabled** after both completed merges. Start another automation only on a new, relevant owner request.
+- The old F0-01 hourly conditional PR review/merge monitor was **DISABLED** after both verified merges (automation ID `6b04d2ee76dc81918794c538f0c0aec3`). Start another automation only for a new, relevant owner request.
 
 ## Product and decision continuity
 
