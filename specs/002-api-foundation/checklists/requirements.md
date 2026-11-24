@@ -17,8 +17,9 @@
 - [x] Owner approves both **spec.md** and **plan.md** for F0-02 (2026-11-24).
 - [x] Risk-selected [task ledger](../tasks.md) and [consistency analysis](../consistency-analysis.md) recorded before code.
 - [x] Explicit owner implementation authorization of the prepared tasks (T003, 2026-11-24).
-- [x] Actual baseline/RED/GREEN/full integrated CI, architecture and scope review recorded (T004–T026); see [quickstart](../quickstart.md).
-- [ ] Independent review/remediation and final candidate recheck (T027).
+- [x] Actual baseline/RED/GREEN/full integrated CI, architecture and scope review recorded (T004–T025); see [quickstart](../quickstart.md).
+- [ ] T026 permanent development handoff reconciliation; feature docs and dated handoff complete but direct development update blocked.
+- [ ] Independent review/remediation and final candidate recheck (T027; CodeRabbit requested).
 - [ ] Separate owner merge authority, verified development integration and final handoff (T028–T030).
 
-**Current status:** 26/30 tasks completed on feature branch with actual CI evidence, 4 gates open (independent review, separate merge approval, verified merge and closeout). No deployment, production readiness or full OpenAPI validation claim.
+**Current status:** 25/30 fully complete with actual CI evidence, T026 partial and T027–T030 open. PR Ready for Review; no substantive CodeRabbit result yet. No deployment, production readiness or full OpenAPI validation claim.

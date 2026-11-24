@@ -1,6 +1,6 @@
 # F0-02 — Quickstart and real CI evidence
 
-**Status:** Implementation and technical verification T001–T026 complete. Independent PR review/Ready recheck (T027) and separate development-only merge authority (T028) pending. No Codespaces, deployment, migrations, new packages or production access.
+**Status:** Implementation and technical verification T001–T025 complete. T026 feature documentation complete, permanent development handoff update blocked. T027 independent PR review requested; Ready CI passed, substantive review result and separate merge authority pending. No Codespaces, deployment, migrations, new packages or production access.
 
 ## Actual GitHub Actions runs (2026-11-24)
 
@@ -11,6 +11,7 @@
 | Initial GREEN | a0cd1496978e15d83929f3ebb1fa7a9e48799007 | [45464656708](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45464656708) / 138696216089 | 83 passed / 703 assertions; standalone Architecture 5/52; all CI steps successful. Checkout 5893376d8a70befbcd4742fa3e177040272f33ec. |
 | Hardening RED | e9247e64eea4e30f1bb873754f7fa47385a7c6e0 | [45464973375](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45464973375) / 138697336509 | 4 failed, 83 passed / 667 assertions; malformed path contract, invalid list descendants and log dedup reproduced. Later checks skipped. |
 | Final GREEN | d0476e7d4fbcd096879995a0f48754b6c064beb1 | [45465135907](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45465135907) / 138697914602 | **87 passed / 726 assertions**, standalone Architecture **5/52**, old foundation group 31/134; all CI steps successful. Actual checkout **7d6af96d948cc1d81b23b68bae5df73ca2737bde**, development 43f309749c544040385977a530e78fd378f43b91. |
+| Ready recheck | 85411378f739c413038f04e19ac227877275fc4d | [45465527841](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45465527841) / 138699339635 | **87/726**, standalone Architecture **5/52**, baseline 31/134; all steps green. Actual checkout 3d17dd9b1b47c0d22c06df6cc95b62cb782af9ae. |
 
 Real Ubuntu 24.04 runner, PHP **8.4.28**, Composer **2.11.3**, Laravel **13.43.0**, Pest **5.3.7**, Laravel plugin 5.0.1, PHPUnit 13.4.7; unchanged committed lock. Initial concurrent run 45463631362 cancelled; not success evidence. Logs inspected for checkout SHA, versions, counts, audit and lint. Final integrated run checked actual `refs/pull/4/merge` not simply feature source.
 
@@ -51,4 +52,4 @@ No DB/migrations/production credentials. Isolated test config: array cache/sessi
 
 Pint and PHPStan/Larastan absent; workflow emitted notices, no pass claimed. Existing Node action version deprecation warning recorded; modernization belongs to F0-04 separately. Real Auth/CSRF, sensitive rate-limiter fallback, Tenant DB/PostgreSQL, Redis/Horizon, Octane workers, performance and production security are later applicable features, not proved here. Milestone tests for zero production routes/no new packages/no migrations must be evolved under explicitly approved subsequent Features, not silently disabled. D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED.
 
-T027: substantive independent review and final current candidate CI after any fixes. T028 explicit separate owner merge authority. T029–T030 verify integration into development and reconcile handoff. No main promotion, deploy or automatic merge. Rollback: reviewed revert of feature commits in a later PR; no database rollback/destructive command needed for this scope.
+T026: feature docs and dated handoff reconciled; direct permanent `development` handoff update was blocked, so remain open. T027: PR Ready; CodeRabbit manual review requested and acknowledged, no substantive review returned as of latest check. Ready recheck passed, but final current candidate CI required after any further changes. T028 explicit separate owner merge authority. T029–T030 verify integration into development and reconcile handoff. No main promotion, deploy or automatic merge. Rollback: reviewed revert of feature commits in a later PR; no database rollback/destructive command needed for this scope.
