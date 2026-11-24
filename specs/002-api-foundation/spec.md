@@ -110,4 +110,4 @@ A later registered module can add its own routes under reviewed `/api/v1` conven
 - [ ] Independent PR review and final integrated candidate recheck (T027).
 - [ ] No merge to `development`, promotion to `main` or deployment without separate authorization and applicable gates.
 
-**T001–T026 complete; PR #5 merged and verified. T027 latest review rate limited; owner consent recorded for development-only merge after gates, T028–T030 open. Not production-ready.**
+**T001–T026 complete; PR #5 merged and verified. T027 ChatGPT technical review plus owner/qualified human review and current candidate CI required; owner review pending. CodeRabbit optional. T028–T030 open. Not production-ready.**

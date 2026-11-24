@@ -22,4 +22,4 @@
 - [ ] Independent review/remediation and final candidate recheck (T027; IR-01…06 fixes verified 98/911; latest-head review pending).
 - [ ] Separate owner merge authority, verified development integration and final handoff (T028–T030).
 
-**Current status:** 26/30 complete; T027 latest PR #4 review rate limited; owner development-only merge consent recorded, T028–T030 open. No deployment or full OpenAPI validation claim.
+**Current status:** 26/30 complete; ChatGPT technical review performed, owner/qualified human review and latest CI pending (T027); T028–T030 open. CodeRabbit optional. No deployment or full OpenAPI validation claim.

@@ -106,7 +106,7 @@ Preserve applicable protocol headers on mapped HTTP exceptions (`Allow`, `Retry-
 11. Review diff for production route exposure, auth bypass/CSRF overreach, data/secret handling and unintended dependencies/migrations; document any skipped Pint/PHPStan honestly.
 12. Only with all approvals/tests, ask for independent PR review and planned integration into `development`. No automatic `main` promotion or deployment.
 
-**T001–T026 complete with real RED/GREEN evidence and verified pointer merge via PR #5. IR-01…06 fixed and verified; latest PR #4 review rate limited. Owner merge consent is recorded subject to outstanding gates. See [quickstart](quickstart.md).**
+**T001–T026 complete with real RED/GREEN evidence and verified pointer merge via PR #5. IR-01…06 fixed and verified. Review uses the owner-approved tool-neutral workflow: ChatGPT technical review followed by owner/qualified human review. Latest review and integration gate remain open. See [quickstart](quickstart.md).**
 
 ## 5. Quality and security gates
 
@@ -154,3 +154,6 @@ Owner response “تمام يلا” on 2026-11-24 to the explicit proposal to a
 ## Independent review remediation (owner-authorized, within F0-02)
 
 The six technical findings in [independent review](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/4#issuecomment-7144653211) were reproduced and fixed tests-first. See [actual evidence](quickstart.md) and [dated remediation handoff](../../docs/handoff/F0-02_INDEPENDENT_REVIEW_FIXES_2026-11-24.md). Native Validator factory adapter exposes field provenance only; rule engine and module/authorization ownership remain native and unchanged. Factory callback checks the current active request and returns the normal Validator elsewhere. Explicit native control-flow responses are retained, unexpected custom non-errors become safe failures. No new wire codes, dependencies or domain behavior. IR-07 pointer follows separately reviewed docs-only PR #5 to avoid conflicts. Final review/merge remain gated.
+
+
+**Review procedure (owner-approved 2026-11-25):** Follow [Development workflow](../../docs/WORKFLOW.md#review-and-development-merge-workflow--owner-approved-2026-11-25). CodeRabbit/Copilot are optional; actual human review after ChatGPT's technical review and applicable CI/repository gates remain mandatory. No automatic approval or merge.
