@@ -424,6 +424,19 @@ fi
 FEATURE_DIR="$SPECS_DIR/$BRANCH_NAME"
 SPEC_FILE="$FEATURE_DIR/spec.md"
 
+# A shell script cannot update an exported variable in its parent shell.
+# Refuse creation BEFORE touching the new directory if a stale explicit
+# override would make setup-plan/setup-tasks select a different feature.
+if [ "$DRY_RUN" != true ] && [[ -n "${SPECIFY_FEATURE_DIRECTORY:-}" ]]; then
+    requested_feature="${SPECIFY_FEATURE_DIRECTORY#./}"
+    intended_relative="${FEATURE_DIR#"$REPO_ROOT/"}"
+    if [[ "$requested_feature" != "$intended_relative" && "$requested_feature" != "$FEATURE_DIR" ]]; then
+        >&2 echo "ERROR: SPECIFY_FEATURE_DIRECTORY points to '$SPECIFY_FEATURE_DIRECTORY', not the feature being created: '$FEATURE_DIR'."
+        >&2 echo "Unset SPECIFY_FEATURE_DIRECTORY before creating a new feature, or explicitly select the new directory in the caller's shell."
+        exit 1
+    fi
+fi
+
 if [ "$DRY_RUN" != true ]; then
     if [ -d "$FEATURE_DIR" ] && [ "$ALLOW_EXISTING" != true ]; then
         if [ "$USE_TIMESTAMP" = true ]; then
