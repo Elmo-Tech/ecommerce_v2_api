@@ -73,12 +73,13 @@ if $JSON_MODE; then
         else
             json_docs=$(printf '%s\n' "${docs[@]}" | jq -R . | jq -s .)
         fi
-        jq -cn \
+        # Pass potentially large composed content via stdin, not a shell
+        # argument (Linux per-argument size limit is much smaller than ARG_MAX).
+        printf '%s' "$TASKS_TEMPLATE_CONTENT" | jq -Rs \
             --arg feature_dir "$FEATURE_DIR" \
             --argjson docs "$json_docs" \
             --arg tasks_template "${TASKS_TEMPLATE:-}" \
-            --arg tasks_template_content "$TASKS_TEMPLATE_CONTENT" \
-            '{FEATURE_DIR:$feature_dir,AVAILABLE_DOCS:$docs,TASKS_TEMPLATE:$tasks_template,TASKS_TEMPLATE_CONTENT:$tasks_template_content}'
+            '{FEATURE_DIR:$feature_dir,AVAILABLE_DOCS:$docs,TASKS_TEMPLATE:$tasks_template,TASKS_TEMPLATE_CONTENT:.}'
     else
         if [[ ${#docs[@]} -eq 0 ]]; then
             json_docs="[]"
