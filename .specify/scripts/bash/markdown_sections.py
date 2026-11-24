@@ -134,8 +134,13 @@ def replace_section(
     fence_marker = ""
     fence_length = 0
     metadata = content.startswith(("---\n", "---\r\n"))
+    html_comment = False
     offset = 0
-    for number, line in enumerate(content.splitlines(keepends=True), 1):
+    # splitlines() also splits on Unicode U+2028, which is NOT a Markdown line
+    # ending. Keep exact offsets while recognizing only CR, LF, and CRLF.
+    markdown_lines = re.finditer(r"[^\r\n]*(?:\r\n|\r|\n|\Z)", content)
+    for number, match in enumerate(markdown_lines, 1):
+        line = match.group()
         start = offset
         offset += len(line)
         text = line.rstrip("\r\n")
@@ -148,6 +153,28 @@ def replace_section(
             if closing and closing[1][0] == fence_marker and len(closing[1]) >= fence_length:
                 fence_marker = ""
             continue
+        # Mask multiline HTML comments before scanning opening fences or ATX
+        # headings. In particular, a commented "`" fence must never alter the
+        # parser state for the rest of the document.
+        visible_parts: list[str] = []
+        cursor = 0
+        while cursor < len(text):
+            if html_comment:
+                close = text.find("-->", cursor)
+                if close < 0:
+                    cursor = len(text)
+                    break
+                html_comment = False
+                cursor = close + 3
+                continue
+            opening_comment = text.find("<!--", cursor)
+            if opening_comment < 0:
+                visible_parts.append(text[cursor:])
+                break
+            visible_parts.append(text[cursor:opening_comment])
+            html_comment = True
+            cursor = opening_comment + 4
+        text = "".join(visible_parts)
         opening = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", text)
         if opening and not (opening[1][0] == "`" and "`" in opening[2]):
             fence_marker, fence_length = opening[1][0], len(opening[1])
@@ -191,7 +218,14 @@ def replace_section(
         last_newline = content.rfind("\n")
         separator = "\r\n" if last_newline > 0 and content[last_newline - 1] == "\r" else "\n"
         replacement = separator + replacement
-    return content[:body_start] + replacement + content[body_end:]
+    suffix = content[body_end:]
+    # Preserve the next heading boundary when the replacement has no trailing
+    # line ending. Empty replacements are intentionally left untouched.
+    if replacement and suffix and not replacement.endswith(("\n", "\r")) and not suffix.startswith(("\n", "\r")):
+        last_newline = content.rfind("\n")
+        separator = "\r\n" if last_newline > 0 and content[last_newline - 1] == "\r" else "\n"
+        replacement += separator
+    return content[:body_start] + replacement + suffix
 
 
 def _main() -> int:
