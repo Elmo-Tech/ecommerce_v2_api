@@ -1,4 +1,4 @@
-name: F0-01 Laravel bootstrap validation
+name: Laravel foundation validation
 
 on:
   push:
@@ -13,6 +13,8 @@ on:
       - config/**
       - public/**
       - routes/**
+      - lang/**
+      - specs/002-api-foundation/contracts/**
       - tests/**
       - phpunit.xml
       - .github/workflows/f0-01-laravel-bootstrap.yml
@@ -30,6 +32,8 @@ on:
       - config/**
       - public/**
       - routes/**
+      - lang/**
+      - specs/002-api-foundation/contracts/**
       - tests/**
       - phpunit.xml
       - .github/workflows/f0-01-laravel-bootstrap.yml
@@ -116,7 +120,7 @@ jobs:
           git check-ignore -q .env
           COLUMNS=180 php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
 
-      - name: Execute complete F0-01 Unit Feature Architecture suite
+      - name: Execute complete Unit Feature Architecture suite
         run: COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
 
       - name: Execute Architecture checks independently of Laravel TestCase
@@ -128,12 +132,12 @@ jobs:
           if [ -x vendor/bin/pint ]; then
             vendor/bin/pint --test
           else
-            echo "::notice title=Pint unavailable::Laravel Pint is not in the approved F0-01 composer.lock; no Pint pass is claimed."
+            echo "::notice title=Pint unavailable::Laravel Pint is not in the approved composer.lock; no Pint pass is claimed."
           fi
           if [ -x vendor/bin/phpstan ]; then
             vendor/bin/phpstan analyse --no-progress
           else
-            echo "::notice title=PHPStan unavailable::PHPStan/Larastan is not in the approved F0-01 composer.lock; no static-analyzer pass is claimed."
+            echo "::notice title=PHPStan unavailable::PHPStan/Larastan is not in the approved composer.lock; no static-analyzer pass is claimed."
           fi
 
       - name: Verify runtime did not change any tracked repository file

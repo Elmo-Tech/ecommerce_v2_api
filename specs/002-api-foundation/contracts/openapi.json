@@ -1,0 +1,220 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "E-commerce SaaS V2 — F0-02 shared API components",
+    "version": "1.0.0",
+    "description": "Shared v1 envelope and header contracts only. No production paths are defined. Later Features own concrete Resources, validation, authority, pagination and status selection. Native structural and HTTP checks are not full OpenAPI conformance validation."
+  },
+  "paths": {},
+  "x-http-status-error-codes": {
+    "400": "BAD_REQUEST",
+    "401": "UNAUTHENTICATED",
+    "403": "ACCESS_DENIED",
+    "404": "RESOURCE_NOT_FOUND",
+    "405": "METHOD_NOT_ALLOWED",
+    "409": "RESOURCE_CONFLICT",
+    "422": "VALIDATION_FAILED",
+    "429": "RATE_LIMIT_EXCEEDED",
+    "500": "INTERNAL_ERROR",
+    "503": "SERVICE_UNAVAILABLE",
+    "default": "HTTP_ERROR"
+  },
+  "components": {
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {
+            "description": "Feature-owned representation; the shared envelope does not impose a resource schema."
+          },
+          "meta": {
+            "type": "object",
+            "minProperties": 1,
+            "description": "Optional, truthful metadata actually computed by the Feature. No fabricated counts."
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "errorCode",
+          "errors"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "errorCode": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "errors": {
+            "type": "array",
+            "maxItems": 0,
+            "items": {}
+          }
+        }
+      },
+      "FieldErrors": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Declared camelCase field paths, including numeric nested indices; safe messages in the selected request language. A malformed declared list reports the parent field, not untrusted associative-key descendants.",
+        "additionalProperties": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "propertyNames": {
+          "maxLength": 256,
+          "pattern": "^[a-z][a-zA-Z0-9]*(?:\\.(?:[a-z][a-zA-Z0-9]*|[0-9]+))*$"
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "errorCode",
+          "errors"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "errorCode": {
+            "type": "string",
+            "const": "VALIDATION_FAILED"
+          },
+          "errors": {
+            "$ref": "#/components/schemas/FieldErrors"
+          }
+        }
+      },
+      "MoneyMinorUnits": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "description": "Canonical decimal string of signed integer minor units within PostgreSQL BIGINT bounds -9223372036854775808 through 9223372036854775807. Currency context is mandatory; each Feature owns exact bounds, currency and rounding validation. Pattern alone does not enforce the numeric bound."
+      },
+      "BigIntIdentifier": {
+        "type": "string",
+        "pattern": "^[1-9][0-9]*$",
+        "description": "Canonical positive base-10 BIGINT identifier string, maximum 9223372036854775807. Owning Feature must enforce the bound; never serialize as a JavaScript Number."
+      },
+      "CurrencyCode": {
+        "type": "string",
+        "pattern": "^[A-Z]{3}$",
+        "description": "Unambiguous ISO 4217 currency context; owning Feature validates approved currency codes."
+      }
+    },
+    "headers": {
+      "XRequestId": {
+        "description": "Trusted server-generated UUID for this HTTP attempt; returned on handled API responses where feasible. Not idempotency or authorization.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "responses": {
+      "Success": {
+        "description": "Completed operation with representation (200).",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/XRequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SuccessResponse"
+            }
+          }
+        }
+      },
+      "Created": {
+        "description": "Created representation (201).",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/XRequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SuccessResponse"
+            }
+          }
+        }
+      },
+      "NoContent": {
+        "description": "Success (204); zero response body.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/XRequestId"
+          }
+        }
+      },
+      "Error": {
+        "description": "Generic classified failure; actual HTTP status and stable errorCode.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/XRequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Field validation failure (422).",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/XRequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}

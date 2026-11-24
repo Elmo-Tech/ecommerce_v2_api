@@ -1,20 +1,60 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Core\Http\ApiExceptionMapper;
+use App\Core\Http\ApiRequestContext;
+use App\Http\Middleware\AssignRequestId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
-// API-first foundation: no public web, API, or health routes in F0-01.
+// Native v1 seam; no public business, web, debug or health routes.
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        apiPrefix: 'api/v1',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // No application middleware is configured at this stage.
+        // Run before route matching and the remaining global middleware.
+        $middleware->prepend(AssignRequestId::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Retain the preexisting JSON negotiation outside the new v1 boundary.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api', 'api/*') || $request->expectsJson(),
+            static fn (Request $request): bool => $request->is('api', 'api/*') || $request->expectsJson(),
+        );
+
+        // Laravel otherwise reports unexpected exception messages/objects
+        // before rendering. Scope safe reporting to an active API attempt or
+        // its exact escaping middleware failure; never suppress unrelated work.
+        $exceptions->dontReportWhen(static function (Throwable $exception): bool {
+            if (! app()->bound('request')) {
+                return false;
+            }
+            $request = app('request');
+            if (! $request instanceof Request || ! ApiRequestContext::canReport($request, $exception)) {
+                return false;
+            }
+            app(ApiExceptionMapper::class)->reportSafely($exception, $request);
+
+            return true;
+        });
+
+        $exceptions->render(
+            static fn (Throwable $exception, Request $request): ?Response =>
+                ApiRequestContext::matches($request)
+                    ? app(ApiExceptionMapper::class)->render($exception, $request)
+                    : null,
+        );
+        $exceptions->respond(
+            static fn (Response $response, Throwable $exception, Request $request): Response =>
+                ApiRequestContext::matches($request)
+                    ? app(ApiExceptionMapper::class)->finalize($response, $exception, $request)
+                    : $response,
         );
     })->create();
+
