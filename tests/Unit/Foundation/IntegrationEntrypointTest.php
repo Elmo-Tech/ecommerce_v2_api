@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Tests\Fixtures\FoundationTestCheckout;
 use Tests\Fixtures\FoundationOwnedRunFixture;
 use Tests\Support\OwnedTestRun;
+use Tests\Support\IntegrationConnections;
 
 it('does not allow integration mode to start the test runner without the owned job prerequisites', function (array $environment): void {
     $checkout = new FoundationTestCheckout;
@@ -60,4 +61,21 @@ it('resolves only approved fixed postgres and redis slots, never an arbitrary ta
     } finally {
         $fixture->close();
     }
+})->group('testing-foundation');
+
+
+it('requires approved native extensions before opening a service connection', function (array $drivers, ?string $redisVersion): void {
+    expect(is_callable([IntegrationConnections::class, 'assertNativeDrivers']))->toBeTrue();
+    expect(fn () => IntegrationConnections::assertNativeDrivers($drivers, $redisVersion))->toThrow(RuntimeException::class);
+})->with([
+    'missing PDO pgsql' => [['sqlite'], '6.3.0'],
+    'missing native Redis' => [['pgsql'], null],
+    'unexpected Redis version' => [['pgsql'], '6.2.0'],
+])->group('testing-foundation');
+
+it('accepts only the required native driver preflight without opening a connection', function (): void {
+    expect(is_callable([IntegrationConnections::class, 'assertNativeDrivers']))->toBeTrue();
+    // Pure compatibility policy. T027 verifies actual extension loading.
+    IntegrationConnections::assertNativeDrivers(['sqlite', 'pgsql'], '6.3.0');
+    expect(true)->toBeTrue();
 })->group('testing-foundation');

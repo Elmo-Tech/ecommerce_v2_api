@@ -125,3 +125,16 @@ it('does not allow a valid but different run record to authorize the current job
         $current->close();
     }
 })->group('testing-foundation');
+
+
+it('rejects an owned run directory that is not private', function (): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        expect(chmod($fixture->record['directory'], 0755))->toBeTrue();
+        clearstatcache(true, $fixture->record['directory']);
+        expect(is_callable([OwnedTestRun::class, 'validate']))->toBeTrue();
+        expect(fn () => OwnedTestRun::validate($fixture->job, $fixture->record, $fixture->descriptor, $fixture->observed, $fixture->checkout->root))->toThrow(RuntimeException::class);
+    } finally {
+        $fixture->close();
+    }
+})->group('testing-foundation');

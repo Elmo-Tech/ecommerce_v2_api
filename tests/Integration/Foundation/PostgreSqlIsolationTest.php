@@ -55,7 +55,7 @@ dataset('f03 postgres directed denial pairs', [
 it('proves an actual cross database or maintenance CONNECT denial with valid own credentials, not a timeout or authentication failure', function (string $source, string $target): void {
     $connections = f03PostgresConnections();
     $own = $connections->postgres($source);
-    expect($own->query('SELECT 1')->fetchColumn())->toBe(1);
+    expect((int) $own->query('SELECT 1')->fetchColumn())->toBe(1);
     $targetDatabase = in_array($target, ['postgres', 'template1'], true)
         ? $target
         : 'f03_'.$connections->token().'_'.$target;
