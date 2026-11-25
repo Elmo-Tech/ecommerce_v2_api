@@ -49,7 +49,7 @@ file_put_contents(dirname(__DIR__).'/autoload-reached', 'reached');
 PHP);
         $this->write('vendor/bin/pest', <<<'PHP'
 <?php
-file_put_contents(dirname(__DIR__, 2).'/pest-reached', 'reached');
+file_put_contents(dirname(__DIR__, 2).'/pest-reached', json_encode($argv, JSON_THROW_ON_ERROR));
 exit(0);
 PHP);
         $this->write('.env', '');

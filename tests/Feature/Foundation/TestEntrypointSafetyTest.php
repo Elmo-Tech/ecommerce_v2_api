@@ -167,3 +167,53 @@ it('rejects inherited unsafe configuration via the installed direct Pest CLI bef
     ['APP_ENV', 'production'],
     ['DB_URL', 'f03-synthetic-canary'],
 ])->group('testing-foundation');
+
+
+it('passes only an approved suite or group and a fresh report filename in a private owned report directory', function (): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $dir = $checkout->root.'/f03-reports-0123456789abcdef';
+        expect(mkdir($dir, 0700))->toBeTrue();
+        $result = $checkout->run(['tests/Support/run-tests.php', 'fast', '--suite=Unit', '--report=unit.xml'], [
+            'RUNNER_TEMP' => $checkout->root, 'F03_REPORT_DIR' => $dir,
+        ]);
+        expect($result->getExitCode())->toBe(0);
+        $argv = json_decode(file_get_contents($checkout->root.'/pest-reached'), true, flags: JSON_THROW_ON_ERROR);
+        expect($argv)->toContain('--testsuite', 'Unit', '--log-junit', $dir.'/unit.xml');
+        foreach (['--fail-on-empty-test-suite', '--fail-on-warning', '--fail-on-risky', '--fail-on-skipped', '--fail-on-incomplete'] as $flag) {
+            expect($argv)->toContain($flag);
+        }
+    } finally {
+        $checkout->close();
+    }
+})->group('testing-foundation');
+
+it('rejects unsafe report targets even when a private report directory exists', function (string $case): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $dir = $checkout->root.'/f03-reports-0123456789abcdef';
+        expect(mkdir($dir, 0700))->toBeTrue();
+        $name = 'result.xml';
+        if ($case === 'existing') {
+            $checkout->write('f03-reports-0123456789abcdef/result.xml', 'untouched');
+        } elseif ($case === 'symlink') {
+            $checkout->write('outside.xml', 'untouched');
+            expect(symlink($checkout->root.'/outside.xml', $dir.'/'.$name))->toBeTrue();
+        } elseif ($case === 'escape') {
+            $name = '../outside.xml';
+        } elseif ($case === 'world-readable') {
+            expect(chmod($dir, 0755))->toBeTrue();
+        }
+        $result = $checkout->run(['tests/Support/run-tests.php', 'fast', '--report='.$name], [
+            'RUNNER_TEMP' => $checkout->root, 'F03_REPORT_DIR' => $dir,
+        ]);
+        expect($result->getExitCode())->not->toBe(0);
+        expect($checkout->reachedPest())->toBeFalse();
+        expect($checkout->reachedAutoload())->toBeFalse();
+        if ($case === 'existing' || $case === 'symlink') {
+            expect(file_get_contents($dir.'/result.xml'))->toBe('untouched');
+        }
+    } finally {
+        $checkout->close();
+    }
+})->with(['existing', 'symlink', 'escape', 'world-readable'])->group('testing-foundation');
