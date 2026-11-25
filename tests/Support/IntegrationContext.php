@@ -113,7 +113,7 @@ final class IntegrationContext
     /** Only fixed job-owned files, bounded size, private regular files. */
     public static function read(string $directory, string $name): array
     {
-        if (!in_array($name, ['ownership.json', 'runtime.json', 'redis-evidence.json'], true)
+        if (!in_array($name, ['ownership.json', 'runtime.json', 'redis-evidence.json', 'setup.json'], true)
             || realpath($directory) !== $directory || is_link($directory) || !is_dir($directory)
             || ((@fileperms($directory) ?: 0) & 0777) !== 0700) {
             self::reject();

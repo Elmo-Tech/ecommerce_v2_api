@@ -42,6 +42,134 @@ final class LocalDocker
         return $docker;
     }
 
+    /**
+     * Startup is callable only from the current explicit hosted job, with a
+     * fresh protected record. Never accept a caller-supplied ID or endpoint.
+     */
+    public static function startCurrent(string $root): void
+    {
+        $context = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER, true);
+        $directory = $context['directory'];
+        if (file_exists($directory) || is_link($directory)
+            || !function_exists('posix_geteuid') || !function_exists('posix_getegid')
+            || posix_geteuid() === 0) {
+            self::reject();
+        }
+        IntegrationConnections::assertNativeDrivers(\PDO::getAvailableDrivers(), phpversion('redis') ?: null);
+        $docker = self::verified();
+        foreach (['postgres', 'redis'] as $service) {
+            $docker->verifyPinnedImage($service);
+        }
+        if (!mkdir($directory, 0700)) {
+            self::reject();
+        }
+        $record = [
+            'job' => $context['job'], 'token' => $context['token'],
+            'directory' => $directory, 'containers' => [],
+        ];
+        OwnedTestRun::validateCapturedRecord($context['job'], $record, $context['temp'], true);
+        \Tests\Support\ci\OwnedSetupFiles::json($directory, 'ownership.json', $record);
+        $credentials = \Tests\Support\ci\OwnedServicePlan::credentials($context['token']);
+        foreach (\Tests\Support\ci\OwnedServicePlan::passwords($credentials) as $password) {
+            // GitHub workflow command, emitted only after hosted-job preflight.
+            echo '::add-mask::'.$password."\n";
+        }
+        \Tests\Support\ci\OwnedSetupFiles::json($directory, 'setup.json', $credentials);
+        \Tests\Support\ci\OwnedSetupFiles::create($directory, 'pg-password', $credentials['postgres_admin']."\n");
+        \Tests\Support\ci\OwnedSetupFiles::create($directory, 'redis.conf', \Tests\Support\ci\OwnedServicePlan::redisConfig());
+        \Tests\Support\ci\OwnedSetupFiles::create($directory, 'users.acl', \Tests\Support\ci\OwnedServicePlan::redisAcl($credentials));
+        foreach (['postgres', 'redis'] as $service) {
+            $current = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER);
+            if ($current !== $context || IntegrationContext::read($directory, 'ownership.json') !== $record) {
+                self::reject();
+            }
+            $docker = self::verified();
+            $docker->verifyPinnedImage($service);
+            // No names or volume IDs from external inputs; no --rm (capture
+            // must remain inspectable on failed start). Image volumes are
+            // newly anonymous, with no --volume-from or reused data mount.
+            $id = trim($docker->command(\Tests\Support\ci\OwnedServicePlan::createArguments(
+                $context, $service, posix_geteuid(), posix_getegid(),
+            ))[0]);
+            self::assertId($id);
+            $record = \Tests\Support\ci\OwnedSetupFiles::appendCapture($context, $record, $service, $id);
+            $observed = $docker->observeRecord($record, true);
+            if (($observed[$service]['port'] ?? null) !== null || $observed[$service] === null) {
+                self::reject();
+            }
+            $record = IntegrationContext::completeOwnership($context, $record, $observed);
+            // Revalidate all captured resources before start; only the newly
+            // created exact container ID can be started.
+            if ($docker->observeRecord($record, true) !== $observed) {
+                self::reject();
+            }
+            $docker->command(['container', 'start', $id]);
+            $observed = $docker->observeRecord($record, true);
+            if ($observed[$service] === null || $observed[$service]['port'] === null) {
+                self::reject();
+            }
+            $record = IntegrationContext::completeOwnership($context, $record, $observed);
+            $docker->waitReady($record, $service);
+            echo 'Owned '.$service." started and readiness probe passed.\n";
+        }
+        $runtime = \Tests\Support\ci\OwnedServicePlan::runtime($record, $credentials);
+        OwnedTestRun::validate($context['job'], $record, $runtime, $docker->observeRecord($record, false), $context['temp']);
+        // Runtime descriptor is published only by the later completed setup
+        // step, after actual role/ACL fixtures and setup evidence are ready.
+        echo "Owned containers captured and ready; fixture setup still required.\n";
+    }
+
+    private function verifyPinnedImage(string $service): void
+    {
+        $pin = OwnedTestRun::image($service);
+        $image = $this->jsonLines($this->command([
+            'image', 'inspect', '--format', '{{json .Id}}'."\n".'{{json .Os}}'."\n".'{{json .Architecture}}'."\n".'{{json .RepoDigests}}',
+            \Tests\Support\ci\OwnedServicePlan::imageRef($service),
+        ])[0], 4);
+        if ($image[0] !== $pin['image_id'] || $image[1] !== 'linux' || $image[2] !== 'amd64'
+            || !is_array($image[3]) || (!in_array($service.'@'.$pin['manifest'], $image[3], true)
+                && !in_array('docker.io/library/'.$service.'@'.$pin['manifest'], $image[3], true))) {
+            self::reject();
+        }
+    }
+
+    private function observeRecord(array $record, bool $partial): array
+    {
+        $context = IntegrationContext::environment(dirname(__DIR__, 2), getenv(), $_ENV, $_SERVER);
+        if (IntegrationContext::read($context['directory'], 'ownership.json') !== $record) {
+            self::reject();
+        }
+        OwnedTestRun::validateCapturedRecord($context['job'], $record, $context['temp'], $partial);
+        $observed = [];
+        foreach ($record['containers'] as $service => $container) {
+            $observed[$service] = $this->observe($service, $container['id'], $record['directory'], $partial);
+        }
+        OwnedTestRun::validateRecord($context['job'], $record, $observed, $context['temp'], $partial);
+        return $observed;
+    }
+
+    private function waitReady(array $record, string $service): void
+    {
+        $deadline = hrtime(true) + 60_000_000_000;
+        do {
+            $actual = $this->observeRecord($record, true);
+            if ($actual[$service] !== $record['containers'][$service]) {
+                self::reject();
+            }
+            $id = $record['containers'][$service]['id'];
+            $args = $service === 'postgres'
+                ? ['exec', $id, 'pg_isready', '-h', '127.0.0.1', '-p', '5432', '-U', 'postgres', '-d', 'postgres', '-t', '2']
+                : ['exec', $id, 'redis-cli', '-h', '127.0.0.1', '-p', '6379', 'PING'];
+            [$stdout, $stderr, $status] = $this->command($args, true, true);
+            if (($service === 'postgres' && $status === 0 && str_contains($stdout, 'accepting connections'))
+                || ($service === 'redis' && trim($stdout) === 'NOAUTH Authentication required.')) {
+                return;
+            }
+            usleep(250000);
+        } while (hrtime(true) < $deadline);
+        self::reject();
+    }
+
     public function observe(string $service, string $id, string $directory, bool $cleanup = false): ?array
     {
         $pin = OwnedTestRun::image($service);
@@ -302,7 +430,7 @@ final class LocalDocker
         }
     }
 
-    private function command(array $args, bool $explicitEndpoint = true): array
+    private function command(array $args, bool $explicitEndpoint = true, bool $allowFailure = false): array
     {
         $argv = [self::BINARY, ...($explicitEndpoint ? ['--host', self::ENDPOINT] : []), ...$args];
         $process = @proc_open($argv, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
@@ -343,11 +471,11 @@ final class LocalDocker
             fclose($pipes[2]);
             $closed = proc_close($process);
         }
-        if (($exit ?? $closed) !== 0) {
+        if (!$allowFailure && ($exit ?? $closed) !== 0) {
             self::reject();
         }
 
-        return $output;
+        return [...$output, $exit ?? $closed];
     }
 
     private static function reject(): never
