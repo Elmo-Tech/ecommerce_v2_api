@@ -71,3 +71,11 @@ it('permits a stopped owned container with no active mapping only for cleanup ob
         $fixture->close();
     }
 })->group('testing-foundation');
+
+
+it('classifies only fixed startup diagnostics without exposing raw secret or path text', function (): void {
+    expect(LocalDocker::startupCategory('/run/f03/pg-password: Permission denied'))->toBe('password-file-permission');
+    expect(LocalDocker::startupCategory('failed to bind host port: address already in use'))->toBe('port-allocation');
+    expect(LocalDocker::startupCategory('unrecognized configuration parameter "synthetic"'))->toBe('invalid-server-option');
+    expect(LocalDocker::startupCategory('synthetic-secret-value'))->toBe('unclassified');
+})->group('testing-foundation');

@@ -127,13 +127,25 @@ final class LocalDocker
                 self::reject();
             }
             echo 'Owned startup: '.$service." volume and identity verified before start.\n";
-            $docker->command(['container', 'start', $id]);
-            $observed = $docker->observeRecord($record, true);
-            if ($observed[$service] === null || $observed[$service]['port'] === null) {
-                self::reject();
+            try {
+                [$out, $err, $status] = $docker->command(['container', 'start', $id], true, true);
+                if ($status !== 0) {
+                    echo 'Owned startup: '.$service.' start command failed: '.self::startupCategory($err."\n".$out).".\n";
+                    self::reject();
+                }
+                echo 'Owned startup: '.$service." start command returned success.\n";
+                $observed = $docker->observeRecord($record, true);
+                echo 'Owned startup: '.$service." post-start observation validated.\n";
+                if ($observed[$service] === null || $observed[$service]['port'] === null) {
+                    self::reject();
+                }
+                $record = IntegrationContext::completeOwnership($context, $record, $observed);
+                echo 'Owned startup: '.$service." allocated port recorded.\n";
+                $docker->waitReady($record, $service);
+            } catch (\Throwable $error) {
+                $docker->diagnoseStartup($record, $service);
+                throw $error;
             }
-            $record = IntegrationContext::completeOwnership($context, $record, $observed);
-            $docker->waitReady($record, $service);
             echo 'Owned '.$service." started and readiness probe passed.\n";
         }
         $runtime = \Tests\Support\ci\OwnedServicePlan::runtime($record, $credentials);
@@ -283,6 +295,74 @@ final class LocalDocker
             self::reject();
         }
         return trim($stdout."\n".$stderr);
+    }
+
+    /** Fixed diagnostic vocabulary: never return raw Docker output. */
+    public static function startupCategory(#[\SensitiveParameter] string $message): string
+    {
+        foreach ([
+            'password-file-permission' => '/(?:pg-password|POSTGRES_PASSWORD_FILE)[^\r\n]*permission denied/i',
+            'mount-permission' => '/(?:mount|permission denied|operation not permitted)[^\r\n]*(?:permission denied|operation not permitted)|permission denied/i',
+            'port-allocation' => '/port is already allocated|address already in use|failed to bind host port/i',
+            'invalid-server-option' => '/unrecognized configuration parameter|invalid value for parameter|unrecognized option/i',
+            'data-directory-permission' => '/(?:data directory|initdb)[^\r\n]*permission/i',
+            'authentication-config' => '/invalid authentication method|could not load pg_hba|invalid ACL|error loading ACL/i',
+            'entrypoint-config' => '/fatal config file error|can.t open config file|could not open configuration file/i',
+        ] as $category => $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return $category;
+            }
+        }
+        return 'unclassified';
+    }
+
+    private function diagnoseStartup(array $record, string $service): void
+    {
+        try {
+            $context = IntegrationContext::environment(dirname(__DIR__, 2), getenv(), $_ENV, $_SERVER);
+            if (IntegrationContext::read($context['directory'], 'ownership.json') !== $record) {
+                self::reject();
+            }
+            OwnedTestRun::validateCapturedRecord($context['job'], $record, $context['temp'], true);
+            $expected = $record['containers'][$service];
+            $id = $expected['id'];
+            self::assertId($id);
+            $docker = self::verified();
+            // Only inspect the exact current recorded ID. Validate identity
+            // again before obtaining bounded service diagnostics.
+            $fields = ['.Id', '.Image', '.Config.Labels', '.State.Status', '.State.ExitCode', '.State.OOMKilled', '.State.Error'];
+            $format = implode("\n", array_map(static fn (string $field): string => '{{json '.$field.'}}', $fields));
+            $state = $docker->jsonLines($docker->command(['container', 'inspect', '--format', $format, $id])[0], count($fields));
+            $labels = is_array($state[2]) ? array_filter($state[2], static fn ($key): bool => is_string($key) && str_starts_with($key, 'f03.'), ARRAY_FILTER_USE_KEY) : [];
+            ksort($labels);
+            $expectedLabels = $expected['labels'];
+            ksort($expectedLabels);
+            if ($state[0] !== $id || $state[1] !== $expected['image_id'] || $labels !== $expectedLabels
+                || !in_array($state[3], ['created', 'running', 'exited', 'dead', 'restarting', 'paused', 'removing'], true)
+                || !is_int($state[4]) || !is_bool($state[5]) || !is_string($state[6])) {
+                self::reject();
+            }
+            echo 'Owned startup diagnostic: '.$service.' state='.$state[3].'; exit='.$state[4].'; oom='.($state[5] ? 'yes' : 'no').";\n";
+            [$stdout, $stderr] = $docker->command(['logs', '--tail', '60', $id], true, true);
+            echo 'Owned startup diagnostic: '.$service.' category='.self::startupCategory($state[6]."\n".$stdout."\n".$stderr).".\n";
+            // Selected port metadata is classified, not printed. Never
+            // infer authorization from diagnostics or reuse it for I/O.
+            $ports = $docker->jsonLines($docker->command(['container', 'inspect', '--format',
+                '{{json .NetworkSettings.Ports}}'."\n".'{{json .HostConfig.PortBindings}}', $id])[0], 2);
+            $key = $service === 'postgres' ? '5432/tcp' : '6379/tcp';
+            foreach (['live' => $ports[0], 'requested' => $ports[1]] as $kind => $map) {
+                $binding = is_array($map) ? ($map[$key] ?? null) : null;
+                $classification = $binding === null ? 'absent' : 'unexpected';
+                if (is_array($binding) && count($binding) === 1 && ($binding[0]['HostIp'] ?? null) === '127.0.0.1') {
+                    $port = $binding[0]['HostPort'] ?? null;
+                    $classification = in_array($port, ['', '0'], true) ? 'dynamic-request'
+                        : (is_string($port) && ctype_digit($port) && (int) $port >= 1024 && (int) $port <= 65535 ? 'loopback-allocated' : 'unexpected');
+                }
+                echo 'Owned startup diagnostic: '.$service.' '.$kind.' port='.$classification.".\n";
+            }
+        } catch (\Throwable) {
+            echo "Owned startup diagnostic: exact identity/state evidence unavailable.\n";
+        }
     }
 
     private function verifyPinnedImage(string $service): void
