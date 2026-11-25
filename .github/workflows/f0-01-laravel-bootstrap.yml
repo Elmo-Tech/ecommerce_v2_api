@@ -64,11 +64,13 @@ jobs:
       QUEUE_CONNECTION: sync
       DB_CONNECTION: sqlite
       DB_DATABASE: ":memory:"
-      MAIL_MAILER: log
+      MAIL_MAILER: array
       XDEBUG_MODE: off
     steps:
       - name: Checkout the reviewed feature branch
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install PHP 8.4 and required extensions
         uses: shivammathur/setup-php@v2
@@ -104,6 +106,18 @@ jobs:
       - name: Audit pinned dependency versions
         run: composer audit --locked --no-interaction
 
+      - name: Establish safe fast environment before framework bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ ! -e .env ] && [ ! -L .env ]; then
+            (set -o noclobber; : > .env)
+          fi
+          test -f .env && test ! -L .env && test ! -s .env
+          git check-ignore -q .env
+          php tests/Support/bootstrap.php
+
       - name: Verify actual installed packages and framework bootstrap
         run: |
           composer check-platform-reqs
@@ -113,23 +127,16 @@ jobs:
           php artisan route:list --json
 
       - name: Execute foundation smoke test without migrations or real database
-        run: |
-          # PHPUnit treats Dotenv's optional missing-file notice as a warning.
-          # Create a private EMPTY test-runner-local file; never commit secrets.
-          umask 077
-          : > .env
-          test ! -s .env
-          git check-ignore -q .env
-          COLUMNS=180 php artisan test --group=foundation --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+        run: COLUMNS=180 php tests/Support/run-tests.php fast --group=foundation
 
       - name: Lint all tracked PHP including native Integration sources before expected RED
         run: git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
 
       - name: Execute complete Unit Feature Architecture suite
-        run: COLUMNS=180 php artisan test --fail-on-empty-test-suite --display-warnings --fail-on-warning --no-ansi
+        run: COLUMNS=180 php tests/Support/run-tests.php fast
 
       - name: Execute Architecture checks independently of Laravel TestCase
-        run: vendor/bin/pest --testsuite Architecture
+        run: php tests/Support/run-tests.php fast --suite=Architecture
 
       - name: PHP syntax lint and optional quality-tool availability
         run: |
@@ -238,6 +245,6 @@ jobs:
           for flag in --configuration --testsuite --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit; do
             grep -F -- "$flag" "$scratch/help.txt" >/dev/null
           done
-          COLUMNS=180 vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml"
+          COLUMNS=180 env -u PG_IMAGE -u REDIS_IMAGE vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml"
           php -r '$doc = new DOMDocument(); if (!$doc->load($argv[1], LIBXML_NONET) || $doc->getElementsByTagName("testcase")->length < 5) { exit(1); } echo "Native JUnit testcase count=".$doc->getElementsByTagName("testcase")->length.PHP_EOL;' "$scratch/report.xml"
           git diff --exit-code -- .
