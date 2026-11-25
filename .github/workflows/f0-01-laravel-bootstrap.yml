@@ -1,5 +1,7 @@
 name: Laravel foundation validation
 
+# F0-04 T004: run the unchanged F0-03 baseline before adding quality tooling.
+
 # F0-03 T004: trigger the unchanged foundation baseline on the reviewed PR candidate.
 
 on:
