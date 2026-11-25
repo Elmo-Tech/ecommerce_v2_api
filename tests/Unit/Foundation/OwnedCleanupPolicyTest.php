@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Tests\Fixtures\FoundationOwnedRunFixture;
 use Tests\Support\ci\CleanupPolicy;
 
+/** @return array{containers: list<array{id: string, volumes: list<string>}>, directory: string} */
 function f03CleanupTargets(FoundationOwnedRunFixture $fixture): array
 {
     expect(is_callable([CleanupPolicy::class, 'targets']))->toBeTrue();

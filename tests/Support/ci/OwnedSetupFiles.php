@@ -46,12 +46,19 @@ final class OwnedSetupFiles
         }
     }
 
+    /** @param array<array-key, mixed> $value */
     public static function json(string $directory, string $name, #[SensitiveParameter] array $value): void
     {
         self::create($directory, $name, json_encode($value, JSON_THROW_ON_ERROR)."\n");
     }
 
-    /** Append exactly one newly returned ID; existing captures never change. */
+    /**
+     * Append exactly one newly returned ID; existing captures never change.
+     *
+     * @param array{job: array<array-key, mixed>, token: string, temp: string, directory: string} $context
+     * @param array<array-key, mixed> $expected
+     * @return array<array-key, mixed>
+     */
     public static function appendCapture(array $context, array $expected, string $service, string $id): array
     {
         $dir = $context['directory'];

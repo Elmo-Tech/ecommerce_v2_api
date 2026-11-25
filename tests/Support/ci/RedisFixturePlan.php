@@ -9,6 +9,7 @@ use RuntimeException;
 /** Fixed ACL DRYRUN probes; commands are data, never executed directly. */
 final class RedisFixturePlan
 {
+    /** @return array{allowed: list<list<string>>, denied: array<string, list<string>>, foreign: list<list<string>>} */
     public static function probes(string $token, string $slot): array
     {
         OwnedServicePlan::token($token);

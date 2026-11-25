@@ -14,7 +14,10 @@ use Illuminate\Validation\Validator;
  */
 final class ApiFieldValidator extends Validator
 {
-    /** @param list<array-key> $fields @return list<string> */
+    /**
+     * @param list<array-key> $fields
+     * @return list<string>
+     */
     public function safeErrorPaths(array $fields): array
     {
         $rules = $this->getRulesWithoutPlaceholders();
@@ -36,6 +39,7 @@ final class ApiFieldValidator extends Validator
         return array_keys($paths);
     }
 
+    /** @param array<array-key, mixed> $data */
     private function safePath(string $field, string $declared, array $data): ?string
     {
         $actual = explode('.', $field);

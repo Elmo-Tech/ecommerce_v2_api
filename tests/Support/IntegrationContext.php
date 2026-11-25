@@ -13,6 +13,12 @@ use RuntimeException;
  */
 final class IntegrationContext
 {
+    /**
+     * @param array<array-key, mixed> $process
+     * @param array<array-key, mixed> $env
+     * @param array<array-key, mixed> $server
+     * @return array{job: array<string, string>, token: string, temp: string, directory: string}
+     */
     public static function environment(string $root, array $process, array $env, array $server, bool $allowAbsentDirectory = false): array
     {
         TestEnvironmentGuard::validateIntegration($root, $process, $env, $server);
@@ -84,6 +90,7 @@ final class IntegrationContext
         ];
     }
 
+    /** @return array{run: OwnedTestRun, record: array<array-key, mixed>, docker: LocalDocker} */
     public static function current(string $root): array
     {
         $context = self::environment($root, getenv(), $_ENV, $_SERVER);
@@ -110,7 +117,11 @@ final class IntegrationContext
         return ['run' => $run, 'record' => $record, 'docker' => $docker];
     }
 
-    /** Only fixed job-owned files, bounded size, private regular files. */
+    /**
+     * Only fixed job-owned files, bounded size, private regular files.
+     *
+     * @return array<array-key, mixed> Decoded JSON, validated structurally by the consumer.
+     */
     public static function read(string $directory, string $name): array
     {
         if (!in_array($name, ['ownership.json', 'runtime.json', 'redis-evidence.json', 'setup.json', 'credentials-hashes.json'], true)
@@ -163,6 +174,11 @@ final class IntegrationContext
      * Replace only the exact expected captured record with its validated
      * lifecycle completion. No record creation or unrelated file overwrite.
      * The reviewed job is sequential; this is not a concurrent-writer API.
+     *
+     * @param array{job: array<array-key, mixed>, token: string, temp: string, directory: string} $context
+     * @param array<array-key, mixed> $expected
+     * @param array<array-key, mixed> $observed
+     * @return array<array-key, mixed>
      */
     public static function completeOwnership(array $context, array $expected, array $observed): array
     {

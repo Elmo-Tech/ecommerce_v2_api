@@ -17,6 +17,7 @@ final class IntegrationConnections
     {
     }
 
+    /** @param list<string> $drivers */
     public static function assertNativeDrivers(array $drivers, ?string $redisVersion): void
     {
         if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4
@@ -25,6 +26,7 @@ final class IntegrationConnections
         }
     }
 
+    /** @return array{run: OwnedTestRun, record: array<array-key, mixed>, docker: LocalDocker} */
     public static function preflight(string $root): array
     {
         // Validate job and protected paths before checking drivers or using
@@ -47,6 +49,7 @@ final class IntegrationConnections
         return $this->runToken;
     }
 
+    /** @return array{run: OwnedTestRun, record: array<array-key, mixed>, docker: LocalDocker} */
     private function context(): array
     {
         $context = self::preflight(dirname(__DIR__, 2));
@@ -76,6 +79,7 @@ final class IntegrationConnections
         }
     }
 
+    /** @param array{role: string, password: string, ...} $target */
     private function openPostgres(int $port, #[SensitiveParameter] array $target, string $database): PDO
     {
         // Every interpolated field derives from validated fixed run slots.
@@ -87,6 +91,7 @@ final class IntegrationConnections
         ]);
     }
 
+    /** @return array{source: string, target: string, sqlstate: '42501', reason: 'CONNECT_DENIED'} */
     public function postgresDenial(string $source, string $target): array
     {
         // Fixed known database pairs only. Reject before even obtaining
@@ -154,11 +159,13 @@ final class IntegrationConnections
         }
     }
 
+    /** @return array<array-key, mixed> */
     public function redisSetupEvidence(): array
     {
         return $this->readRedisEvidence($this->context()['run']);
     }
 
+    /** @return array<array-key, mixed> Validated evidence retains its decoded JSON representation. */
     private function readRedisEvidence(OwnedTestRun $run): array
     {
         $evidence = IntegrationContext::read($run->directory(), 'redis-evidence.json');

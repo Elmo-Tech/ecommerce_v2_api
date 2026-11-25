@@ -5,6 +5,12 @@ declare(strict_types=1);
 use Tests\Fixtures\FoundationTestCheckout;
 use Tests\Support\TestEnvironmentGuard;
 
+/**
+ * @param array<array-key, mixed> $process
+ * @param array<array-key, mixed> $env
+ * @param array<array-key, mixed> $server
+ * @return array<string, string>
+ */
 function f03ValidateFast(FoundationTestCheckout $checkout, array $process = [], array $env = [], array $server = []): array
 {
     // An explicit assertion (not an undefined-class fatal) makes the

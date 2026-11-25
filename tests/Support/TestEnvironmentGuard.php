@@ -41,6 +41,12 @@ final class TestEnvironmentGuard
         'AZURE_HTTP_USER_AGENT',
     ];
 
+    /**
+     * @param array<array-key, mixed> $process
+     * @param array<array-key, mixed> $env
+     * @param array<array-key, mixed> $server
+     * @return array<string, string>
+     */
     public static function validateFast(string $root, array $process, array $env, array $server): array
     {
         self::validateCheckout($root);
@@ -129,6 +135,11 @@ final class TestEnvironmentGuard
         return 'Test environment check failed.';
     }
 
+    /**
+     * @param array<array-key, mixed> $process
+     * @param array<array-key, mixed> $env
+     * @param array<array-key, mixed> $server
+     */
     public static function validateIntegration(string $root, array $process, array $env, array $server): void
     {
         // Explicit integration mode is required, never supplied by XML.
@@ -207,6 +218,10 @@ final class TestEnvironmentGuard
     /**
      * Reports are optional locally. In CI the owner creates a private direct
      * child of RUNNER_TEMP; a supplied path alone is not ownership.
+     *
+     * @param array<array-key, mixed> $process
+     * @param array<array-key, mixed> $env
+     * @param array<array-key, mixed> $server
      */
     public static function reportDirectory(array $process, array $env, array $server): ?string
     {

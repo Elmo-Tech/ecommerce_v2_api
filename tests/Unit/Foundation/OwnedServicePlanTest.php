@@ -7,6 +7,7 @@ use Tests\Support\ci\OwnedServicePlan;
 use Tests\Support\ci\OwnedSetupFiles;
 use Tests\Support\IntegrationContext;
 
+/** @return array{job: array<array-key, mixed>, token: mixed, directory: mixed, temp: string} */
 function f03SetupContext(FoundationOwnedRunFixture $fixture): array
 {
     return [

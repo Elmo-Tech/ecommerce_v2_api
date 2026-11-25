@@ -11,9 +11,13 @@ namespace Tests\Fixtures;
 final class FoundationOwnedRunFixture
 {
     public readonly FoundationTestCheckout $checkout;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $job;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $record;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $descriptor;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $observed;
 
     public function __construct(string $token = '0123456789abcdef', string $runId = '123456', string $attempt = '1')

@@ -12,6 +12,12 @@ use Tests\Support\OwnedTestRun;
  */
 final class CleanupPolicy
 {
+    /**
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed> $observed
+     * @return array{containers: list<array{id: string, volumes: list<string>}>, directory: string}
+     */
     public static function targets(array $job, array $record, array $observed, string $runnerTemp): array
     {
         OwnedTestRun::validateRecord($job, $record, $observed, $runnerTemp, true);
@@ -32,6 +38,11 @@ final class CleanupPolicy
      * Complete only missing capture fields from already validated live
      * observations before removing anything. This retains volume provenance
      * if a later cleanup step fails and the container is now absent.
+     *
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed> $observed
+     * @return array<array-key, mixed>
      */
     public static function completeCapture(array $job, array $record, array $observed, string $runnerTemp): array
     {
@@ -53,7 +64,11 @@ final class CleanupPolicy
         return $record;
     }
 
-    /** Pure filesystem target selection; only known protected artifacts. */
+    /**
+     * Pure filesystem target selection; only known protected artifacts.
+     *
+     * @return list<string>
+     */
     public static function files(string $directory): array
     {
         $allowed = [
