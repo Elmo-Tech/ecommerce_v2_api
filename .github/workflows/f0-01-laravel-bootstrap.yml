@@ -378,3 +378,167 @@ jobs:
         id: integration_report_cleanup
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
         run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
+
+  # Temporary T016 actual read-only diagnostic. A genuine style failure is
+  # nonzero; the existing fast/native regression jobs remain independent.
+  f0-04-t016-format-diagnostic:
+    name: F0-04 T016 actual read-only Pint inventory
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate and base
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create owned format diagnostic output directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t016-XXXXXXXXXXXX")"
+          printf 'F04_T016_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+
+      - name: Install exact PHP quality toolchain
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, tokenizer
+          tools: composer:2.11.3
+
+      - name: Install approved locked packages without scripts or plugins
+        id: install
+        run: |
+          set -euo pipefail
+          composer validate --strict --no-check-publish
+          composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+          composer check-platform-reqs
+
+      - name: Verify strict types of new files and run actual read-only format
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        env:
+          ACQUISITION_STATUS: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess, sys, time
+          root = pathlib.Path.cwd().resolve()
+          out = pathlib.Path(os.environ['F04_T016_DIR'])
+          expected_base = '24ce00231dec35a089bb70c081b257f9b5d234e7'
+          start = time.monotonic()
+          summary = {'schemaVersion': 1, 'task': 'T016', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
+          # Diagnostic-only environment path is never inherited by the launcher.
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T016_DIR','ACQUISITION_STATUS'}}
+          def require(ok):
+              if not ok: raise RuntimeError('Diagnostic proof incomplete')
+          def git(*args):
+              return subprocess.check_output(['git', *args], cwd=root, env=env, stderr=subprocess.DEVNULL, timeout=60)
+          def run_php(args, input_bytes=None):
+              return subprocess.run(['php', '-d', 'zend.exception_ignore_args=1', *args], cwd=root, env=env, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=650, check=False)
+          def clean():
+              for args in (['diff','--quiet','--','.'], ['diff','--cached','--quiet','--','.']):
+                  require(subprocess.run(['git',*args], cwd=root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60).returncode == 0)
+          try:
+              require(os.environ['ACQUISITION_STATUS']=='success')
+              summary['stage']='identity'
+              event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr=event['pull_request']
+              source=pr['head']['sha']; base=pr['base']['sha']; checkout=git('rev-parse','HEAD').decode().strip()
+              require(event['number']==9 and pr['base']['ref']=='development' and base==expected_base)
+              require(all(re.fullmatch(r'[0-9a-f]{40}',x) for x in (source,base,checkout)))
+              parents=re.findall(rb'^parent ([a-f0-9]{40})$',git('cat-file','-p','HEAD').split(b'\n\n',1)[0],re.M)
+              require([x.decode() for x in parents]==[base,source])
+              summary.update(sourceSha=source,baseSha=base,checkoutSha=checkout)
+              summary['stage']='inventory'
+              index=git('ls-files','--stage','-z').split(b'\0')
+              require(index[-1]==b'')
+              paths=[]
+              for record in index[:-1]:
+                  meta, name=record.split(b'\t',1)
+                  path=name.decode('utf-8','strict')
+                  if path=='artisan' or path.endswith('.php'):
+                      require(meta.startswith((b'100644 ',b'100755 ')) and meta.endswith(b' 0'))
+                      require((root/path).is_file() and not (root/path).is_symlink() and (root/path).resolve()==root/path)
+                      paths.append(path)
+              paths=sorted(paths)
+              require(paths and len(paths)==len(set(paths)) and len(paths)<=10000)
+              old=set(git('ls-tree','-r','--name-only','-z',base).decode('utf-8','strict').split('\0'))
+              new=[path for path in paths if path not in old]
+              code=r'''
+          require 'tests/Support/TestEnvironmentGuard.php';
+          require 'tools/quality/php-policy.php';
+          \Tools\Quality\PhpQualityPolicy::assertNoOverrides();
+          \Tests\Support\TestEnvironmentGuard::applyFast(getcwd());
+          $new=json_decode(stream_get_contents(STDIN),true,flags:JSON_THROW_ON_ERROR);
+          \Tools\Quality\PhpQualityPolicy::assertNewStrictTypes(getcwd(),$new);
+          \Tools\Quality\PhpQualityPolicy::assertPintConfig(getcwd());
+          echo json_encode(\Tools\Quality\PhpQualityPolicy::inventory(getcwd()),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+          '''
+              probe=run_php(['-r',code],json.dumps(new).encode())
+              require(probe.returncode==0 and not probe.stderr and json.loads(probe.stdout)==paths)
+              digest=hashlib.sha256(json.dumps(paths,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+              installed=json.loads((root/'vendor/composer/installed.json').read_text())
+              require([p['version'] for p in installed['packages'] if p['name']=='laravel/pint']==['v1.32.3'])
+              clean()
+              summary['stage']='format'
+              result=run_php(['tools/quality/run.php','format'])
+              clean()
+              require(result.returncode in (0,1) and not result.stderr)
+              report=json.loads(result.stdout)
+              require(set(report)=={'mode','selectedCount','toolExit','resultValidation','inventorySha256','findingCount','files'})
+              require(report['mode']=='format' and report['resultValidation']=='VERIFIED' and report['selectedCount']==len(paths) and report['toolExit']==result.returncode and report['inventorySha256']==digest)
+              findings=report['files']
+              require(isinstance(findings,list) and findings==sorted(set(findings)) and set(findings)<=set(paths) and len(findings)==report['findingCount'])
+              require((result.returncode==0)==(len(findings)==0))
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',pint='1.32.3',toolExit=result.returncode,selectedCount=len(paths),inventorySha256=digest,selectedPaths=paths,newStrictTypesPaths=new,findingCount=len(findings),findingPaths=findings,trackedSourceUnchanged=True)
+          except (RuntimeError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+              summary['status']='BLOCKED'
+          finally:
+              summary['durationSeconds']=round(time.monotonic()-start,3)
+              with (out/'format-diagnostic.json').open('x') as f:
+                  json.dump(summary,f,indent=2);f.write('\n')
+              print(json.dumps({'task':'T016','status':summary['status'],'stage':summary['stage'],'selectedCount':summary.get('selectedCount'),'findingCount':summary.get('findingCount')}))
+          sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
+          PY
+
+      - name: Publish only safe diagnostic summary
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-t016-format-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_T016_DIR }}/format-diagnostic.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean exact owned format diagnostic directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_T016_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t016-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          names={x.name for x in p.iterdir()}
+          assert names=={'owner','format-diagnostic.json'}
+          for name in names:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          assert (p/'owner').read_text()==expected
+          for name in names: (p/name).unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned T016 format diagnostic cleanup verified.')
+          PY

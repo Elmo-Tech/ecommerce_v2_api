@@ -5,11 +5,13 @@ declare(strict_types=1);
 use Tests\Support\TestEnvironmentGuard;
 use Tools\Quality\PhpQualityPolicy;
 use Tools\Quality\PhpQualityScratch;
+use Tools\Quality\PintResult;
 
 // No Composer autoload or application bootstrap in this parent.
 $root = dirname(__DIR__, 2);
 $exit = 2;
 $scratch = null;
+$summary = null;
 $umask = umask(0077);
 
 try {
@@ -72,18 +74,24 @@ try {
     if (PhpQualityPolicy::fingerprint($root) !== $before) {
         throw new RuntimeException('Tracked source changed during quality tool execution.');
     }
-    // This launcher is not yet the quality report/gate. Do not echo child
-    // stdout/stderr; tool-specific validated result adapters come later.
-    echo json_encode([
+    // Pint reports only changed files. Bind its validated result to the
+    // exact independent selected inventory; analysis validation is later.
+    $summary = [
         'mode' => $mode,
         'selectedCount' => count($files),
         'toolExit' => $exit,
         'resultValidation' => 'PENDING',
-    ], JSON_THROW_ON_ERROR)."\n";
-} catch (Throwable) {
-    if ($exit === 0) {
-        $exit = 2;
+    ];
+    if ($mode === 'format') {
+        $findings = PintResult::validate($scratch->readOutput('stdout'), $scratch->readOutput('stderr'), $exit, $root, $files);
+        $summary['resultValidation'] = 'VERIFIED';
+        $summary['inventorySha256'] = hash('sha256', json_encode($files, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $summary['findingCount'] = count($findings);
+        $summary['files'] = $findings;
     }
+} catch (Throwable) {
+    $summary = null;
+    $exit = 2;
     fwrite(STDERR, "Guarded PHP quality command rejected or incomplete.\n");
 } finally {
     try {
@@ -91,13 +99,16 @@ try {
             $scratch->cleanup();
         }
     } catch (Throwable) {
-        if ($exit === 0) {
-            $exit = 2;
-        }
+        $summary = null;
+        $exit = 2;
         fwrite(STDERR, "Owned PHP quality scratch cleanup rejected or incomplete.\n");
     } finally {
         umask($umask);
     }
+}
+
+if ($summary !== null) {
+    echo json_encode($summary, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)."\n";
 }
 
 exit($exit);

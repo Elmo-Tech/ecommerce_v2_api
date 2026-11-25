@@ -446,6 +446,30 @@ final class PhpQualityScratch
         return $result >= 0 && $result <= 255 ? $result : 2;
     }
 
+    /**
+     * Read bounded, still-owned raw output for an internal result adapter.
+     * Never publish the returned bytes directly.
+     */
+    public function readOutput(string $name): string
+    {
+        if (!in_array($name, ['stdout', 'stderr'], true) || !isset($this->fixed[$name])) {
+            self::reject();
+        }
+        $this->verify();
+        $path = $this->path($name);
+        $observed = $this->node($path);
+        $this->same($this->fixed[$name], $observed);
+        if ($observed['size'] > self::FILE_LIMIT) {
+            self::reject();
+        }
+        $raw = @file_get_contents($path, false, null, 0, self::FILE_LIMIT + 1);
+        if ($raw === false || strlen($raw) !== $observed['size']) {
+            self::reject();
+        }
+
+        return $raw;
+    }
+
     public function cleanup(): void
     {
         $this->verify();
@@ -590,5 +614,129 @@ final class PhpQualityScratch
     private static function reject(): never
     {
         throw new RuntimeException('Owned PHP quality scratch rejected or incomplete.');
+    }
+}
+
+/**
+ * Narrow adapter for the reviewed nonverbose Pint 1.32.3 JSON reporter.
+ * The report lists changed files, not the selected inventory. The latter
+ * comes independently from the exact tracked paths passed to the tool.
+ */
+final class PintResult
+{
+    /**
+     * @param list<string> $inventory canonical relative tracked paths
+     * @return list<string> normalized style finding paths only
+     */
+    public static function validate(
+        #[SensitiveParameter] string $raw,
+        #[SensitiveParameter] string $stderr,
+        ?int $exit,
+        string $root,
+        array $inventory,
+    ): array {
+        if ($raw === '' || strlen($raw) > 16777216 || $stderr !== ''
+            || !in_array($exit, [0, 1], true)
+            || $root === '' || $root === '/' || !str_starts_with($root, '/')
+            || !array_is_list($inventory) || $inventory === []
+            || count($inventory) > 10000 || count(array_unique($inventory)) !== count($inventory)) {
+            self::reject();
+        }
+        try {
+            $data = json_decode($raw, false, 8, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            self::reject();
+        }
+        if (!$data instanceof \stdClass || !self::keys($data, ['about', 'files', 'memory', 'time'])
+            || !is_string($data->about) || $data->about === '' || strlen($data->about) > 4096
+            || !is_array($data->files) || !array_is_list($data->files)
+            || count($data->files) > count($inventory)
+            || !$data->time instanceof \stdClass || !self::keys($data->time, ['total'])
+            || !self::nonnegative($data->time->total) || !self::nonnegative($data->memory)) {
+            self::reject();
+        }
+        $allowed = [];
+        foreach ($inventory as $path) {
+            if (!is_string($path) || $path === '' || str_starts_with($path, '/')
+                || str_contains($path, '\\') || preg_match('/[\x00-\x1f\x7f]/', $path) !== 0
+                || array_intersect(explode('/', $path), ['', '.', '..']) !== []) {
+                self::reject();
+            }
+            $allowed[$path] = true;
+        }
+        $findings = [];
+        foreach ($data->files as $file) {
+            // Nonverbose JSON emits names only. Never relay fixers, diffs,
+            // parser errors or arbitrary tool-provided text into CI reports.
+            if (!$file instanceof \stdClass || !self::keys($file, ['name']) || !is_string($file->name)) {
+                self::reject();
+            }
+            $name = str_starts_with($file->name, $root.'/')
+                ? substr($file->name, strlen($root) + 1)
+                : $file->name;
+            if (!isset($allowed[$name]) || isset($findings[$name])) {
+                self::reject();
+            }
+            $findings[$name] = true;
+        }
+        // Strict shape above fixes the exact number of JSON members. Count
+        // unquoted colons in valid JSON to reject overwritten duplicate keys,
+        // including duplicates expressed with escaped characters.
+        if (self::memberCount($raw) !== 5 + count($data->files)
+            || ($exit === 0) !== ($findings === [])) {
+            self::reject();
+        }
+        $names = array_keys($findings);
+        sort($names, SORT_STRING);
+
+        return $names;
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    private static function keys(\stdClass $object, array $expected): bool
+    {
+        $actual = array_keys(get_object_vars($object));
+        sort($actual, SORT_STRING);
+        sort($expected, SORT_STRING);
+
+        return $actual === $expected;
+    }
+
+    private static function nonnegative(mixed $number): bool
+    {
+        return (is_int($number) || is_float($number)) && is_finite((float) $number) && $number >= 0;
+    }
+
+    private static function memberCount(#[SensitiveParameter] string $raw): int
+    {
+        $quoted = false;
+        $escaped = false;
+        $count = 0;
+        $length = strlen($raw);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $raw[$i];
+            if ($quoted) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === '"') {
+                    $quoted = false;
+                }
+            } elseif ($char === '"') {
+                $quoted = true;
+            } elseif ($char === ':') {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    private static function reject(): never
+    {
+        throw new RuntimeException('Pint result rejected or incomplete.');
     }
 }
