@@ -17,6 +17,7 @@ $blocked = ($argv[2] ?? '') === '--blocked' && $argc === 3;
 $directory = null;
 $runner = 2;
 $report = null;
+$observedReport = null;
 $rawOutput = [];
 $started = false;
 $start = hrtime(true);
@@ -86,6 +87,7 @@ try {
             }
         }
         $report = SafeTestReport::inspect($rawPath, $directory, [], [], $hashes);
+        $observedReport = $report;
         // A failed partial selection is still useful but cannot satisfy
         // required coverage. Publish the safe actual result if valid.
         $safe = SafeTestReport::safeXml($report, $selection, [], $hashes);
@@ -161,10 +163,11 @@ try {
         }
         [$base, $source] = $parents;
     }
-    $counts = $report === null ? null : array_intersect_key($report, array_flip(['tests', 'assertions', 'failures', 'errors', 'skipped', 'duration']));
+    $counts = $observedReport === null ? null : array_intersect_key($observedReport, array_flip(['tests', 'assertions', 'failures', 'errors', 'skipped', 'duration']));
     $summary = [
         'selection' => $selection, 'status' => $outcome['status'], 'exit_code' => $outcome['exit_code'],
-        'runner_started' => $started, 'tests_executed' => $started ? ($report === null ? null : true) : false,
+        'runner_started' => $started, 'tests_executed' => $started ? ($observedReport === null ? null : true) : false,
+        'selection_verified' => $report !== null,
         'runner_exit' => $started ? $runner : null,
         'source_sha' => $source, 'base_sha' => $base, 'checkout_sha' => $checkout,
         'run_id' => $run, 'run_attempt' => $attempt, 'php' => PHP_VERSION,

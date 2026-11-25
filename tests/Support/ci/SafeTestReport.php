@@ -129,7 +129,10 @@ final class SafeTestReport
         }
         $postgres = $redis = 0;
         foreach ($report['cases'] as $case) {
-            $class = $case['class'];
+            // Native PHPUnit JUnit classname uses dotted namespace names
+            // (observed in the actual CI artifact), while class may use PHP
+            // namespace separators. Normalize only for selection validation.
+            $class = str_replace('.', '\\', $case['class']);
             $integration = str_contains($class, '\\Integration\\');
             if ($selection === 'integration') {
                 if (!$integration) {

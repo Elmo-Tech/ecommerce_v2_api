@@ -156,3 +156,19 @@ it('rejects inconsistent aggregate counts and contradictory per-case outcomes', 
     '<testsuites tests="5"><testsuite><testcase name="one"/></testsuite></testsuites>',
     '<testsuites><testsuite><testcase name="one"><failure/><skipped/></testcase></testsuite></testsuites>',
 ])->group('testing-foundation');
+
+
+it('validates actual dotted PHPUnit classnames and PHP namespace names without confusing fast and integration suites', function (string $separator): void {
+    $class = static fn (string $group, string $name): string => implode($separator, ['Tests', $group, $name]);
+    $architecture = ['tests' => 9, 'cases' => array_fill(0, 9, ['class' => $class('Architecture', 'BoundaryTest')])];
+    SafeTestReport::verifySelection('architecture', $architecture);
+    expect(fn () => SafeTestReport::verifySelection('integration', $architecture))->toThrow(RuntimeException::class);
+    $integration = ['tests' => 34, 'cases' => array_merge(
+        array_fill(0, 26, ['class' => $class('Integration', 'PostgreSqlIsolationTest')]),
+        array_fill(0, 8, ['class' => $class('Integration', 'RedisIsolationTest')]),
+    )];
+    SafeTestReport::verifySelection('integration', $integration);
+    $mixed = ['tests' => 98, 'cases' => array_merge(array_fill(0, 97, ['class' => $class('Unit', 'FastTest')]), [$integration['cases'][0]])];
+    expect(fn () => SafeTestReport::verifySelection('fast-all', $mixed))->toThrow(RuntimeException::class);
+    expect(fn () => SafeTestReport::verifySelection('architecture', ['tests' => 5, 'cases' => array_fill(0, 5, ['class' => $class('Unit', 'WrongTest')])]))->toThrow(RuntimeException::class);
+})->with(['.', '\\'])->group('testing-foundation');
