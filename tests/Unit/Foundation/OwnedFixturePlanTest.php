@@ -42,3 +42,17 @@ it('restricts all Redis forbidden-command probes to ACL DRYRUN and distinguishes
     }
     expect(fn () => RedisFixturePlan::probes('0123456789abcdef', 'central'))->toThrow(RuntimeException::class);
 })->group('testing-foundation');
+
+
+it('recognizes the exact Redis dry-run denial forms and binds named keys and commands to the requested probe', function (): void {
+    $key = 'f03:0123456789abcdef:b:preflight';
+    expect(RedisFixturePlan::denied("ERR This user has no permissions to access the '$key' key", true, $key))->toBeTrue();
+    expect(RedisFixturePlan::denied("NOPERM this user has no permissions to access one of the keys used as arguments", true, $key))->toBeTrue();
+    expect(RedisFixturePlan::denied("ERR This user has no permissions to access the '$key' key", true, 'f03:0123456789abcdef:a:preflight'))->toBeFalse();
+    expect(RedisFixturePlan::denied("ERR This user has no permissions to run the 'acl|setuser' command", false, 'ACL SETUSER'))->toBeTrue();
+    expect(RedisFixturePlan::denied("ERR This user has no permissions to run the 'get' command", false, 'FLUSHALL'))->toBeFalse();
+    expect(RedisFixturePlan::denied("AUTH failed\nERR This user has no permissions to access the '$key' key", true, $key))->toBeFalse();
+    expect(RedisFixturePlan::replyCategory("ERR This user has no permissions to access the '$key' key"))->toBe('key-denied');
+    expect(RedisFixturePlan::replyCategory("WRONGPASS invalid credentials"))->toBe('authentication-error');
+    expect(RedisFixturePlan::replyCategory("unrelated-secret-value"))->toBe('unexpected-response');
+})->group('testing-foundation');

@@ -196,33 +196,45 @@ final class LocalDocker
         echo "Owned PostgreSQL 17.12 fixtures and restricted grant matrix verified by setup.\n";
 
         $admin = $credentials['redis_admin'];
+        echo "Owned Redis setup: verifying admin identity and authentication.\n";
         if (trim($docker->redisAdmin($record, $admin, ['ACL', 'WHOAMI'])) !== 'f03_setup'
             || trim($docker->redisAdmin($record, $admin, ['PING'])) !== 'PONG') {
             self::reject();
         }
+        echo "Owned Redis setup: admin identity and PING verified.\n";
         $version = $docker->redisAdmin($record, $admin, ['INFO', 'server']);
         if (!preg_match('/^redis_version:8\.2\.11\r?$/m', $version)) {
             self::reject();
         }
+        echo "Owned Redis setup: pinned server version verified.\n";
         $evidence = ['token' => $context['token'], 'server_version' => '8.2.11', 'denials' => []];
         foreach (['a', 'b'] as $slot) {
             $probes = \Tests\Support\ci\RedisFixturePlan::probes($context['token'], $slot);
             foreach ($probes['allowed'] as $probe) {
-                if (trim($docker->redisAdmin($record, $admin, $probe)) !== 'OK') {
+                $reply = $docker->redisAdmin($record, $admin, $probe);
+                if (trim($reply) !== 'OK') {
+                    echo 'Owned Redis setup: slot '.$slot.' allowed '.$probe[3].' probe rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($reply).".\n";
                     self::reject();
                 }
             }
+            echo 'Owned Redis setup: slot '.$slot." five allowed dry-runs verified.\n";
             foreach ($probes['denied'] as $name => $probe) {
-                if (!\Tests\Support\ci\RedisFixturePlan::denied($docker->redisAdmin($record, $admin, $probe))) {
+                $reply = $docker->redisAdmin($record, $admin, $probe);
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, false, $name)) {
+                    echo 'Owned Redis setup: slot '.$slot.' denied '.$name.' probe rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($reply).".\n";
                     self::reject();
                 }
                 $evidence['denials'][$slot][$name] = true;
             }
+            echo 'Owned Redis setup: slot '.$slot." seven prohibited command dry-runs verified.\n";
             foreach ($probes['foreign'] as $probe) {
-                if (!\Tests\Support\ci\RedisFixturePlan::denied($docker->redisAdmin($record, $admin, $probe), true)) {
+                $reply = $docker->redisAdmin($record, $admin, $probe);
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, true, $probe[4])) {
+                    echo 'Owned Redis setup: slot '.$slot.' foreign '.$probe[3].' probe rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($reply).".\n";
                     self::reject();
                 }
             }
+            echo 'Owned Redis setup: slot '.$slot." three foreign key dry-runs verified.\n";
         }
         echo "Owned Redis 8.2.11 version, ACL allowed/denied dry-runs verified by setup.\n";
         // Preserve only password hashes for later report scanning. Setup
@@ -292,6 +304,7 @@ final class LocalDocker
         [$stdout, $stderr, $status] = $this->command(['exec', '-i', $id, 'sh', '-c', $script, 'f03', ...$args], true, true, $password."\n");
         if ($status !== 0 && !\Tests\Support\ci\RedisFixturePlan::denied($stdout."\n".$stderr)
             && !\Tests\Support\ci\RedisFixturePlan::denied($stdout."\n".$stderr, true)) {
+            echo 'Owned Redis setup: CLI rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($stdout."\n".$stderr).".\n";
             self::reject();
         }
         return trim($stdout."\n".$stderr);
