@@ -1,7 +1,7 @@
 # Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A and full technical design approved; T001–T035 completed at verified executable source, R01 resolved; T036–T040 pending and current docs-only candidate recheck required. See [quickstart](quickstart.md).
+**Status:** DEC-01…04 and full technical design approved; implementation merged and verified. T001–T039 verified (39/40); T040 documentation prepared in this closeout candidate. **40/40 becomes effective only after this separate reviewed docs-only PR is merged into development and publication is verified.** Before then T040 remains pending. See [quickstart](quickstart.md).
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
@@ -202,3 +202,8 @@ First reviewed actual workflow staged, separate sequential jobs, safe report art
 
 
 **T035 review update:** 417/2518 fast, 34/304 native at exact reviewed executable source; R01 reporting correction verified; see [technical review](../../docs/reviews/F0-03-technical-review-2026-11-25.md). No design/pin change, human review and separate merge consent pending.
+
+
+**Verified integration update (2026-11-25):** [PR #7](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/7) merged to development on 2026-11-25 at 12:31:10 UTC after explicit owner T036 review and separate T037 development-only consent, recorded in [owner review](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/7#issuecomment-7162276089) and [merge consent](https://github.com/Elmo-Tech/ecommerce_v2_api/pull/7#issuecomment-7162419327). The owner confirmed the sensitive checklist; the project requires qualified independent human review if the owner cannot provide that review. No separate reviewer or formal GitHub APPROVED review is claimed. At final verification, no unresolved inline review threads or requested reviewers, visible rulesets empty, development protected=false, and mergeable_state=clean. Detailed administrative protection endpoint was inaccessible (403); GitHub PR merge succeeded without bypass. T038 GitHub returned merged=true, merge SHA `950c775ed1d964d7331e735b1202b0a9c091ddbc`. T039 independently fetched PR metadata, development ref, actual and tested commit objects: exact parents `97c5895bd5672261247b45f1b7eca5648afaf163` and `4a20a9c8c83d0991f41cf121617af505bebf4f11`; actual merged tree and tested checkout `488b9e2a9d6accb6cb743835290f779a96d3b560` share tree `917313c81f5e9e59ad88c00bc6d6354f1cad534d`. No separate post-merge CI run was observed; verification is actual integrated tree equivalence. Compare base to merged source: 64 changed paths, no production app/config/bootstrap/routes/database/public/lang/Composer changes and no previous test source modified. F0-01 26/26 and F0-02 30/30 preserved, including verified merged closeout PR #6. Main remained `16a79b70ed8442d4b77165b27eb49473197625b0`; no deployment, migration, main promotion or next Feature was initiated.
+
+No approved design changes. T001–T039 verified (39/40); T040 documentation prepared in this closeout candidate. **40/40 becomes effective only after this separate reviewed docs-only PR is merged into development and publication is verified.** Before then T040 remains pending.
