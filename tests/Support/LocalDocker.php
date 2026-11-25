@@ -262,6 +262,9 @@ final class LocalDocker
         echo "Owned runtime descriptor published after setup; setup credential files removed.\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function ownedRunningId(array $record, string $service): string
     {
         $observed = $this->observeRecord($record, false);
@@ -271,6 +274,9 @@ final class LocalDocker
         return $record['containers'][$service]['id'];
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function psql(array $record, string $database, #[\SensitiveParameter] string $sql): string
     {
         if ($database !== 'postgres' && !in_array($database, array_map(static fn (string $slot): string => 'f03_'.$record['token'].'_'.$slot, ['central', 'a', 'b']), true)) {
@@ -282,6 +288,10 @@ final class LocalDocker
             '-U', 'postgres', '-d', $database], true, false, $sql."\n")[0];
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     * @param list<string> $args
+     */
     private function redisAdmin(array $record, #[\SensitiveParameter] string $password, array $args): string
     {
         if (!preg_match('/^[0-9a-f]{64}$/D', $password)) {
@@ -332,6 +342,9 @@ final class LocalDocker
         return 'unclassified';
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function diagnoseStartup(array $record, string $service): void
     {
         try {
@@ -395,6 +408,10 @@ final class LocalDocker
         }
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     * @return array<string, array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}|null>
+     */
     private function observeRecord(array $record, bool $partial): array
     {
         $context = IntegrationContext::environment(dirname(__DIR__, 2), getenv(), $_ENV, $_SERVER);
@@ -410,6 +427,9 @@ final class LocalDocker
         return $observed;
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function waitReady(array $record, string $service): void
     {
         $deadline = hrtime(true) + 60_000_000_000;
@@ -437,6 +457,9 @@ final class LocalDocker
         self::reject();
     }
 
+    /**
+     * @return array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}|null
+     */
     public function observe(string $service, string $id, string $directory, bool $cleanup = false): ?array
     {
         $pin = OwnedTestRun::image($service);
@@ -465,7 +488,13 @@ final class LocalDocker
         return self::normalize($service, $id, $directory, $container, $image, $cleanup);
     }
 
-    /** Pure parser also exercised with synthetic observations in fast tests. */
+    /**
+     * Pure parser also exercised with synthetic observations in fast tests.
+     *
+     * @param array<array-key, mixed> $container
+     * @param array<array-key, mixed> $image
+     * @return array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}
+     */
     public static function normalize(string $service, string $id, string $directory, array $container, array $image, bool $cleanup = false): array
     {
         self::assertId($id);
@@ -677,6 +706,9 @@ final class LocalDocker
         return $count;
     }
 
+    /**
+     * @return list<mixed>
+     */
     private function jsonLines(string $raw, int $count): array
     {
         $lines = explode("\n", rtrim($raw, "\r\n"));
@@ -697,6 +729,10 @@ final class LocalDocker
         }
     }
 
+    /**
+     * @param list<string> $args
+     * @return array{string, string, int}
+     */
     private function command(array $args, bool $explicitEndpoint = true, bool $allowFailure = false, #[\SensitiveParameter] ?string $input = null): array
     {
         $argv = [self::BINARY, ...($explicitEndpoint ? ['--host', self::ENDPOINT] : []), ...$args];

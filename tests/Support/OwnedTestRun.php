@@ -25,6 +25,9 @@ final class OwnedTestRun
         ],
     ];
 
+    /**
+     * @param array<string, array{host: string, port: int, slots: array<string, array<string, string>>}> $runtime
+     */
     private function __construct(
         private readonly string $runToken,
         private readonly string $ownedDirectory,
@@ -32,6 +35,12 @@ final class OwnedTestRun
     ) {
     }
 
+    /**
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed> $descriptor
+     * @param array<array-key, mixed> $observed
+     */
     public static function validate(
         array $job,
         array $record,
@@ -87,18 +96,32 @@ final class OwnedTestRun
      * allowed only for an independently confirmed absence, not a failed
      * inspection; callers must establish that distinction. Full runtime
      * validation never accepts missing or absent containers.
+
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed> $observed
      */
     public static function validateRecord(array $job, array $record, array $observed, string $runnerTemp, bool $partial): void
     {
         self::checkRecord($job, $record, $observed, $runnerTemp, $partial);
     }
 
-    /** Structural precheck before inspecting IDs; never a live ownership proof. */
+    /**
+     * Structural precheck before inspecting IDs; never a live ownership proof.
+     *
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     */
     public static function validateCapturedRecord(array $job, array $record, string $runnerTemp, bool $partial): void
     {
         self::checkRecord($job, $record, null, $runnerTemp, $partial);
     }
 
+    /**
+     * @param array<array-key, mixed> $job
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed>|null $observed
+     */
     private static function checkRecord(array $job, array $record, ?array $observed, string $runnerTemp, bool $partial): void
     {
         self::shape($job, ['repository', 'run_id', 'run_attempt', 'job', 'runner_environment', 'runner_os', 'runner_arch', 'docker_endpoint']);
@@ -218,6 +241,9 @@ final class OwnedTestRun
         }
     }
 
+    /**
+     * @return array{manifest: string, image_id: string}
+     */
     public static function image(string $service): array
     {
         if (!array_key_exists($service, self::IMAGES)) {
@@ -237,11 +263,17 @@ final class OwnedTestRun
         return $this->ownedDirectory;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function postgresSlot(string $slot): array
     {
         return $this->slot('postgres', $slot);
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function redisSlot(string $slot): array
     {
         return $this->slot('redis', $slot);
@@ -256,6 +288,9 @@ final class OwnedTestRun
         return $this->runtime[$service]['port'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function slot(string $service, string $slot): array
     {
         if (!array_key_exists($slot, $this->runtime[$service]['slots'])) {
@@ -270,11 +305,18 @@ final class OwnedTestRun
         return ['token' => $this->runToken, 'runtime_credentials' => '[redacted]'];
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     public function __serialize(): array
     {
         throw new RuntimeException('Owned runtime credentials cannot be serialized.');
     }
 
+    /**
+     * @param list<array-key> $keys
+     * @return array<array-key, mixed>
+     */
     private static function shape(#[SensitiveParameter] mixed $value, array $keys): array
     {
         if (!is_array($value)) {
@@ -294,6 +336,9 @@ final class OwnedTestRun
      * Compare independently obtained observations using exact recursive
      * value/type equality, ignoring associative key insertion order only.
      * The complete structural and current-job validation is still required.
+
+     * @param array<array-key, mixed>|null $expected
+     * @param array<array-key, mixed>|null $actual
      */
     public static function sameObservation(?array $expected, ?array $actual): bool
     {
