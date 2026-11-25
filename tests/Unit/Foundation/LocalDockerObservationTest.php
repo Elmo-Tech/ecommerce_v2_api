@@ -6,6 +6,8 @@ use Tests\Fixtures\FoundationOwnedRunFixture;
 use Tests\Support\LocalDocker;
 
 it('normalizes only exact pinned loopback-bound container observations and rejects unsafe variants without daemon I/O', function (string $case): void {
+    /** @var 'valid'|'wrong image'|'wrong digest'|'wrong architecture'|'wrong reference'|'public port'|'multiple bindings'|'privileged'|'host network'|'shared named volume'|'docker socket mount'|'writable config mount'|'stopped' $case */
+
     $fixture = new FoundationOwnedRunFixture();
     try {
         $record = $fixture->record['containers']['postgres'];

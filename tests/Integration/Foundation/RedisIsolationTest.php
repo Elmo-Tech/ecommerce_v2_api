@@ -19,7 +19,7 @@ it('authenticates real native Redis A and B separately and isolates equal logica
     $keyA = 'f03:'.$token.':a:same-logical-key';
     $keyB = 'f03:'.$token.':b:same-logical-key';
     try {
-        expect($a)->toBeInstanceOf(Redis::class)->not->toBe($b);
+        expect($a)->toBeInstanceOf(Redis::class)->not()->toBe($b);
         expect($b)->toBeInstanceOf(Redis::class);
         expect($a->rawCommand('ACL', 'WHOAMI'))->toBe('f03_'.$token.'_a_rt');
         expect($b->rawCommand('ACL', 'WHOAMI'))->toBe('f03_'.$token.'_b_rt');

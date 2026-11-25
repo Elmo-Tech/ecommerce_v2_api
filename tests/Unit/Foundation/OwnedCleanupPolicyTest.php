@@ -62,6 +62,8 @@ it('treats positively verified absent containers as already removed without sele
 })->group('testing-foundation');
 
 it('refuses ambiguous or foreign cleanup identities without touching even the owned scratch directory', function (string $case): void {
+    /** @var 'wrong run'|'different label'|'different image'|'different id'|'different volume'|'unexpected container'|'noncanonical path'|'remote daemon' $case */
+
     $fixture = new FoundationOwnedRunFixture();
     try {
         match ($case) {

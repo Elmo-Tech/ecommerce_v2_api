@@ -11,6 +11,8 @@ use Tests\Fixtures\ApiHttpFixtures;
 beforeEach(fn () => ApiHttpFixtures::register());
 
 it('returns a fresh trusted request ID on success, no content, unmatched routes, validation and native errors', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $header = ['X-Request-ID' => 'spoofed-fixture-id', 'Accept-Language' => 'en'];
     $responses = [
         $this->getJson(ApiHttpFixtures::PREFIX.'/ok', $header)->assertOk(),
@@ -34,6 +36,8 @@ it('returns a fresh trusted request ID on success, no content, unmatched routes,
 })->group('api-foundation');
 
 it('correlates safe technical diagnostics and restores unrelated logging and locale state after failures', function (): void {
+    /** @var \Tests\TestCase $this */
+
     config(['app.debug' => true]);
     $this->app->setLocale('en');
     $events = [];
@@ -67,6 +71,8 @@ it('correlates safe technical diagnostics and restores unrelated logging and loc
 
 
 it('reports distinct short-lived exceptions independently and does not suppress the next unrelated native report', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;
@@ -88,6 +94,8 @@ it('reports distinct short-lived exceptions independently and does not suppress 
 })->group('api-foundation');
 
 it('sanitizes a failure inside locale selection or restoration and unconditionally clears attempt state', function (string $failureLocale): void {
+    /** @var \Tests\TestCase $this */
+
     $this->app->setLocale('en');
     // Make application and translator locales deliberately distinct, so
     // restoration proves both prior values rather than one shared default.
@@ -133,6 +141,8 @@ it('sanitizes a failure inside locale selection or restoration and unconditional
 })->with(['ar', 'en'])->group('api-foundation');
 
 it('distinguishes exception classification from the actual rendered HTTP status without a second error report', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;

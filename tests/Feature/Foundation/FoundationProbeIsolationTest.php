@@ -132,8 +132,8 @@ PHP);
         $content = file_get_contents($cachePath);
 
         expect($content)->toContain('__f0-cache-control')
-            ->not->toContain('__foundation/module-probe')
-            ->not->toContain('foundation.demo.probe');
+            ->not()->toContain('__foundation/module-probe')
+            ->not()->toContain('foundation.demo.probe');
 
         $list = new Process([PHP_BINARY, $fixtureRoot.'/artisan', 'route:list', '--json'], $fixtureRoot, $env);
         $list->setTimeout(90);
@@ -143,7 +143,7 @@ PHP);
         $uris = array_column($routes, 'uri');
 
         expect($uris)->toContain('__f0-cache-control')
-            ->not->toContain('api/v1/__foundation/module-probe');
+            ->not()->toContain('api/v1/__foundation/module-probe');
     } finally {
         // Delete only the uniquely named test scratch directory, never the
         // actual GitHub checkout, project vendor/ or any production data.

@@ -220,7 +220,7 @@ it('rejects generated credential canaries even in a syntactically valid version 
         $failure = $error;
     }
     expect($failure)->toBeInstanceOf(RuntimeException::class);
-    expect($failure->getMessage())->not->toContain($canary)->not->toBeEmpty();
+    expect($failure->getMessage())->not()->toContain($canary)->not()->toBeEmpty();
 })->with([false, true])->group('testing-foundation');
 
 it('creates and cleans only the exact private owned evidence directory', function (): void {

@@ -117,6 +117,8 @@ it('reads only an exact private runtime descriptor and rejects arbitrary filenam
 })->group('testing-foundation');
 
 it('validates integration job inputs independently from the descriptor before Docker access', function (string $case): void {
+    /** @var 'valid'|'wrong job'|'wrong token'|'foreign descriptor'|'conflicting source'|'ambient DB'|'remote docker' $case */
+
     $fixture = new FoundationOwnedRunFixture();
     try {
         $process = [

@@ -40,7 +40,7 @@ it('uses the actual new bootstrap when building and loading an isolated producti
         $cache->mustRun();
         expect(is_file($cachePath))->toBeTrue();
         expect(file_get_contents($cachePath))->toContain('__f0-02-cache-control')
-            ->not->toContain('__foundation/module-probe', '__f0-api');
+            ->not()->toContain('__foundation/module-probe', '__f0-api');
         $list = new Process([PHP_BINARY, $root.'/artisan', 'route:list', '--json'], $root, $env);
         $list->setTimeout(90);
         $list->mustRun();
@@ -52,6 +52,8 @@ it('uses the actual new bootstrap when building and loading an isolated producti
 })->group('api-foundation');
 
 it('correlates even the exact v1 boundary and does not include lookalike versions', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $this->getJson('/api/v1')->assertNotFound()->assertJsonPath('errorCode', 'RESOURCE_NOT_FOUND')->assertHeader('X-Request-ID');
     $this->getJson('/api/v10')->assertNotFound()->assertJsonMissingPath('errorCode')->assertHeaderMissing('X-Request-ID');
     expect(app('db')->getConnections())->toBeEmpty();

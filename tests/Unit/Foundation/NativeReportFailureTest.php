@@ -52,6 +52,8 @@ function f03NativeReportProbe(FoundationTestCheckout $checkout, string $case, st
 }
 
 it('proves actual locked Pest failure flags using isolated native subprocesses', function (string $case): void {
+    /** @var 'pass'|'empty'|'skipped'|'incomplete'|'risky'|'warning'|'failure' $case */
+
     $checkout = new FoundationTestCheckout();
     try {
         $result = f03NativeReportProbe($checkout, $case);

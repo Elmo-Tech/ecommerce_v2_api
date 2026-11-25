@@ -23,6 +23,8 @@ it('reads scoped synthetic JUnit cases and independently counts results without 
 })->group('testing-foundation');
 
 it('rejects missing malformed empty or incomplete-selection reports instead of manufacturing a passing count', function (string $case): void {
+    /** @var 'missing'|'malformed'|'empty'|'wrong selection'|'DTD' $case */
+
     $checkout = new FoundationTestCheckout();
     try {
         match ($case) {
@@ -71,7 +73,7 @@ it('blocks reports containing generated credential canaries without echoing them
             $failure = $error;
         }
         expect($failure)->toBeInstanceOf(RuntimeException::class);
-        expect($failure->getMessage())->not->toContain($secret)->not->toContain($raw);
+        expect($failure->getMessage())->not()->toContain($secret)->not()->toContain($raw);
     } finally {
         $checkout->close();
     }

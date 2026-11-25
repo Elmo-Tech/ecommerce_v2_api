@@ -108,7 +108,7 @@ it('rejects unsafe explicit settings independently of their source and does not 
             $rejection = $error;
         }
         expect($rejection)->toBeInstanceOf(RuntimeException::class);
-        expect($rejection->getMessage())->not->toBeEmpty()->not->toContain('f03-synthetic-canary');
+        expect($rejection->getMessage())->not()->toBeEmpty()->not()->toContain('f03-synthetic-canary');
         expect($checkout->reachedAutoload())->toBeFalse();
         expect(file_get_contents($checkout->root.'/.env'))->toBe('');
     } finally {

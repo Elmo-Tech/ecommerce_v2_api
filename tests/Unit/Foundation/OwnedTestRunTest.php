@@ -78,13 +78,15 @@ it('rejects mismatched identity or unsafe descriptor values before any service a
             $rejection = $error;
         }
         expect($rejection)->toBeInstanceOf(RuntimeException::class);
-        expect($rejection->getMessage())->not->toBeEmpty()->not->toContain('f03-synthetic-canary');
+        expect($rejection->getMessage())->not()->toBeEmpty()->not()->toContain('f03-synthetic-canary');
     } finally {
         $fixture->close();
     }
 })->with('f03 unsafe owned record')->group('testing-foundation');
 
 it('rejects missing, unexpected or duplicated fixed service slots and missing observations', function (string $case): void {
+    /** @var 'missing postgres slot'|'extra postgres slot'|'duplicate role'|'extra redis slot'|'missing container'|'duplicate container' $case */
+
     $fixture = new FoundationOwnedRunFixture();
     try {
         match ($case) {

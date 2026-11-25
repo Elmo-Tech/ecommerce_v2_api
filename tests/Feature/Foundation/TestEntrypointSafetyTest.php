@@ -72,6 +72,8 @@ it('blocks the fast launcher before autoload or test execution when the environm
 ])->group('testing-foundation');
 
 it('rejects unsafe dotenv and cache files without touching their contents or symlink targets', function (string $case): void {
+    /** @var 'nonempty dotenv'|'unexpected testing dotenv'|'cached config'|'symlink dotenv' $case */
+
     $checkout = new FoundationTestCheckout();
     $canary = 'f03-synthetic-canary';
     try {

@@ -10,6 +10,8 @@ use Tests\Fixtures\ApiHttpFixtures;
 beforeEach(fn () => ApiHttpFixtures::register());
 
 it('applies the selected locale inside the real HTTP request and restores previous application and translator locales', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $this->app->setLocale('en');
     $this->app['translator']->setLocale('en');
     foreach ([
@@ -32,6 +34,8 @@ it('applies the selected locale inside the real HTTP request and restores previo
 })->group('api-foundation');
 
 it('falls back to Arabic and then safe human-readable wording without a raw translation key', function (): void {
+    /** @var \Tests\TestCase $this */
+
     expect(class_exists(ApiMessages::class))->toBeTrue();
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
@@ -42,13 +46,15 @@ it('falls back to Arabic and then safe human-readable wording without a raw tran
     $messages = new ApiMessages($translator);
     expect($messages->get('fixtureArabicOnly', 'en'))->toBe('رسالة آمنة');
     $missing = $messages->get('fixtureMissingBoth', 'en');
-    expect($missing)->toBeString()->not->toBeEmpty()
-        ->not->toContain('fixtureMissingBoth', 'api.');
+    expect($missing)->toBeString()->not()->toBeEmpty()
+        ->not()->toContain('fixtureMissingBoth', 'api.');
     expect(array_filter($events, static fn (MessageLogged $event): bool => $event->level === 'warning'))->not->toBeEmpty();
 })->group('api-foundation');
 
 
 it('has complete nonempty critical shared error translations for both supported locales', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $codes = array_values((new ReflectionClass(\App\Core\Http\ApiErrorCodes::class))->getConstants());
     $expected = [...$codes, 'INVALID_FIELD'];
     $translator = $this->app['translator'];
@@ -56,14 +62,16 @@ it('has complete nonempty critical shared error translations for both supported 
         $catalog = require base_path('lang/'.$locale.'/api.php');
         expect(array_keys($catalog))->toEqualCanonicalizing($expected);
         foreach ($expected as $code) {
-            expect($catalog[$code])->toBeString()->not->toBeEmpty()
-                ->and(trim($catalog[$code]))->not->toBe('')
+            expect($catalog[$code])->toBeString()->not()->toBeEmpty()
+                ->and(trim($catalog[$code]))->not()->toBe('')
                 ->and($translator->get('api.'.$code, [], $locale, false))->toBe($catalog[$code]);
         }
     }
 })->group('api-foundation');
 
 it('identifies known missing translation codes without logging an arbitrary supplied key', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         if ($event->message === 'api.translation_missing') {

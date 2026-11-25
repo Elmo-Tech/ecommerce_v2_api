@@ -10,6 +10,8 @@ beforeEach(function (): void {
 });
 
 it('maps genuine native API exceptions to the approved status and safe envelope', function (string $path, int $status, string $code): void {
+    /** @var \Tests\TestCase $this */
+
     $response = $this->get(ApiHttpFixtures::PREFIX.$path, ['Accept-Language' => 'en']);
     $response->assertStatus($status)
         ->assertJsonPath('success', false)
@@ -20,8 +22,8 @@ it('maps genuine native API exceptions to the approved status and safe envelope'
     $body = json_decode($response->getContent(), flags: JSON_THROW_ON_ERROR);
     expect(array_keys(get_object_vars($body)))->toBe(['success', 'message', 'errorCode', 'errors'])
         ->and($body->errors)->toBe([])
-        ->and($body->message)->toBeString()->not->toBeEmpty()
-        ->and($response->getContent())->not->toContain(ApiHttpFixtures::PRIVATE_VALUE, 'SQL SELECT', '/private/source.php', '"trace"', '"exception"');
+        ->and($body->message)->toBeString()->not()->toBeEmpty()
+        ->and($response->getContent())->not()->toContain(ApiHttpFixtures::PRIVATE_VALUE, 'SQL SELECT', '/private/source.php', '"trace"', '"exception"');
     $response->assertHeader('X-Request-ID');
 })->with([
     ['/status/400', 400, 'BAD_REQUEST'],
@@ -39,6 +41,8 @@ it('maps genuine native API exceptions to the approved status and safe envelope'
 ])->group('api-foundation');
 
 it('preserves protocol headers and true method mismatch without a catch-all route', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $response = $this->postJson(ApiHttpFixtures::PREFIX.'/ok');
     $response->assertStatus(405)->assertJsonPath('errorCode', 'METHOD_NOT_ALLOWED')->assertHeader('X-Request-ID');
     expect($response->headers->get('Allow'))->toContain('GET', 'HEAD');
@@ -49,6 +53,8 @@ it('preserves protocol headers and true method mismatch without a catch-all rout
 })->group('api-foundation');
 
 it('keeps redirects downloads and non-v1 or unrelated native responses intact', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $this->get(ApiHttpFixtures::PREFIX.'/redirect')->assertRedirect('/fixture-native-target')->assertHeader('X-Request-ID');
     $this->get(ApiHttpFixtures::PREFIX.'/download')->assertOk()->assertDownload('fixture.txt')->assertHeader('X-Request-ID');
     $this->getJson('/api/v10/__f0-api/legacy')->assertNotFound()
@@ -58,6 +64,8 @@ it('keeps redirects downloads and non-v1 or unrelated native responses intact', 
 
 
 it('normalizes a custom exception-rendered error response at the native final response hook', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $response = $this->getJson(ApiHttpFixtures::PREFIX.'/custom-error', ['Accept-Language' => 'en']);
     $response->assertStatus(502)->assertJsonPath('errorCode', 'HTTP_ERROR')->assertHeader('X-Request-ID')
         ->assertJsonPath('errors', []);
@@ -65,6 +73,8 @@ it('normalizes a custom exception-rendered error response at the native final re
 })->group('api-foundation');
 
 it('does not allow an unexpected custom exception to masquerade as success or redirect', function (string $path): void {
+    /** @var \Tests\TestCase $this */
+
     $response = $this->getJson(ApiHttpFixtures::PREFIX.$path);
     $response->assertStatus(500)->assertJsonPath('errorCode', 'INTERNAL_ERROR')
         ->assertJsonPath('success', false)->assertHeader('X-Request-ID')->assertHeaderMissing('Location');
