@@ -13,7 +13,7 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 19/40 complete; T019 safe verification passed; T020 scoped cleanup and capture completion pending final CI. Native Integration NOT RUN.
+**Status:** 20/40 complete; T019/T020 scoped safe verification passed (352 pass/20 expected later-scope fail, no warnings). Native Integration NOT RUN and actual teardown NOT RUN. T021–T040 open.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -28,5 +28,9 @@
 
 - [x] T016/T017 fast guard/launcher targeted verification (CI #45597723864 and #45598005372).
 - [x] T018 pure owned record validation and fixed slots (40/40 and slot-resolution test, CI #45598005372).
-- [ ] T019 guarded explicit real-service connection entry and native driver policies.
-- [ ] T020 real owned cleanup adapter (pure policy 14/14 only, no deletion executed).
+- [x] T019 guarded explicit integration entry and native driver policy (scoped CI #45600204166; actual native service verification pending).
+- [x] T020 exact owned cleanup adapter and pure/negative/record-persistence verification (33/33, CI #45600204166; actual deletion/teardown T030 NOT RUN).
+
+
+- [ ] T021–T025 remaining owned startup/setup/report/workflow implementation.
+- [ ] T027–T030 actual service and cleanup verification; not satisfied by T019/T020 safe policy tests.
