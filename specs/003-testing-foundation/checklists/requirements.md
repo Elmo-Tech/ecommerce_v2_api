@@ -1,4 +1,4 @@
-# F0-03 — Requirements review checklist (owner-approved Spec/Plan; implementation gate pending)
+# F0-03 — Requirements review checklist (owner-approved Spec/Plan; verified implementation, review pending)
 
 - [x] Reopened current development, verified F0-02 30/30 and prior actual CI.
 - [x] Reopened TEST-01…10, DB/Architecture/Constitution/Workflow and actual test bootstrap/config/CI source.
@@ -10,10 +10,10 @@
 - [x] Owner approved complete final spec.md and plan.md at `722dd440f36269c2e6ac6d052801b35d6cac876e` on 2026-11-25, including versions and technical design.
 - [x] Generated [tasks.md](../tasks.md) and [consistency analysis](../consistency-analysis.md); documentary coverage/dependency validation complete.
 - [x] T003 separate explicit implementation authorization recorded at approved task revision `74f45e00e289568aca85e071317100f04b20c8be`.
-- [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
+- [x] Actual baseline, negative/positive regression/real service CI and bounded scope review after authorization (T032–T033).
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 26/40 complete; actual startup and PostgreSQL grants pass, Redis admin/version/first five allowed probes pass; first prohibited dry-run response classification correction staged. Native Integration BLOCKED; T027–T040 open.
+**Status:** 34/40 complete; T032 actual full green, T033 bounded scope review, T034 quickstart/evidence reconciliation; exact docs-only candidate recheck and T035–T040 open.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -22,7 +22,7 @@
 
 - [x] T006–T014 approved risk-selected test sources authored.
 - [x] T015 actual safe RED verified (CI #45593286201, 205 expected failures /101 passed /1153 assertions); all tracked PHP lint including native Integration passed. Native tests not run.
-- [ ] T016–T025 minimal test-only implementation.
+- [x] T016–T025 minimal test-only implementation.
 - [x] T026 actual full fast GREEN (396/2400, CI #45605270512); T027–T033 remaining real Integration, cleanup/report and full CI gates open.
 
 
@@ -33,4 +33,9 @@
 
 
 - [x] T021–T025 scoped implementation and workflow verified; actual startup and native proofs remain T027–T030.
-- [ ] T027–T030 actual service and cleanup verification; not satisfied by T019/T020 safe policy tests.
+- [x] T027–T030 actual native service and cleanup verification (CI #45607457879 and repeated green #45608290728; not satisfied merely by safe policy tests).
+
+- [x] T031 actual locked Pest negative subprocesses, real failure-path CLI and upload diagnostics, safe artifacts; temporary diagnostic removed (#45609081693).
+- [x] T032 actual final implementation full CI (#45609420261): 408/2499 fast, 34/304 native, 31/134 and 9/101 subsets; independent report validation.
+- [x] T033 bounded security/scope review and T034 [quickstart/evidence](../quickstart.md); exact docs-only candidate recheck pending.
+- [ ] T035 technical PR review; T036 owner/qualified human review; T037 separate merge consent; T038–T040 verified development merge/closeout.

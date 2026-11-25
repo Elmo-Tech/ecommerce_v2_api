@@ -1,7 +1,7 @@
 # Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation authorization recorded; T004 verified; T005 preflight pending. No code/CI changes or actual service compatibility claimed.  
+**Status:** DEC-01…04 A and full technical design approved; implementation and T032–T034 verification/documentation completed at tested source. T035–T040 open; exact docs-only candidate recheck required. See [quickstart](quickstart.md).
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
@@ -141,7 +141,7 @@ For needed temporary test files, create unique directory within owned RUNNER_TEM
 5. ChatGPT technical review, owner review, qualified independent human review for sensitive/high-risk when owner cannot provide it, separate owner development-only merge consent, exact final head/base and actual required CI. CodeRabbit/Copilot optional. No self-approval.
 6. Verify actual merge SHA/tree, publish final handoff/ledger. No F0-04 code, main merge/deployment/Pilot approval.
 
-**Current state:** owner-approved technical design; T001–T004 complete (4/40). Actual T004 baseline verified; no new F0-03 test, driver/image validation, real service or JUnit evidence yet. Actual availability/compatibility and real safety evidence remain blocking execution gates. Implementation authorized within approved scope; merge remains unauthorized.
+**Historical implementation snapshot (superseded):** owner-approved technical design; T001–T004 complete (4/40). Actual T004 baseline verified; no new F0-03 test, driver/image validation, real service or JUnit evidence yet. Actual availability/compatibility and real safety evidence remain blocking execution gates. Implementation authorized within approved scope; merge remains unauthorized.
 
 
 Owner explicitly approved Tasks and Consistency Analysis at `74f45e00e289568aca85e071317100f04b20c8be` and authorized F0-03 implementation within the approved Spec/Plan on 2026-11-25. No merge authority; final ChatGPT technical review, owner/qualified human review and separate development-only merge approval remain mandatory.
@@ -196,3 +196,6 @@ First reviewed actual workflow staged, separate sequential jobs, safe report art
 
 
 **T025/T026 verified; T027 actual blocker:** Actual corrected [CI #45605270512](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45605270512), tested head `891401b2585a9788bd06de0a3dffd4fb6b2a8783`, base `97c5895bd5672261247b45f1b7eca5648afaf163`, integrated checkout `3be6d18a526b62ada3a59f50cb6f64b38b9fcb55`: fast job 139174405729 **success**, full fast 396/2400, original group 31/134, standalone Architecture 9/101; no fail/error/skip; lock/install/platform/audit, PHP lint, clean diff, safe JUnit upload and report cleanup passed. Downloaded artifact 15017227507 and independently parsed six exact XML/summary files with matching counts/checkout, selection_verified true, no raw system-out/system-err/properties, 7-day expiry. Actual integration job 139174759193 pulled exact approved manifest digests and matched image IDs, loaded PHP 8.4.28/pdo_pgsql 8.4.28/PhpRedis 6.3.0, locked Composer and audit passed. Startup rejected (exit 2) before any successful service readiness evidence; setup and native tests skipped; BLOCKED summary uploaded (artifact 15017054345), exact cleanup invocation and repeat returned success (not proof any containers had existed), clean diff and report cleanup passed. No native service/role/ACL proof claimed. Generic rejection gave no precise stage; add fixed non-sensitive startup milestone diagnostics without changing a guard or approved image. First actual failure preserved. T027 remains open until safe real setup.
+
+
+**Verified implementation update (2026-11-25):** T001–T034 complete at actual tested implementation source; 408/2499 fast and 34/304 native (31/134 and 9/101 independent subsets), approved versions, failure diagnostics and cleanup evidence. [Quickstart](quickstart.md) is the current execution evidence; approved design and exclusions unchanged. Recheck docs-only candidate; T035–T040 remain open.

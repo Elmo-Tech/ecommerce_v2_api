@@ -2,7 +2,7 @@
 
 **Feature Branch:** `feature/f0-03-testing-foundation`  
 **Created:** 2026-11-25 (Africa/Cairo)  
-**Status:** OWNER-APPROVED SPEC — DEC-01…04 A and complete final technical design approved 2026-11-25; tasks/consistency prepared; separate implementation authorization recorded (T003), baseline pending.  
+**Status:** OWNER-APPROVED SPEC; T001–T034 complete at verified implementation source; actual fast/native CI and bounded scope review complete; T035–T040 remain open. See [quickstart](quickstart.md) and [canonical tasks](tasks.md).
 **Reviewed development baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163`.  
 **Input:** Owner explicitly approved the complete final F0-03 Spec and Plan at source SHA `722dd440f36269c2e6ac6d052801b35d6cac876e` on 2026-11-25, including DEC-01…04 A, exact proposed PostgreSQL/Redis test image pins, PHP drivers and technical safety design. Owner requested Tasks and Consistency Analysis only, explicitly without implementation. This authorizes planning documents, not source/test/CI execution, packages, provisioning, deployment or merge.
 
@@ -102,7 +102,10 @@ No business models/factories, domain migration tracks or application DB changes;
 
 Fast lane remains supported locally only in an isolated checkout with safe test environment; no local PostgreSQL/Redis integration support is introduced by DEC-03 A. A preflight guard is an accidental-target barrier, not a sandbox for malicious arbitrary PHP/Docker/shell code or a defense against a compromised runner. Production and shared data credentials must not be available in either job.
 
-Full Spec/Plan approved at the recorded source revision; [tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared. T003 explicit implementation authorization recorded; T004/T005 and T006–T015 complete as documented in the canonical task ledger. T016–T020 test-only support and scoped verification completed; T021 job-owned startup helper is next. Real service behavior remains unverified. No executable files, migrations, package installs, workflows or deployments in this revision.
+**Historical implementation snapshot (superseded by the current status above):** Full Spec/Plan approved at the recorded source revision; [tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared. T003 explicit implementation authorization recorded; T004/T005 and T006–T015 complete as documented in the canonical task ledger. T016–T020 test-only support and scoped verification completed; T021 job-owned startup helper is next. Real service behavior remains unverified. No executable files, migrations, package installs, workflows or deployments in this revision.
 
 
 **Implementation authorization:** Owner explicitly approved Tasks and Consistency Analysis at `74f45e00e289568aca85e071317100f04b20c8be` and authorized F0-03 implementation within the approved Spec/Plan on 2026-11-25. No merge authority; final ChatGPT technical review, owner/qualified human review and separate development-only merge approval remain mandatory.
+
+
+**Verified implementation update (2026-11-25):** T032 actual full fast/native green, T033 bounded scope review and T034 quickstart completed; no changes to approved DEC-01…04 or business/technical design. See [quickstart](quickstart.md) for exact evidence, remaining review and merge gates. Docs-only candidate recheck required before final technical review. No merge/deploy.
