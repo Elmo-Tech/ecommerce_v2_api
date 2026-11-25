@@ -108,3 +108,51 @@ it('records preflight rejection as blocked and not a run with a passing result',
     expect(is_callable([SafeTestReport::class, 'blocked']))->toBeTrue();
     expect(SafeTestReport::blocked(2))->toMatchArray(['status' => 'BLOCKED', 'exit_code' => 2, 'tests_executed' => false]);
 })->group('testing-foundation');
+
+
+it('publishes only safe derived JUnit cases and omits raw stack traces, properties and test output', function (): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $xml = f03ReportFixture('<properties><property name="hidden" value="raw-property"/></properties><testcase name="case &amp; one" classname="Synthetic" assertions="2" time="0.15"><failure>raw-stack-trace</failure><system-out>raw-output</system-out></testcase>');
+        $checkout->write('reports/result.xml', $xml);
+        $result = SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], ['case & one']);
+        $safe = SafeTestReport::safeXml($result, 'synthetic');
+        expect($safe)->toContain('case &amp; one', 'Test did not pass', 'failures="1"');
+        expect($safe)->not->toContain('raw-property', 'raw-stack-trace', 'raw-output', 'system-out', 'properties');
+        $checkout->write('reports/safe.xml', $safe);
+        $derived = SafeTestReport::inspect($checkout->root.'/reports/safe.xml', $checkout->root.'/reports', [], ['case & one']);
+        expect($derived)->toMatchArray(['tests' => 1, 'assertions' => 2, 'failures' => 1]);
+    } finally {
+        $checkout->close();
+    }
+})->group('testing-foundation');
+
+it('rejects generated credential fingerprints even embedded in a longer hex value and never emits plaintext', function (bool $embedded): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $password = str_repeat('1a', 32);
+        $value = $embedded ? 'ab'.$password.'cd' : $password;
+        $checkout->write('reports/result.xml', f03ReportFixture('<testcase name="case"><failure>'.$value.'</failure></testcase>'));
+        try {
+            SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], ['case'], [hash('sha256', $password)]);
+            expect(false)->toBeTrue();
+        } catch (RuntimeException $error) {
+            expect($error->getMessage())->not->toContain($password);
+        }
+    } finally {
+        $checkout->close();
+    }
+})->with([false, true])->group('testing-foundation');
+
+it('rejects inconsistent aggregate counts and contradictory per-case outcomes', function (string $xml): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $checkout->write('reports/result.xml', $xml);
+        expect(fn () => SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], []))->toThrow(RuntimeException::class);
+    } finally {
+        $checkout->close();
+    }
+})->with([
+    '<testsuites tests="5"><testsuite><testcase name="one"/></testsuite></testsuites>',
+    '<testsuites><testsuite><testcase name="one"><failure/><skipped/></testcase></testsuite></testsuites>',
+])->group('testing-foundation');
