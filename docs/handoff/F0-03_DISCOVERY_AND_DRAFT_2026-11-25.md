@@ -1,0 +1,9 @@
+# F0-03 — Discovery and draft specification/plan
+
+**Date:** 2026-11-25. Owner authorized starting discovery/planning after F0-02 closure (reply “تمام لنبدا”). No implementation/merge approval.
+
+**Baseline:** development `97c5895bd5672261247b45f1b7eca5648afaf163`, F0-02 PR #4/#5/#6 merged and 30/30 verified. Last actual CI 98/911, standalone Architecture 5/52, original group 31/134 ([run](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45497208466)). Existing fast suites run without actual PostgreSQL/Redis; no actual tenancy/auth/worker/business data proof. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
+
+**Current feature:** `feature/f0-03-testing-foundation` targeting development, documentation-only Draft PR. Read [spec](../../specs/003-testing-foundation/spec.md), [plan](../../specs/003-testing-foundation/plan.md), [research](../../specs/003-testing-foundation/research.md), [checklist](../../specs/003-testing-foundation/checklists/requirements.md). Four proposed technical decisions DEC-01…04 await owner; recommend real isolated PostgreSQL Central/A/B and Redis technical harness with separate fast/Integration suites, GitHub-hosted job-owned services and scoped JUnit evidence. Exact service version/digests/extension compatibility and final safety contract remain research and approval items; no runtime version assumed. No tasks.md or executable source/CI/package change. F0-04 broader code-quality tooling remains separate.
+
+**Next exact action:** review/clarify and obtain decision approvals, research pinned services and revise final spec/plan; get explicit complete spec/plan approval; then tasks + consistency analysis; then separate implementation authorization. Follow new Workflow: ChatGPT review, owner review, independent human review as required, applicable CI, separate development-only merge consent. Do not merge/promote main, deploy, connect to external/shared DB, or start runtime implementation at this planning milestone.
