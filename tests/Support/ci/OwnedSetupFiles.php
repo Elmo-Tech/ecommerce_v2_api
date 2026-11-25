@@ -14,7 +14,7 @@ final class OwnedSetupFiles
 {
     public static function create(string $directory, string $name, #[SensitiveParameter] string $content): void
     {
-        $allowed = ['ownership.json', 'ownership.next.json', 'setup.json', 'pg-password', 'redis.conf', 'users.acl', 'runtime.json', 'redis-evidence.json'];
+        $allowed = ['ownership.json', 'ownership.next.json', 'setup.json', 'pg-password', 'redis.conf', 'users.acl', 'runtime.json', 'redis-evidence.json', 'credentials-hashes.json'];
         if (!in_array($name, $allowed, true) || !is_dir($directory) || is_link($directory)
             || realpath($directory) !== $directory || !preg_match('/^f03-[0-9a-f]{16}$/D', basename($directory))
             || (fileperms($directory) & 0777) !== 0700

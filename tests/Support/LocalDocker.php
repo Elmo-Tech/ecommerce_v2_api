@@ -119,6 +119,148 @@ final class LocalDocker
         echo "Owned containers captured and ready; fixture setup still required.\n";
     }
 
+    /** Complete real fixture setup only for the current verified containers. */
+    public static function setupCurrent(string $root): void
+    {
+        $context = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER);
+        $directory = $context['directory'];
+        $record = IntegrationContext::read($directory, 'ownership.json');
+        $credentials = IntegrationContext::read($directory, 'setup.json');
+        $runtime = \Tests\Support\ci\OwnedServicePlan::runtime($record, $credentials);
+        $docker = self::verified();
+        $observed = $docker->observeRecord($record, false);
+        OwnedTestRun::validate($context['job'], $record, $runtime, $observed, $context['temp']);
+        foreach (['runtime.json', 'redis-evidence.json', 'credentials-hashes.json'] as $name) {
+            if (file_exists($directory.'/'.$name) || is_link($directory.'/'.$name)) {
+                self::reject();
+            }
+        }
+
+        // Rewrite only the fixed HBA file inside the exact fresh PostgreSQL
+        // container. Do not expose the setup role over TCP. No host admin
+        // connection or arbitrary exec target.
+        $pgId = $docker->ownedRunningId($record, 'postgres');
+        $hbaScript = 'set -eu; test "$PGDATA" = /var/lib/postgresql/data; test -f "$PGDATA/pg_hba.conf"; test ! -L "$PGDATA/pg_hba.conf"; umask 077; set -C; cat > "$PGDATA/pg_hba.f03.next"; set +C; mv "$PGDATA/pg_hba.f03.next" "$PGDATA/pg_hba.conf"';
+        $docker->command(['exec', '-i', '--user', 'postgres', $pgId, 'sh', '-c', $hbaScript], true, false, \Tests\Support\ci\PostgreSqlFixturePlan::hba());
+        if (trim($docker->psql($record, 'postgres', "SELECT pg_reload_conf();\n")) !== 't'
+            || trim($docker->psql($record, 'postgres', \Tests\Support\ci\PostgreSqlFixturePlan::hbaCheck())) !== 'f03-hba-ok') {
+            self::reject();
+        }
+        $docker->psql($record, 'postgres', \Tests\Support\ci\PostgreSqlFixturePlan::clusterSql($credentials));
+        foreach (['central', 'a', 'b'] as $slot) {
+            $target = \Tests\Support\ci\PostgreSqlFixturePlan::target($credentials, $slot);
+            $docker->psql($record, $target['database'], \Tests\Support\ci\PostgreSqlFixturePlan::databaseSql($credentials, $slot));
+            if (trim($docker->psql($record, $target['database'], 'SELECT marker FROM f03_probe.markers WHERE id = 100;')) !== $target['marker']) {
+                self::reject();
+            }
+        }
+        if (trim($docker->psql($record, 'postgres', \Tests\Support\ci\PostgreSqlFixturePlan::privilegeCheck($credentials))) !== 'f03-privileges-ok') {
+            self::reject();
+        }
+        echo "Owned PostgreSQL 17.12 fixtures and restricted grant matrix verified by setup.\n";
+
+        $admin = $credentials['redis_admin'];
+        if (trim($docker->redisAdmin($record, $admin, ['ACL', 'WHOAMI'])) !== 'f03_setup'
+            || trim($docker->redisAdmin($record, $admin, ['PING'])) !== 'PONG') {
+            self::reject();
+        }
+        $version = $docker->redisAdmin($record, $admin, ['INFO', 'server']);
+        if (!preg_match('/^redis_version:8\.2\.11\r?$/m', $version)) {
+            self::reject();
+        }
+        $evidence = ['token' => $context['token'], 'server_version' => '8.2.11', 'denials' => []];
+        foreach (['a', 'b'] as $slot) {
+            $probes = \Tests\Support\ci\RedisFixturePlan::probes($context['token'], $slot);
+            foreach ($probes['allowed'] as $probe) {
+                if (trim($docker->redisAdmin($record, $admin, $probe)) !== 'OK') {
+                    self::reject();
+                }
+            }
+            foreach ($probes['denied'] as $name => $probe) {
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($docker->redisAdmin($record, $admin, $probe))) {
+                    self::reject();
+                }
+                $evidence['denials'][$slot][$name] = true;
+            }
+            foreach ($probes['foreign'] as $probe) {
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($docker->redisAdmin($record, $admin, $probe), true)) {
+                    self::reject();
+                }
+            }
+        }
+        echo "Owned Redis 8.2.11 version, ACL allowed/denied dry-runs verified by setup.\n";
+        // Preserve only password hashes for later report scanning. Setup
+        // admin credentials are not delivered to the native test process.
+        \Tests\Support\ci\OwnedSetupFiles::json($directory, 'credentials-hashes.json', [
+            'token' => $context['token'],
+            'hashes' => array_map(static fn (string $password): string => hash('sha256', $password), \Tests\Support\ci\OwnedServicePlan::passwords($credentials)),
+        ]);
+        \Tests\Support\ci\OwnedSetupFiles::json($directory, 'redis-evidence.json', $evidence);
+        // Check private file identities before removing the two setup-secret
+        // files. The mounted pg-password inode is only needed at init;
+        // the fixed mount record remains inspectable until container cleanup.
+        $allowed = \Tests\Support\ci\CleanupPolicy::files($directory);
+        foreach (['setup.json', 'pg-password'] as $name) {
+            $path = $directory.'/'.$name;
+            if (!in_array($path, $allowed, true) || !unlink($path)) {
+                self::reject();
+            }
+        }
+        \Tests\Support\ci\OwnedSetupFiles::json($directory, 'runtime.json', $runtime);
+        IntegrationConnections::preflight($root);
+        echo "Owned runtime descriptor published after setup; setup credential files removed.\n";
+    }
+
+    private function ownedRunningId(array $record, string $service): string
+    {
+        $observed = $this->observeRecord($record, false);
+        if (!array_key_exists($service, $record['containers']) || $observed[$service] !== $record['containers'][$service]) {
+            self::reject();
+        }
+        return $record['containers'][$service]['id'];
+    }
+
+    private function psql(array $record, string $database, #[\SensitiveParameter] string $sql): string
+    {
+        if ($database !== 'postgres' && !in_array($database, array_map(static fn (string $slot): string => 'f03_'.$record['token'].'_'.$slot, ['central', 'a', 'b']), true)) {
+            self::reject();
+        }
+        $id = $this->ownedRunningId($record, 'postgres');
+        return $this->command(['exec', '-i', '--user', 'postgres', $id,
+            'psql', '-X', '-qAt', '-w', '-v', 'ON_ERROR_STOP=1', '-h', '/var/run/postgresql',
+            '-U', 'postgres', '-d', $database], true, false, $sql."\n")[0];
+    }
+
+    private function redisAdmin(array $record, #[\SensitiveParameter] string $password, array $args): string
+    {
+        if (!preg_match('/^[0-9a-f]{64}$/D', $password)) {
+            self::reject();
+        }
+        // Closed setup operation set: the only commands reaching Redis
+        // directly are WHOAMI, PING, INFO server and ACL DRYRUN.
+        if (!in_array($args, [['ACL', 'WHOAMI'], ['PING'], ['INFO', 'server']], true)) {
+            $allowed = [];
+            foreach (['a', 'b'] as $slot) {
+                foreach (\Tests\Support\ci\RedisFixturePlan::probes($record['token'], $slot) as $probes) {
+                    foreach ($probes as $probe) {
+                        $allowed[] = $probe;
+                    }
+                }
+            }
+            if (!in_array($args, $allowed, true)) {
+                self::reject();
+            }
+        }
+        $id = $this->ownedRunningId($record, 'redis');
+        $script = 'set -eu; IFS= read -r REDISCLI_AUTH; export REDISCLI_AUTH; exec redis-cli --raw --user f03_setup "$@"';
+        [$stdout, $stderr, $status] = $this->command(['exec', '-i', $id, 'sh', '-c', $script, 'f03', ...$args], true, true, $password."\n");
+        if ($status !== 0 && !\Tests\Support\ci\RedisFixturePlan::denied($stdout."\n".$stderr)
+            && !\Tests\Support\ci\RedisFixturePlan::denied($stdout."\n".$stderr, true)) {
+            self::reject();
+        }
+        return trim($stdout."\n".$stderr);
+    }
+
     private function verifyPinnedImage(string $service): void
     {
         $pin = OwnedTestRun::image($service);
@@ -162,7 +304,7 @@ final class LocalDocker
                 : ['exec', $id, 'redis-cli', '-h', '127.0.0.1', '-p', '6379', 'PING'];
             [$stdout, $stderr, $status] = $this->command($args, true, true);
             if (($service === 'postgres' && $status === 0 && str_contains($stdout, 'accepting connections'))
-                || ($service === 'redis' && trim($stdout) === 'NOAUTH Authentication required.')) {
+                || ($service === 'redis' && trim($stdout."\n".$stderr) === 'NOAUTH Authentication required.')) {
                 return;
             }
             usleep(250000);
@@ -430,10 +572,13 @@ final class LocalDocker
         }
     }
 
-    private function command(array $args, bool $explicitEndpoint = true, bool $allowFailure = false): array
+    private function command(array $args, bool $explicitEndpoint = true, bool $allowFailure = false, #[\SensitiveParameter] ?string $input = null): array
     {
         $argv = [self::BINARY, ...($explicitEndpoint ? ['--host', self::ENDPOINT] : []), ...$args];
-        $process = @proc_open($argv, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if ($input !== null && strlen($input) > 8192) {
+            self::reject();
+        }
+        $process = @proc_open($argv, [0 => $input === null ? ['file', '/dev/null', 'r'] : ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process)) {
             self::reject();
         }
@@ -441,6 +586,21 @@ final class LocalDocker
         $deadline = hrtime(true) + 10_000_000_000;
         $exit = null;
         try {
+            if ($input !== null) {
+                stream_set_blocking($pipes[0], false);
+                $offset = 0;
+                while ($offset < strlen($input)) {
+                    $written = fwrite($pipes[0], substr($input, $offset));
+                    if ($written === false || hrtime(true) > $deadline) {
+                        self::reject();
+                    }
+                    $offset += $written;
+                    if ($written === 0) {
+                        usleep(10000);
+                    }
+                }
+                fclose($pipes[0]);
+            }
             stream_set_blocking($pipes[1], false);
             stream_set_blocking($pipes[2], false);
             do {
@@ -466,6 +626,9 @@ final class LocalDocker
         } finally {
             if ($exit === null) {
                 proc_terminate($process, 9);
+            }
+            if (isset($pipes[0]) && is_resource($pipes[0])) {
+                fclose($pipes[0]);
             }
             fclose($pipes[1]);
             fclose($pipes[2]);

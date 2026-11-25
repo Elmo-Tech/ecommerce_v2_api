@@ -112,3 +112,23 @@ it('rejects foreign setup filenames and symlink targets', function (): void {
         $fixture->close();
     }
 })->group('testing-foundation');
+
+
+it('rejects startup and setup entrypoints outside the verified current job before any resource operation', function (string $script, array $args, array $env): void {
+    $checkout = new \Tests\Fixtures\FoundationTestCheckout;
+    try {
+        $result = $checkout->run(['tests/Support/ci/'.$script, ...$args], $env);
+        expect($result->getExitCode())->toBe(2);
+        expect($result->getErrorOutput())->toContain('rejected or incomplete.');
+        expect($result->getErrorOutput())->not->toContain('f03-synthetic-canary', 'Warning', 'Fatal error');
+        expect($checkout->reachedAutoload())->toBeFalse();
+        expect($checkout->reachedPest())->toBeFalse();
+    } finally {
+        $checkout->close();
+    }
+})->with(['start-owned.php', 'setup-owned.php'])->with([
+    [[], []],
+    [['f03-synthetic-canary'], ['APP_ENV' => 'testing', 'F03_MODE' => 'integration']],
+    [[], ['APP_ENV' => 'production', 'F03_MODE' => 'integration']],
+    [[], ['APP_ENV' => 'testing', 'F03_MODE' => 'integration', 'DOCKER_HOST' => 'tcp://f03-synthetic-canary.invalid:2375']],
+])->group('testing-foundation');

@@ -59,7 +59,7 @@ final class CleanupPolicy
         $allowed = [
             'ownership.json', 'ownership.next.json', 'runtime.json', 'runtime.next.json',
             'redis-evidence.json', 'redis-evidence.next.json', 'pg-password',
-            'redis.conf', 'users.acl', 'setup.json', 'setup.next.json',
+            'redis.conf', 'users.acl', 'setup.json', 'setup.next.json', 'credentials-hashes.json',
         ];
         if (realpath($directory) !== $directory || is_link($directory) || !is_dir($directory)
             || !preg_match('/^f03-[0-9a-f]{16}$/D', basename($directory))

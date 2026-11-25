@@ -43,7 +43,7 @@ final class FoundationTestCheckout
             }
         }
 
-        foreach (['ci/CleanupPolicy.php', 'ci/cleanup-owned.php'] as $file) {
+        foreach (['ci/CleanupPolicy.php', 'ci/cleanup-owned.php', 'ci/OwnedServicePlan.php', 'ci/OwnedSetupFiles.php', 'ci/start-owned.php', 'ci/setup-owned.php', 'ci/PostgreSqlFixturePlan.php', 'ci/RedisFixturePlan.php'] as $file) {
             $path = 'tests/Support/'.$file;
             if (is_file($source.'/'.$path)) {
                 $this->copy($source, $path);
