@@ -65,8 +65,28 @@ final class SafeTestReport
                 self::scan($attribute->value, $secrets, $hashes);
             }
         }
+        // Native JUnit uses nested suites; the outer testsuites element
+        // need not declare counters. Validate every actual suite, including
+        // empty ones, rather than accepting inconsistent inner metadata.
+        $suites = [$root];
+        foreach ($doc->getElementsByTagName('testsuite') as $suite) {
+            if ($suite->isSameNode($root)) {
+                continue;
+            }
+            $parent = $suite->parentNode;
+            if ($suite->namespaceURI !== null || !$parent instanceof DOMElement
+                || ($parent->tagName !== 'testsuite' && !$parent->isSameNode($root))) {
+                self::reject();
+            }
+            $suites[] = $suite;
+        }
+        $suiteCounts = [];
+        foreach ($suites as $suite) {
+            $suiteCounts[$suite->getNodePath()] = array_fill_keys(self::KEYS, 0);
+        }
         $result = ['tests' => 0, 'assertions' => 0, 'failures' => 0, 'errors' => 0, 'skipped' => 0, 'duration' => 0.0, 'cases' => []];
         $names = [];
+        $identities = [];
         foreach ($doc->getElementsByTagName('testcase') as $case) {
             if (!$case->parentNode instanceof DOMElement || $case->parentNode->tagName !== 'testsuite' || $case->namespaceURI !== null) {
                 self::reject();
@@ -77,6 +97,13 @@ final class SafeTestReport
                 || preg_match('/[\x00-\x1f\x7f]/', $name.$class)) {
                 self::reject();
             }
+            // Dataset names are part of the identity. Equal names in
+            // distinct classes are valid; repeated identities are not.
+            $identity = str_replace('.', '\\', $class)."\0".$name;
+            if (isset($identities[$identity])) {
+                self::reject();
+            }
+            $identities[$identity] = true;
             $assertions = self::integer($case->getAttribute('assertions') ?: '0');
             $duration = $case->getAttribute('time') ?: '0';
             if (!is_numeric($duration) || !is_finite((float) $duration) || (float) $duration < 0 || (float) $duration > 86400) {
@@ -94,12 +121,28 @@ final class SafeTestReport
                     $status = $child->tagName;
                 }
             }
-            $result['tests']++;
-            $result['assertions'] += $assertions;
-            $result['duration'] += (float) $duration;
-            if ($status !== 'passed') {
-                $result[$status === 'failure' ? 'failures' : ($status === 'error' ? 'errors' : 'skipped')]++;
+            $counts = [
+                'tests' => 1,
+                'assertions' => $assertions,
+                'failures' => (int) ($status === 'failure'),
+                'errors' => (int) ($status === 'error'),
+                'skipped' => (int) ($status === 'skipped'),
+            ];
+            foreach ($counts as $key => $count) {
+                $result[$key] += $count;
             }
+            // Each case contributes once to each enclosing suite. Reject a
+            // testcase hidden under a non-suite branch of the document.
+            for ($suite = $case->parentNode; $suite instanceof DOMElement; $suite = $suite->parentNode) {
+                $path = $suite->getNodePath();
+                if (!isset($suiteCounts[$path])) {
+                    self::reject();
+                }
+                foreach ($counts as $key => $count) {
+                    $suiteCounts[$path][$key] += $count;
+                }
+            }
+            $result['duration'] += (float) $duration;
             $result['cases'][] = ['name' => $name, 'class' => $class, 'assertions' => $assertions, 'time' => (float) $duration, 'status' => $status];
             $names[] = $name;
             if ($result['tests'] > 100000) {
@@ -109,9 +152,12 @@ final class SafeTestReport
         if ($result['tests'] === 0 || array_diff($required, $names) !== []) {
             self::reject();
         }
-        foreach (self::KEYS as $key) {
-            if ($root->hasAttribute($key) && self::integer($root->getAttribute($key)) !== $result[$key]) {
-                self::reject();
+        foreach ($suites as $suite) {
+            $counts = $suiteCounts[$suite->getNodePath()];
+            foreach (self::KEYS as $key) {
+                if ($suite->hasAttribute($key) && self::integer($suite->getAttribute($key)) !== $counts[$key]) {
+                    self::reject();
+                }
             }
         }
 
