@@ -93,6 +93,18 @@ if (basename($argv[0]) === 'pint') {
         'time' => ['total' => 0],
         'memory' => 0,
     ], JSON_THROW_ON_ERROR);
+} else {
+    if (is_file($root.'/analysis-stderr')) {
+        fwrite(STDERR, file_get_contents($root.'/analysis-stderr'));
+    }
+    if (is_file($root.'/analysis-output.json')) {
+        echo file_get_contents($root.'/analysis-output.json');
+    } else {
+        echo '{"totals":{"errors":0,"file_errors":0},"files":[],"errors":[]}';
+    }
+    if (is_file($root.'/analysis-exit')) {
+        exit((int) file_get_contents($root.'/analysis-exit'));
+    }
 }
 exit(0);
 PHP);

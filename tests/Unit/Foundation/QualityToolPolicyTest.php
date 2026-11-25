@@ -415,3 +415,139 @@ it('rejects inconsistent incomplete or unsafe Pint output rather than reporting 
     'escaping file', 'duplicate file', 'false green', 'empty failure',
     'unexpected exit', 'tool error', 'missing output', 'diff payload',
 ])->group('testing-foundation');
+
+/**
+ * Synthetic child reporter: tests the real launcher boundary, not a real
+ * analyzer finding. The independently executed locked CLI controls above
+ * continue to prove the actual missing iterable-value diagnostic.
+ *
+ * @return array<string, mixed> Mutable synthetic candidate, including deliberately invalid variants.
+ */
+function f04AnalysisFindingFixture(): array
+{
+    return [
+        'totals' => ['errors' => 0, 'file_errors' => 1],
+        'files' => [
+            'app/Legacy.php' => [
+                'errors' => 1,
+                'messages' => [[
+                    'message' => 'synthetic-private-analysis-message',
+                    'line' => 3,
+                    'ignorable' => true,
+                    'identifier' => 'missingType.iterableValue',
+                    'tip' => 'synthetic-private-analysis-tip',
+                ]],
+            ],
+        ],
+        'errors' => [],
+    ];
+}
+
+it('publishes only verified bounded analysis results through the guarded launcher', function (bool $finding): void {
+    f04RequireQualityLauncher();
+    $fixture = new QualityToolCheckout();
+    try {
+        $report = $finding ? f04AnalysisFindingFixture() : [
+            'totals' => ['errors' => 0, 'file_errors' => 0],
+            'files' => [],
+            'errors' => [],
+        ];
+        $exit = $finding ? 1 : 0;
+        $fixture->write('analysis-output.json', json_encode($report, JSON_THROW_ON_ERROR));
+        $fixture->write('analysis-exit', (string) $exit);
+        $result = $fixture->launch(['analyse']);
+        $inventory = [
+            'app/Legacy.php', 'artisan', 'tests/Support/with space.php',
+            'tools/quality/evidence.php', 'tools/quality/php-policy.php', 'tools/quality/run.php',
+        ];
+        expect($result->getExitCode())->toBe($exit);
+        expect($result->getErrorOutput())->toBe('');
+        expect(json_decode($result->getOutput(), true, flags: JSON_THROW_ON_ERROR))->toBe([
+            'mode' => 'analyse',
+            'selectedCount' => count($inventory),
+            'toolExit' => $exit,
+            'resultValidation' => 'VERIFIED',
+            'inventorySha256' => hash('sha256', json_encode($inventory, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
+            'findingCount' => $finding ? 1 : 0,
+            'findings' => $finding ? [[
+                'path' => 'app/Legacy.php', 'line' => 3,
+                'identifier' => 'missingType.iterableValue', 'ignorable' => true,
+            ]] : [],
+        ]);
+        expect(str_contains($result->getOutput(), 'synthetic-private-analysis'))->toBeFalse();
+        $seen = $fixture->observation();
+        expect(file_exists($seen['tmp']) || file_exists($seen['cache']))->toBeFalse();
+    } finally {
+        $fixture->close();
+    }
+})->with([false, true])->group('testing-foundation');
+
+it('rejects invalid analysis evidence through the real launcher without a passing summary or raw child output', function (string $case): void {
+    f04RequireQualityLauncher();
+    $fixture = new QualityToolCheckout();
+    try {
+        $report = f04AnalysisFindingFixture();
+        $exit = 1;
+        $path = 'app/Legacy.php';
+        if ($case === 'missing output' || $case === 'malformed' || $case === 'stderr') {
+            $exit = 0;
+        } elseif ($case === 'global errors') {
+            $report['totals']['errors'] = 1;
+            $report['errors'] = ['synthetic-private-analysis-global'];
+        } elseif ($case === 'false green') {
+            $exit = 0;
+        } elseif ($case === 'empty failure') {
+            $report['totals']['file_errors'] = 0;
+            $report['files'] = [];
+        } elseif ($case === 'wrong counts') {
+            $report['totals']['file_errors'] = 2;
+        } elseif ($case === 'wrong per-file count') {
+            $report['files'][$path]['errors'] = 2;
+        } elseif ($case === 'untracked path' || $case === 'escaping path') {
+            $report['files'][$case === 'untracked path' ? 'app/Untracked.php' : '../app/Legacy.php'] = $report['files'][$path];
+            unset($report['files'][$path]);
+        } elseif ($case === 'alias duplicate') {
+            $report['files'][$fixture->root.'/'.$path] = $report['files'][$path];
+            $report['totals']['file_errors'] = 2;
+        } elseif ($case === 'invalid line') {
+            $report['files'][$path]['messages'][0]['line'] = 0;
+        } elseif ($case === 'beyond file') {
+            $report['files'][$path]['messages'][0]['line'] = 1000000;
+        } elseif ($case === 'invalid identifier') {
+            $report['files'][$path]['messages'][0]['identifier'] = 'synthetic private analysis';
+        } elseif ($case === 'missing identifier') {
+            unset($report['files'][$path]['messages'][0]['identifier']);
+        } elseif ($case === 'invalid ignorable') {
+            $report['files'][$path]['messages'][0]['ignorable'] = 'true';
+        } elseif ($case === 'extra field') {
+            $report['files'][$path]['messages'][0]['raw'] = 'synthetic-private-analysis-extra';
+        }
+        $raw = json_encode($report, JSON_THROW_ON_ERROR);
+        if ($case === 'missing output') {
+            $raw = '';
+        } elseif ($case === 'malformed') {
+            $raw = '{"totals":';
+        } elseif ($case === 'duplicate key') {
+            $raw = str_replace('"line":3', '"line":3,"l\u0069ne":3', $raw);
+        } elseif ($case === 'stderr') {
+            $raw = '{"totals":{"errors":0,"file_errors":0},"files":[],"errors":[]}';
+            $fixture->write('analysis-stderr', 'synthetic-private-analysis-stderr');
+        }
+        $fixture->write('analysis-output.json', $raw);
+        $fixture->write('analysis-exit', (string) $exit);
+        $result = $fixture->launch(['analyse']);
+        expect($result->getExitCode())->toBe(2);
+        expect($result->getOutput())->toBe('');
+        expect(str_contains($result->getErrorOutput(), 'synthetic-private-analysis'))->toBeFalse();
+        $seen = $fixture->observation();
+        expect(file_exists($seen['tmp']) || file_exists($seen['cache']))->toBeFalse();
+    } finally {
+        $fixture->close();
+    }
+})->with([
+    'missing output', 'malformed', 'stderr', 'global errors', 'false green',
+    'empty failure', 'wrong counts', 'wrong per-file count', 'untracked path',
+    'escaping path', 'alias duplicate', 'invalid line', 'beyond file',
+    'invalid identifier', 'missing identifier', 'invalid ignorable', 'extra field',
+    'duplicate key',
+])->group('testing-foundation');
