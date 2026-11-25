@@ -86,6 +86,14 @@ if (is_file($root.'/fail-tool')) {
     fwrite(STDERR, "synthetic-private-child-output\n");
     exit(7);
 }
+if (basename($argv[0]) === 'pint') {
+    echo json_encode([
+        'about' => 'synthetic Pint reporter',
+        'files' => [],
+        'time' => ['total' => 0],
+        'memory' => 0,
+    ], JSON_THROW_ON_ERROR);
+}
 exit(0);
 PHP);
                 chmod($this->root.'/vendor/bin/'.$tool, 0700);

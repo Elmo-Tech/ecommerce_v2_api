@@ -6,6 +6,7 @@ use PHPUnit\Framework\Assert;
 use Tests\Fixtures\FoundationTestCheckout;
 use Tests\Fixtures\QualityToolCheckout;
 use Tools\Quality\PhpQualityPolicy;
+use Tools\Quality\PintResult;
 
 function f04RequireQualityPolicy(): void
 {
@@ -24,9 +25,9 @@ function f04RequireQualityLauncher(): void
  * database, private credentials, or Larastan bootstrap. The latter is
  * intentionally verified later on the guarded real checkout (T018/T019).
  *
- * @return array{exit: int|null, output: string, unchanged: bool}
+ * @return array{exit: int|null, output: string, stderr: string, root: string, unchanged: bool}
  */
-function f04RealQualityProbe(string $tool, bool $valid): array
+function f04RealQualityProbe(string $tool, bool $valid, bool $malformed = false): array
 {
     $fixture = new FoundationTestCheckout;
     try {
@@ -56,6 +57,9 @@ function f04RealQualityProbe(string $tool, bool $valid): array
                 '--error-format=json', '--no-interaction', '--no-ansi', $root.'/sample.php',
             ];
         }
+        if ($malformed) {
+            $code = "<?php\nfunction malformedProbe( {\n";
+        }
         $fixture->write('sample.php', $code);
         $before = hash_file('sha256', $root.'/sample.php');
         Assert::assertTrue(is_file($args[0]));
@@ -72,6 +76,8 @@ function f04RealQualityProbe(string $tool, bool $valid): array
         return [
             'exit' => $result->getExitCode(),
             'output' => $result->getOutput(),
+            'stderr' => $result->getErrorOutput(),
+            'root' => $root,
             'unchanged' => hash_file('sha256', $root.'/sample.php') === $before,
         ];
     } finally {
@@ -322,4 +328,90 @@ it('requires the reviewed Larastan include and level six config without suppress
     "    excludePaths:\n        - tests\n",
     "    bootstrapFiles:\n        - /synthetic-canary.php\n",
     "    includes:\n        - phpstan-baseline.neon\n",
+])->group('testing-foundation');
+
+function f04RequirePintResultPolicy(): void
+{
+    f04RequireQualityPolicy();
+    Assert::assertTrue(class_exists(PintResult::class, false), 'F0-04 validated Pint result adapter must be implemented.');
+}
+
+/**
+ * @param list<array{name: string}> $files
+ */
+function f04PintJson(array $files): string
+{
+    return json_encode([
+        'about' => 'synthetic Pint reporter',
+        'files' => $files,
+        'time' => ['total' => 0.25],
+        'memory' => 4,
+    ], JSON_THROW_ON_ERROR);
+}
+
+it('rejects malformed PHP through the actual locked Pint without repairing it', function (): void {
+    $probe = f04RealQualityProbe('pint', false, true);
+    expect($probe['exit'])->toBe(1);
+    expect($probe['unchanged'])->toBeTrue();
+    expect($probe['stderr'])->not->toBeEmpty();
+})->group('testing-foundation');
+
+it('validates actual Pint JSON for a clean file and a style finding without exposing raw diagnostics', function (): void {
+    f04RequirePintResultPolicy();
+    $good = f04RealQualityProbe('pint', true);
+    $bad = f04RealQualityProbe('pint', false);
+    expect(PintResult::validate($good['output'], $good['stderr'], $good['exit'], $good['root'], ['sample.php']))->toBe([]);
+    expect(PintResult::validate($bad['output'], $bad['stderr'], $bad['exit'], $bad['root'], ['sample.php']))->toBe(['sample.php']);
+})->group('testing-foundation');
+
+it('returns only the exact normalized tracked finding names and no raw report values', function (): void {
+    f04RequirePintResultPolicy();
+    $inventory = ['app/A.php', 'artisan', 'tests/with space.php'];
+    $raw = f04PintJson([['name' => '/owned/tests/with space.php'], ['name' => 'artisan']]);
+    expect(PintResult::validate($raw, '', 1, '/owned', $inventory))->toBe(['artisan', 'tests/with space.php']);
+    expect(PintResult::validate(f04PintJson([]), '', 0, '/owned', $inventory))->toBe([]);
+})->group('testing-foundation');
+
+it('rejects inconsistent incomplete or unsafe Pint output rather than reporting format success', function (string $case): void {
+    f04RequirePintResultPolicy();
+    $raw = f04PintJson([['name' => 'app/A.php']]);
+    $stderr = '';
+    $exit = 1;
+    if ($case === 'malformed') {
+        $raw = '{"files":';
+    } elseif ($case === 'duplicate property') {
+        $raw = str_replace('"name":', '"name":"app/A.php","n\u0061me":', $raw);
+    } elseif ($case === 'unknown property') {
+        $raw = str_replace('"memory":4', '"memory":4,"raw":"synthetic-private-output"', $raw);
+    } elseif ($case === 'unknown file') {
+        $raw = f04PintJson([['name' => 'app/Untracked.php']]);
+    } elseif ($case === 'escaping file') {
+        $raw = f04PintJson([['name' => '../app/A.php']]);
+    } elseif ($case === 'duplicate file') {
+        $raw = f04PintJson([['name' => 'app/A.php'], ['name' => '/owned/app/A.php']]);
+    } elseif ($case === 'false green') {
+        $exit = 0;
+    } elseif ($case === 'empty failure') {
+        $raw = f04PintJson([]);
+    } elseif ($case === 'unexpected exit') {
+        $exit = 7;
+    } elseif ($case === 'tool error') {
+        $stderr = 'synthetic-private-output';
+    } elseif ($case === 'missing output') {
+        $raw = '';
+    } elseif ($case === 'diff payload') {
+        $raw = str_replace('"name":"app\/A.php"', '"name":"app\/A.php","diff":"synthetic-private-output"', $raw);
+    }
+    $failure = null;
+    try {
+        PintResult::validate($raw, $stderr, $exit, '/owned', ['app/A.php']);
+    } catch (RuntimeException $error) {
+        $failure = $error;
+    }
+    expect($failure)->toBeInstanceOf(RuntimeException::class);
+    expect($failure->getMessage())->not->toContain('synthetic-private-output');
+})->with([
+    'malformed', 'duplicate property', 'unknown property', 'unknown file',
+    'escaping file', 'duplicate file', 'false green', 'empty failure',
+    'unexpected exit', 'tool error', 'missing output', 'diff payload',
 ])->group('testing-foundation');
