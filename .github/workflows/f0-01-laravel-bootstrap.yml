@@ -361,3 +361,200 @@ jobs:
         id: integration_report_cleanup
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
         run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
+
+  # Temporary T006 solver-only preflight; remove after actual evidence review.
+  # No project dependency install or application bootstrap. Existing jobs unchanged.
+  f0-04-t006-compatibility-preflight:
+    name: F0-04 T006 isolated dependency resolution
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      COMPOSER_NO_INTERACTION: "1"
+      COMPOSER_DISABLE_XDEBUG_WARN: "1"
+      REDOCLY_TELEMETRY: "off"
+      REDOCLY_SUPPRESS_NOTIFICATIONS: "true"
+    steps:
+      - name: Checkout exact preflight candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: PHP and Composer for scratch solver
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, tokenizer
+          tools: composer:2.11.3
+      - name: Exact Node for scratch lock resolution
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.22.3"
+          package-manager-cache: false
+      - name: Create private owned preflight directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t006-XXXXXXXXXXXX")"
+          printf 'F04_PREFLIGHT_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+      - name: Resolve exact proposed locks without installing packages
+        shell: bash
+        env:
+          APPROVED_BASE: ${{ github.event.pull_request.base.sha }}
+          APPROVED_SOURCE: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, platform, re, shutil, subprocess, time, urllib.parse
+          root = pathlib.Path.cwd().resolve()
+          scratch = pathlib.Path(os.environ['F04_PREFLIGHT_DIR']).resolve()
+          out = scratch / 'safe'
+          out.mkdir(mode=0o700)
+          start = time.monotonic()
+          summary = {'schema': 1, 'task': 'T006', 'source': os.environ['APPROVED_SOURCE'], 'base': os.environ['APPROVED_BASE'], 'run': os.environ['GITHUB_RUN_ID'], 'attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'identity'}
+          approved = {'laravel/pint': '1.32.3', 'phpstan/phpstan': '2.3.7', 'larastan/larastan': '3.15.0'}
+          expected_base = '24ce00231dec35a089bb70c081b257f9b5d234e7'
+          env = {k:v for k,v in os.environ.items() if not any(s in k.upper() for s in ('TOKEN','SECRET','PASSWORD','CREDENTIAL','COMPOSER_AUTH','NPM_CONFIG_','NODE_AUTH','PROXY'))}
+          env.update({'COMPOSER_HOME':str(scratch/'composer-home'), 'COMPOSER_CACHE_DIR':str(scratch/'composer-cache'), 'COMPOSER_NO_INTERACTION':'1', 'NPM_CONFIG_USERCONFIG':str(scratch/'empty.npmrc'), 'NPM_CONFIG_GLOBALCONFIG':str(scratch/'empty.npmrc'), 'NPM_CONFIG_CACHE':str(scratch/'npm-cache'), 'NPM_CONFIG_REGISTRY':'https://registry.npmjs.org/'})
+          (scratch/'empty.npmrc').touch(mode=0o600)
+          def cmd(args, cwd, stage):
+              summary['stage'] = stage
+              result = subprocess.run(args, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300, check=False)
+              (scratch/(stage+'.log')).write_bytes(result.stdout)
+              if result.returncode != 0:
+                  summary['exit_code'] = result.returncode
+                  # Raw solver output stays private; expose only bounded public package constraint lines.
+                  if stage.startswith('composer'):
+                      lines = []
+                      for line in result.stdout.decode('utf-8','replace').splitlines():
+                          if re.fullmatch(r'\s*(?:Problem \d+|-\s+(?:Root composer\.json requires |[a-z0-9_.-]+/[a-z0-9_.-]+ )[A-Za-z0-9_./ ,\[\]{}()=<>^~|+*:\x27\x22-]{1,250})\s*',line):
+                              if not re.search(r'token|password|secret|https?://',line,re.I):
+                                  lines.append(line.strip())
+                          if len(lines)>=15: break
+                      summary['public_constraint_diagnostics']=lines
+                  raise RuntimeError('Scoped dependency command failed')
+              return result.stdout.decode('utf-8','replace').strip()
+          def sha(path):
+              return hashlib.sha256(path.read_bytes()).hexdigest()
+          def require(ok, reason):
+              if not ok:
+                  summary['reason'] = reason
+                  raise RuntimeError(reason)
+          def packages(data):
+              result={}
+              for section in ('packages','packages-dev'):
+                  for record in data[section]:
+                      require(record['name'] not in result,'duplicate composer package')
+                      result[record['name']]=(section,record)
+              return result
+          try:
+              summary['checkout']=cmd(['git','rev-parse','HEAD'],root,'checkout')
+              parents=cmd(['git','show','-s','--format=%P','HEAD'],root,'parents').split()
+              require(summary['base']==expected_base and parents==[summary['base'],summary['source']], 'integrated checkout identity mismatch')
+              require(platform.machine()=='x86_64' and platform.system()=='Linux','unexpected hosted architecture')
+              require(cmd(['git','hash-object','composer.json'],root,'manifest-identity')=='45ed7684ff7a779521d256bd78010093c78c7bcd','baseline manifest changed')
+              require(cmd(['git','hash-object','composer.lock'],root,'lock-identity')=='74af82d8111ce6bb2947affbea58aea53ee09325','baseline lock changed')
+              php=cmd(['php','-r','echo PHP_VERSION;'],root,'php-version')
+              composer=cmd(['composer','--no-ansi','--version'],root,'composer-version')
+              node=cmd(['node','--version'],root,'node-version')
+              npm=cmd(['npm','--version'],root,'npm-version')
+              extensions=cmd(['php','-r','echo json_encode(get_loaded_extensions());'],root,'extensions')
+              require(php.startswith('8.4.') and 'Composer version 2.11.3 ' in composer,'PHP/Composer version mismatch')
+              require(node=='v24.22.3' and tuple(map(int,npm.split('.')[:3])) >= (10,9,2),'Node/npm version mismatch')
+              require({'dom','xml','mbstring','tokenizer','curl','fileinfo','pdo_sqlite'}.issubset(set(json.loads(extensions))),'PHP extensions missing')
+              summary['versions']={'php':php,'composer':'2.11.3','node':node,'npm':npm,'platform':'linux/amd64'}
+              # Use only copied manifest/lock; no app, dotenv, service config or vendor tree.
+              cd=scratch/'composer'
+              nd=scratch/'node'
+              cd.mkdir(); nd.mkdir()
+              shutil.copyfile(root/'composer.json',cd/'composer.json')
+              shutil.copyfile(root/'composer.lock',cd/'composer.lock')
+              original=json.loads((cd/'composer.lock').read_text())
+              old=packages(original)
+              manifest=json.loads((cd/'composer.json').read_text())
+              require(set(manifest['require'])=={'php','laravel/framework'} and set(manifest['require-dev'])=={'pestphp/pest','pestphp/pest-plugin-laravel'},'unexpected baseline root dependency')
+              require(manifest['config']['allow-plugins']=={'pestphp/pest-plugin':True},'plugin allowlist changed')
+              manifest['require-dev'].update(approved)
+              (cd/'composer.json').write_text(json.dumps(manifest,indent=2)+'\n')
+              args=['composer','update',*approved,'--with-dependencies','--no-install','--no-plugins','--no-scripts','--no-interaction','--prefer-dist','--no-progress','--no-ansi']
+              cmd(args+['--dry-run'],cd,'composer-dry-run')
+              cmd(args,cd,'composer-lock-resolution')
+              cmd(['composer','validate','--strict','--no-plugins','--no-scripts','--no-ansi'],cd,'composer-validate')
+              result=json.loads((cd/'composer.lock').read_text())
+              new=packages(result)
+              changed=sorted(n for n in old if n not in new or old[n]!=new[n])
+              summary['changed_old_records']=changed
+              require(not changed,'old Composer package record drift')
+              additions=sorted(set(new)-set(old))
+              for name,version in approved.items():
+                  require(name in new and new[name][0]=='packages-dev' and new[name][1]['version'].lstrip('v')==version,'approved exact package missing')
+              for name in additions:
+                  scope, record=new[name]
+                  require(scope=='packages-dev' and record.get('type')!='composer-plugin','new runtime dependency or plugin')
+                  for url in (record.get('source',{}).get('url'), record.get('dist',{}).get('url')):
+                      if url:
+                          u=urllib.parse.urlparse(url)
+                          require(u.scheme=='https' and u.hostname in {'github.com','api.github.com','codeload.github.com'} and not u.username and not u.password and not u.query and not u.fragment,'unapproved composer acquisition URL')
+              summary['composer_additions']=[{'name':n,'version':new[n][1]['version']} for n in additions]
+              summary['composer_lock_sha256']=sha(cd/'composer.lock')
+              require(not (cd/'vendor').exists(),'unexpected vendor install')
+              (nd/'package.json').write_text(json.dumps({'name':'f04-quality-openapi','version':'0.0.0','private':True,'devDependencies':{'@redocly/cli':'2.83.0'}},indent=2)+'\n')
+              cmd(['npm','install','--package-lock-only','--ignore-scripts','--no-audit','--no-fund','--registry=https://registry.npmjs.org/'],nd,'npm-lock-resolution')
+              nlock=json.loads((nd/'package-lock.json').read_text())
+              pkgs=nlock['packages']
+              require(pkgs['']['devDependencies']=={'@redocly/cli':'2.83.0'} and pkgs['node_modules/@redocly/cli']['version']=='2.83.0','Redocly exact lock mismatch')
+              require(nlock['lockfileVersion']==3 and len(pkgs)>1,'npm lock incomplete')
+              for name,record in pkgs.items():
+                  if not name: continue
+                  u=urllib.parse.urlparse(record.get('resolved',''))
+                  require(name.startswith('node_modules/') and not record.get('link') and u.scheme=='https' and u.hostname=='registry.npmjs.org' and not u.username and not u.password and not u.query and not u.fragment and re.fullmatch(r'sha(?:512|384|256|1)-[A-Za-z0-9+/=]+',record.get('integrity','')) is not None,'unapproved npm registry/integrity record')
+              require(not (nd/'node_modules').exists(),'unexpected node_modules install')
+              summary['npm_packages']=len(pkgs)-1
+              summary['npm_lock_sha256']=sha(nd/'package-lock.json')
+              summary['npm_lifecycle_candidates']=sorted(k for k,v in pkgs.items() if v.get('hasInstallScript'))
+              cmd(['git','diff','--exit-code','--','.'],root,'tracked-source')
+              for src,name in [(cd/'composer.lock','composer.lock'),(nd/'package-lock.json','package-lock.json')]:
+                  shutil.copyfile(src,out/name)
+              summary.update(status='PASSED',stage='complete',exit_code=0)
+          except (RuntimeError, OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+              summary['status']='BLOCKED'
+              summary.setdefault('reason','dependency preflight failed or incomplete')
+              summary.setdefault('exit_code',2)
+              # Never publish a partial candidate lock.
+              for name in ('composer.lock','package-lock.json'):
+                  (out/name).unlink(missing_ok=True)
+          finally:
+              summary['duration_seconds']=round(time.monotonic()-start,3)
+              (out/'preflight.summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+              print(json.dumps(summary,indent=2))
+          raise SystemExit(0 if summary['status']=='PASSED' else 2)
+          PY
+      - name: Publish only preflight summary and validated candidate locks
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-t006-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_PREFLIGHT_DIR }}/safe/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove only owned scratch directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, re, shutil
+          path=pathlib.Path(os.environ['F04_PREFLIGHT_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          if path.is_symlink() or path.resolve()!=path or path.parent!=parent or not re.fullmatch(r'f04-t006-[A-Za-z0-9]{12}',path.name) or (path/'owner').read_text()!=expected:
+              raise SystemExit('Refused unowned preflight cleanup')
+          shutil.rmtree(path)
+          print('Owned preflight scratch cleanup verified.')
+          PY
