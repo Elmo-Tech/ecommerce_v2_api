@@ -36,7 +36,7 @@ final class FoundationTestCheckout
         if (is_file($source.'/phpunit.integration.xml')) {
             $this->copy($source, 'phpunit.integration.xml');
         }
-        foreach (['run-tests.php', 'bootstrap.php', 'TestEnvironmentGuard.php', 'integration-bootstrap.php', 'OwnedTestRun.php', 'IntegrationConnections.php'] as $file) {
+        foreach (['run-tests.php', 'bootstrap.php', 'TestEnvironmentGuard.php', 'integration-bootstrap.php', 'OwnedTestRun.php', 'IntegrationConnections.php', 'IntegrationContext.php', 'LocalDocker.php'] as $file) {
             $path = 'tests/Support/'.$file;
             if (is_file($source.'/'.$path)) {
                 $this->copy($source, $path);

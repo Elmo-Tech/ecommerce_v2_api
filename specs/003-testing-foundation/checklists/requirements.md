@@ -13,7 +13,7 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 18/40 complete; T016/T017/T018 verified in targeted CI; 26 expected later-scope failures, native Integration NOT RUN. T020 partial pure selection 14/14; actual cleanup and remaining tasks open.
+**Status:** 18/40 complete; T019 guarded integration sources and additional safe unit cases staged; actual CI pending. No real service execution.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).

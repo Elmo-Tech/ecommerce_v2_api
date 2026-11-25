@@ -9,24 +9,29 @@ require_once __DIR__.'/TestEnvironmentGuard.php';
 $root = dirname(__DIR__, 2);
 
 try {
-    // The integration mode is deliberately not supported until the owned
-    // service guard is implemented in T019.
     $arguments = array_slice($argv, 1);
-    if (array_shift($arguments) !== 'fast') {
+    $mode = array_shift($arguments);
+    if ($mode === 'fast') {
+        TestEnvironmentGuard::applyFast($root);
+    } elseif ($mode === 'integration') {
+        require_once __DIR__.'/OwnedTestRun.php';
+        require_once __DIR__.'/LocalDocker.php';
+        require_once __DIR__.'/IntegrationContext.php';
+        require_once __DIR__.'/IntegrationConnections.php';
+        \Tests\Support\IntegrationConnections::preflight($root);
+    } else {
         throw new RuntimeException('Unsupported test mode.');
     }
-
-    TestEnvironmentGuard::applyFast($root);
 
     $options = [];
     $selection = null;
     $report = false;
     foreach ($arguments as $argument) {
-        if (preg_match('/^--suite=(Unit|Feature|Architecture)$/D', $argument, $match) && $selection === null) {
+        if ($mode === 'fast' && preg_match('/^--suite=(Unit|Feature|Architecture)$/D', $argument, $match) && $selection === null) {
             $selection = 'suite';
             $options[] = '--testsuite';
             $options[] = $match[1];
-        } elseif (preg_match('/^--group=(foundation|api-foundation|testing-foundation)$/D', $argument, $match) && $selection === null) {
+        } elseif ($mode === 'fast' && preg_match('/^--group=(foundation|api-foundation|testing-foundation)$/D', $argument, $match) && $selection === null) {
             $selection = 'group';
             $options[] = '--group';
             $options[] = $match[1];
@@ -40,7 +45,8 @@ try {
     }
 
     $command = [
-        PHP_BINARY, $root.'/vendor/bin/pest', '--configuration', $root.'/phpunit.xml',
+        PHP_BINARY, '-d', 'zend.exception_ignore_args=1', $root.'/vendor/bin/pest', '--configuration',
+        $root.($mode === 'fast' ? '/phpunit.xml' : '/phpunit.integration.xml'),
         '--fail-on-empty-test-suite', '--fail-on-warning', '--fail-on-risky',
         '--fail-on-skipped', '--fail-on-incomplete', ...$options,
     ];

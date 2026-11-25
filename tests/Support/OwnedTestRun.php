@@ -160,6 +160,15 @@ final class OwnedTestRun
         }
     }
 
+    public static function image(string $service): array
+    {
+        if (!array_key_exists($service, self::IMAGES)) {
+            self::reject();
+        }
+
+        return self::IMAGES[$service];
+    }
+
     public function token(): string
     {
         return $this->runToken;

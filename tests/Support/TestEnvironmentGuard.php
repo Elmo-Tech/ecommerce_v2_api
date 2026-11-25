@@ -129,6 +129,29 @@ final class TestEnvironmentGuard
         return 'Test environment check failed.';
     }
 
+    public static function validateIntegration(string $root, array $process, array $env, array $server): void
+    {
+        // Explicit integration mode is required, never supplied by XML.
+        foreach (['APP_ENV' => 'testing', 'F03_MODE' => 'integration'] as $key => $expected) {
+            if (($process[$key] ?? null) !== $expected) {
+                throw new RuntimeException('Integration requires an explicit testing job.');
+            }
+            foreach ([$env, $server] as $source) {
+                if (array_key_exists($key, $source) && $source[$key] !== $expected) {
+                    throw new RuntimeException('Conflicting integration environment.');
+                }
+            }
+        }
+        // Remove only the three explicitly validated integration control
+        // variables from copies. All ordinary DB/Redis/PG/cloud settings
+        // remain subject to the existing fast safety policy.
+        foreach ([&$process, &$env, &$server] as &$source) {
+            unset($source['F03_MODE'], $source['F03_RUN_TOKEN'], $source['F03_RUN_DESCRIPTOR']);
+        }
+        unset($source);
+        self::validateFast($root, $process, $env, $server);
+    }
+
     public static function applyFast(string $root): void
     {
         $process = getenv();
