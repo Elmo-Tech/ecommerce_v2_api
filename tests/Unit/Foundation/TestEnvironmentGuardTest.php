@@ -78,6 +78,7 @@ dataset('f03 unsafe fast settings', [
     'cached config override' => ['APP_CONFIG_CACHE', 'f03-synthetic-canary'],
     'routes cache override' => ['APP_ROUTES_CACHE', 'f03-synthetic-canary'],
     'integration descriptor' => ['F03_RUN_DESCRIPTOR', 'f03-synthetic-canary'],
+    'integration mode' => ['F03_MODE', 'integration'],
 ]);
 
 it('rejects unsafe explicit settings independently of their source and does not echo values', function (string $key, string $value, int $source): void {
