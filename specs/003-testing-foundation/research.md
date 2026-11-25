@@ -1,6 +1,6 @@
-# F0-03 — source discovery and unresolved research
+# F0-03 — source discovery and completed design research
 
-**Date:** 2026-11-25 | **Source revision:** `97c5895bd5672261247b45f1b7eca5648afaf163` | **Status:** repository discovery only; version research and decisions pending.
+**Date:** 2026-11-25 | **Source revision:** `97c5895bd5672261247b45f1b7eca5648afaf163` | **Status:** DEC-01…04 approved; external research and final design submitted; actual execution pending.
 
 ## Verified repository baseline
 - PR #4 merged `2220a2afc0d97aeb1cf705e21da86af910ee6dda`; PR #5 pointer merged `f0febe3acdd20f84230476629aa9cb759df5ca7e`; PR #6 docs closeout merged `97c5895bd5672261247b45f1b7eca5648afaf163`. F0-02 tasks ledger contains 30 checked tasks and publication condition satisfied.
@@ -11,15 +11,38 @@
 
 ## Governing source evidence
 - TEST-01/02: risk-based test layers, Pest default with existing PHPUnit permitted, central tests/type/Module/Feature organization, independent deterministic tests.
-- TEST-03 §§5.1–5.7 and §16: real Central + two distinct Tenant PostgreSQL databases, restricted DB roles/setup privilege separation, independently positive environment/endpoint/name/role/namespace/run ownership, no blind RefreshDatabase or global flush; sequential before parallel; real service evidence when applicable. Recommended Foundation order includes safe three-DB/Redis harness. This supports proposed DEC-01 A; does not prove implementation or select concrete service versions.
+- TEST-03 §§5.1–5.7 and §16: real Central + two distinct Tenant PostgreSQL databases, restricted DB roles/setup privilege separation, independently positive environment/endpoint/name/role/namespace/run ownership, no blind RefreshDatabase or global flush; sequential before parallel; real service evidence when applicable. Recommended Foundation order includes safe three-DB/Redis harness. This supports approved DEC-01 A; does not prove implementation or select concrete service versions.
 - DB-01/09/10: real role denial, separate migration tracks, restricted runtime roles; no business migration designs invented in this Feature.
-- TEST-09 §11.4: precise actual revisions, suite/environment/outcome/duration/safe artifacts; JUnit preferred where supported. Retention/runner policy to specify; 7 days is a proposed convention, not a preapproved report policy.
+- TEST-09 §11.4: precise actual revisions, suite/environment/outcome/duration/safe artifacts; JUnit preferred where supported. Retention/runner policy to specify; 7 days is now explicitly approved by DEC-04 A.
 - Constitution VII/VIII: applicable Critical/High checks pass with actual evidence; no mandatory heavy suite for trivial docs; preserve reviewed Feature gates. Workflow 2026-11-25: ChatGPT review -> owner human review -> explicit merge; third-party AI review optional.
 - D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.
 
-## Research to complete after scope decision, before final plan
-1. Verify supported PostgreSQL and Redis release lines, official container images/digests and PHP 8.4 pdo_pgsql/phpredis compatibility, record actual sources and propose exact versions. Current reviewed source documents do not mandate a concrete version. Do not claim install/runtime compatibility from research alone.
-2. Verify Pest/PHPUnit configuration/selection and safe pre-boot guard ordering; no fallback or automatic skip; actual negative/positive tests required after implementation authorization.
-3. Finalize owned disposable job resource topology, role and ACL grant/denial acceptance matrix, run identity and secret/report handling. Verify runner availability and fail-closed behavior on real CI.
-4. Confirm proposed JUnit retention and reporting approach and separation from F0-04. No artifact/credentials created by this draft.
-5. Once owner approves final choices and revised spec/plan, generate tasks/consistency and obtain separate implementation authorization. No runtime changes now.
+## Owner approvals
+
+Owner explicitly approved F0-03 DEC-01 A, DEC-02 A, DEC-03 A and DEC-04 A on 2026-11-25, and requested research plus the final Spec/Plan before implementation. These four choices are approved; the complete detailed Spec/Plan and concrete technical selections below await separate owner sign-off. No execution or merge authority.
+
+## External source research (2026-11-25)
+
+| Topic | Verified documentation / choice | Limits |
+| --- | --- | --- |
+| PostgreSQL | [Version policy](https://www.postgresql.org/support/versioning/) and [17.12 release](https://www.postgresql.org/docs/17/release-17-12.html), dated 2026-11-12. 17 supported until 2029-11-08. Choose 17.12 rather than a new major release to limit novelty for technical fixture tests. | Does not establish actual installed compatibility or a production DB version. |
+| Redis | [OSS release policy](https://redis.io/docs/latest/operate/oss_and_stack/install/version-mgmt/) identifies 8.2 extended through 2030-09-01; [release archive](https://download.redis.io/releases/) includes 8.2.11 (2026-10-26). Choose maintained extended line rather than expiring standard lines. | Test-only choice; not queue/Horizon integration proof. |
+| PostgreSQL image | [Official Docker layer](https://hub.docker.com/layers/library/postgres/17.12-bookworm/images/sha256-c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03) lists linux/amd64 manifest `sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03` for 17.12-bookworm. | Registry API not reachable from web retrieval; source-published manifest found. Actual digest pull/inspect and version still mandatory. |
+| Redis image | [Official Docker layer](https://hub.docker.com/layers/library/redis/8.2.11-bookworm/images/sha256-0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87) lists linux/amd64 manifest `sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87` for 8.2.11-bookworm. | Same limitation. Distinguish platform manifest from multi-platform index and mutable tag. |
+| PHP drivers | [PHP PDO_PGSQL manual](https://www.php.net/manual/en/ref.pdo-pgsql.php); [PECL Redis 6.3.0 stable](https://pecl.php.net/package/redis/6.3.0), PHP >=7.4 published requirement; [PECL listing](https://pecl.php.net/package/redis) marks 6.4.0RC1 beta. | No actual extension installation or compatibility run; verify on PHP 8.4, no forced fallback. |
+| Job isolation | [GitHub container networking](https://docs.github.com/en/actions/tutorials/use-containerized-services/use-docker-service-containers) documents job service lifecycle and host port mapping; [runner/container model](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container). | Choose job-managed containers for generated credentials and loopback-only mapping; verify runner and ownership in real preflight. |
+| PostgreSQL grants | [Privileges](https://www.postgresql.org/docs/17/ddl-priv.html), [error codes](https://www.postgresql.org/docs/17/errcodes-appendix.html): object ownership, CONNECT, TEMP/CREATE and SQLSTATE insufficient privilege. | Actual connect-denial SQLSTATE may be abstracted by PDO; need real safe server evidence and grant checks, not generic connection failure. |
+| Redis | [ACL docs](https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/): per-user key/command rules and subcommands. | Actual ACL runtime NOPERM and admin ACL DRYRUN for prohibited commands must be verified. |
+| Test CLI | [Pest CLI reference](https://pestphp.com/docs/cli-api-reference): explicit config, bootstrap, fail-on-empty/warning/risky/skipped/incomplete, JUnit logging. Existing locked PHPUnit/Pest known working for older suite. | PHPUnit 13 documentation URL was unavailable via retrieval; exact locked binary flags/bootstrap behavior verified during execution, not assumed pass. |
+
+## Alternatives considered and decisions in final plan
+
+- Fast + separate Integration config/guard rather than one group-selected suite; no accidental real DB/Redis execution by default. Reject unsafe ambient env, nonempty dotenv/cached config; no change to actual developer env. Test-only native PDO and PhpRedis give real infrastructure evidence with no premature application tenancy. Existing Feature and route-cache tests remain independent.
+- Job-owned containers with dynamic 127.0.0.1 binding, fresh generated run identity/passwords, actual Docker identity/label/endpoint verification, no external targets. Avoid provisioning/drop on shared service, global flush, broad cleanup, or prefix-only ownership. Setup/runtime access separated. No local integration tooling, no remote daemon.
+- 3 separate PostgreSQL DBs and restricted roles; committed read-only marker fixture, actual positive/negative matrix. Redis key and command ACLs rather than logical DB labels/prefix alone; global denial checked non-destructively with ACL DRYRUN. Explicit required suites fail on missing services. See detailed matrix in final spec and plan.
+- Keep existing locked PHP packages and current workflow family. Narrow two-job test pipeline, approved 7-day JUnit artifacts and safe summary; no broad pipeline or F0-04 static-analysis work now. Proposed run naming, deadlines and support paths are implementation selections in this review candidate, not previously approved facts.
+- Published Docker page digests can change when tags rebuilt; pin exact retrieved amd64 manifest, not current tag. Check availability and applicable material vulnerabilities at preflight; stop and obtain reviewed replacement if needed. No full image audit or claim of production readiness.
+
+## Remaining execution-only verification and owner gate
+
+Design research completed for this review candidate. Actual image retrieval, runtime version checks, extension loading, setup/run/cleanup, native denied-access evidence and JUnit behavior require real CI after tasks/consistency review and separate implementation authorization. No test or service executed here. If an unexpected compatibility or safety blocker changes scope or pin, get owner approval before substitution. Next action: approve complete Spec/Plan, then create tasks and analysis; implementation authorization follows separately.
