@@ -1,7 +1,7 @@
 # Technical Plan: F0-04 — Code Quality & CI Foundation
 
 **Branch:** `feature/f0-04-code-quality-ci` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)
-**Status:** Full proposed design for owner review; DEC-01…06 A approved. No implementation or packages authorized. [Research](research.md), [Discovery](discovery.md).
+**Status:** Complete technical design and DEC-01…06 A owner-approved at the recorded revision. Tasks/Consistency Analysis prepared (2/56 planning only); T003 separate implementation authorization pending. [Research](research.md), [Discovery](discovery.md).
 **Baseline:** development `24ce00231dec35a089bb70c081b257f9b5d234e7`; actual [CI #45614086597](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45614086597) 417 fast + 34 native = 451 unique cases / 2822 assertions; independent 31/134 and 9/101 subsets. PR #7 code and PR #8 closeout verified; no new CI run in this planning step.
 
 ## 1. Summary and technical context
@@ -124,7 +124,7 @@ Proposed versioned bounded JSON summary per lane: schemaVersion, repository, eve
 
 After implementation candidate is stable and merged under the existing approved human workflow, identify actual exact final check name and app source. Separately seek owner admin authorization before mutation. Inspect repository plan/permission and existing inherited rules; previous administrative API access limited. Proposed development rule: require PR before merge, require stable quality gate and up-to-date current base, block force pushes/deletion, no direct pushes/bypass (including admin where supported), resolve conversations, restrict bypass actors to none; formal required review settings must match team capability and qualified-independent-review requirement, not self-approval. Propose one independent approval for protected branches when eligible reviewer available; if owner is PR author and cannot approve, arrange eligible reviewer or separately agree on policy before activation; never fake approval or silently weaken existing rule. Keep main untouched. Plan safe activation order and rollback via separately authorized admin change, verify by controlled docs PR/status and rejected direct-push policy test without attempting a destructive real push. If access/plan blocks, document manual GitHub settings steps, required check exact name, and pending enforcement; do not claim active protection. DEC-06 approves plan, not actual administration. No bypass to merge the feature or any closeout.
 
-## 11. Proposed execution sequence (not Tasks yet)
+## 11. Approved execution design (canonical Tasks now available)
 
 1. Review Spec/Plan/research and owner approval; then generate Tasks + consistency analysis and obtain separate implementation authorization.
 2. Verify exact baseline and prepare actual locked tool preflight; review pin/lock compatibility.
@@ -133,7 +133,7 @@ After implementation candidate is stable and merged under the existing approved 
 5. Implement separate lanes, immutable actions, docs/risk classifier and final gate; adapt obsolete architecture assertions with traceability.
 6. Verify actual scan/audit findings; resolve blockers or escalate; prove failure handling and all previous regressions; actual docs-only and full integrated candidate CI.
 7. Review exact source, evidence and risk; owner/qualified independent human review as applicable; separate development-only merge consent and verified integration. Document branch policy/activation status; activation only if separately authorized. Closeout under approved workflow.
-No Task IDs assigned yet. No implementation authorization inferred from Plan approval.
+[Canonical tasks](tasks.md) now contain T001–T056 and [Consistency Analysis](consistency-analysis.md) includes explicit C01 evidence sequencing for owner task review. No implementation authorization inferred from Plan approval.
 
 ## 12. Explicit Spec-to-Plan traceability (documentary review)
 
@@ -157,4 +157,11 @@ All 13 requirements are covered at design level. Full task/dependency consistenc
 
 ## 13. Explicit outstanding gates
 
-Published compatibility is not actual installation, actual analysis, API validation or security scan. Exact transitive lock diffs, real level-6 findings, scanner advisory DB/finding inventory, final GitHub check name, actual runner/artifact compatibility and branch admin access remain unverified. Proposed 24h DB freshness, timeouts, matrix, file layout, exact pins and review policy are technical decisions submitted for owner Plan approval, not previously approved numbers. If actual preflight contradicts any, stop affected work and ask for reviewed revision. No changes to main, production, F0-05, application Tenancy/Auth/financial/worker behavior; D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED.
+Published compatibility is not actual installation, actual analysis, API validation or security scan. Exact transitive lock diffs, real level-6 findings, scanner advisory DB/finding inventory, final GitHub check name, actual runner/artifact compatibility and branch admin access remain unverified. Proposed 24h DB freshness, timeouts, matrix, file layout, exact pins and review policy are technical details approved in the recorded full Plan; actual feasibility/evidence still requires implementation preflight. If actual preflight contradicts any, stop affected work and ask for reviewed revision. No changes to main, production, F0-05, application Tenancy/Auth/financial/worker behavior; D-201 OPEN, BA-16 DEFERRED, BA-30 G3 BLOCKED.
+
+
+## 14. Owner approval record (2026-11-25)
+
+On 2026-11-25 the owner explicitly approved the complete F0-04 Spec and Technical Plan at source `effc624e5b019047782eb940a56e288cb9373c93`, including the six A decisions, proposed versions/action pins, CI matrix, security policy (24-hour DB freshness), safety boundaries, timeouts and stated limitations, and requested tasks.md and Consistency Analysis with review only, without executing project code or installing packages. This is not implementation, tool/scanner execution, workflow dispatch, branch administration, merge or deployment authorization.
+
+Approved design is unchanged; see canonical [Tasks](tasks.md) and [Consistency Analysis](consistency-analysis.md) for executable order and C01 proposed clarification. T003 still pending.

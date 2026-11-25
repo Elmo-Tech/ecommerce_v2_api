@@ -1,7 +1,7 @@
 # F0-04 — Code Quality & CI Foundation: discovery and proposed decisions
 
 **Date:** 2026-11-25 (Africa/Cairo)
-**Status:** DEC-01–06 A APPROVED by owner on 2026-11-25. Original options below retained for traceability. Full Spec/Plan prepared for separate review. No implementation, dependency installation, scanner execution, CI change, repository-settings mutation or merge authority.
+**Status:** DEC-01–06 A APPROVED by owner on 2026-11-25. Original options below retained for traceability. Full Spec/Plan subsequently approved; Tasks/Consistency Analysis prepared, T003 pending. No implementation, dependency installation, scanner execution, CI change, repository-settings mutation or merge authority.
 **Branch:** `feature/f0-04-code-quality-ci`; reviewed development baseline `24ce00231dec35a089bb70c081b257f9b5d234e7`.
 
 ## 1. Verified baseline and scope
@@ -43,6 +43,9 @@ Version selection above is published compatibility evidence, not an approved pin
 
 ## 5. Next exact action
 
-Owner approved all A options. [Spec](spec.md), [Plan](plan.md) and [Research](research.md) now prepared; obtain separate full Spec/Plan approval. Then generate tasks.md and consistency analysis for separate review and explicit implementation authorization. No install/run/change CI or settings until approved. Follow technical review, owner/qualified human review, separate development-only merge consent and verified closeout.
+Owner approved all A options and then the full [Spec](spec.md) and [Plan](plan.md) at the recorded revision. Review [Tasks](tasks.md) and [Consistency Analysis](consistency-analysis.md), then obtain separate implementation consent; [Research](research.md) actual gates remain pending. Then generate tasks.md and consistency analysis for separate review and explicit implementation authorization. No install/run/change CI or settings until approved. Follow technical review, owner/qualified human review, separate development-only merge consent and verified closeout.
 
 **Explicit decision record (2026-11-25):** DEC-01 A Pint PSR-12; DEC-02 A PHPStan/Larastan level 6; DEC-03 A Redocly; DEC-04 A separate CI jobs; DEC-05 A Trivy + dependency audit; DEC-06 A branch protection plan. Owner requested preparation/review of Spec and Technical Plan only, without code execution or installing packages. Published candidate versions refined in research; actual compatibility remains unverified.
+
+
+**Full design approval update:** On 2026-11-25 the owner explicitly approved the complete F0-04 Spec and Technical Plan at source `effc624e5b019047782eb940a56e288cb9373c93`, including the six A decisions, proposed versions/action pins, CI matrix, security policy (24-hour DB freshness), safety boundaries, timeouts and stated limitations, and requested tasks.md and Consistency Analysis with review only, without executing project code or installing packages. This is not implementation, tool/scanner execution, workflow dispatch, branch administration, merge or deployment authorization.

@@ -1,6 +1,6 @@
 # F0-04 — Technical compatibility research (read-only)
 
-**Date:** 2026-11-25. Exact reviewed repository baseline `24ce00231dec35a089bb70c081b257f9b5d234e7`. Published package/release metadata and source inspection only. No solver, installation, execution, scan or workflow dispatch. Candidates below are proposed for Plan approval, not approved final runtime evidence.
+**Date:** 2026-11-25. Exact reviewed repository baseline `24ce00231dec35a089bb70c081b257f9b5d234e7`. Published package/release metadata and source inspection only. No solver, installation, execution, scan or workflow dispatch. The candidates below were approved as part of the complete Plan at the recorded revision, not as final runtime evidence.
 
 | Tool | Candidate / published evidence | Remaining actual gate |
 | --- | --- | --- |
@@ -46,7 +46,14 @@ Sources: exact GitHub commits and action.yml in the respective official reposito
 
 ## Remaining verification gates
 
-All candidate package versions, action SHAs and scanner identity above need owner Plan approval, then separate implementation authorization and actual locked execution. The exact npm/Composer transitive lock, analyzer findings, artifact compatibility, vulnerability DB freshness and actual image findings are unknown. If any compatibility/security blocker is material, stop affected work and present revised approved design rather than silently changing level, pins, scope or standards.
+All candidate package versions, action SHAs and scanner identity above have received full Plan approval; they still require separate implementation authorization and actual locked execution. The exact npm/Composer transitive lock, analyzer findings, artifact compatibility, vulnerability DB freshness and actual image findings are unknown. If any compatibility/security blocker is material, stop affected work and present revised approved design rather than silently changing level, pins, scope or standards.
 
 
 **Aggregate evidence transport refinement:** reviewed actions/download-artifact v8 candidate action.yml at 9000827ccba6bdab643e8b6fd33ac0654aef8333, Node 24, current-run download without cross-run token, digest mismatch default error. Proposed only; actual artifact compatibility, safe extraction/validation and minimal permission remain implementation checks.
+
+
+## Owner approval update
+
+On 2026-11-25 the owner explicitly approved the complete F0-04 Spec and Technical Plan at source `effc624e5b019047782eb940a56e288cb9373c93`, including the six A decisions, proposed versions/action pins, CI matrix, security policy (24-hour DB freshness), safety boundaries, timeouts and stated limitations, and requested tasks.md and Consistency Analysis with review only, without executing project code or installing packages. This is not implementation, tool/scanner execution, workflow dispatch, branch administration, merge or deployment authorization.
+
+Actual compatibility gates remain open. No newly executed proof in this document revision. See [tasks](tasks.md) and [consistency review](consistency-analysis.md).

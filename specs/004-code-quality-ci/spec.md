@@ -2,7 +2,7 @@
 
 **Feature Branch:** `feature/f0-04-code-quality-ci`
 **Created:** 2026-11-25 (Africa/Cairo)
-**Status:** DEC-01…06 A explicitly approved by owner; canonical Spec and Technical Plan prepared for owner review. **No implementation authorization.** No tool installed or executed, no CI or repository setting changed by this planning revision.
+**Status:** Owner-approved complete Spec/Plan (DEC-01…06 A); Tasks and Consistency Analysis prepared/reviewed, 2/56 planning tasks complete. **No implementation authorization; T003 pending.** No tool or project code executed, packages installed, CI or repository settings changed.
 **Baseline:** development `24ce00231dec35a089bb70c081b257f9b5d234e7`; F0-01 26/26, F0-02 30/30, F0-03 40/40, verified PR #7/#8 merge and publication.
 **Input:** Owner: DEC-01 A (Laravel Pint — PSR-12), DEC-02 A (PHPStan/Larastan — Level 6), DEC-03 A (Redocly CLI), DEC-04 A (Separate CI Jobs), DEC-05 A (Trivy + Dependency Audit), DEC-06 A (Branch Protection Plan). Prepare and review Spec and Technical Plan without executing code or installing packages.
 
@@ -10,7 +10,7 @@
 
 Make quality failures visible and enforce applicable checks on the actual integrated PR candidate before development merge. Keep native Laravel, simple reviewed engineering tooling and existing test safety boundaries. This Feature has no domain-data ownership and no new production endpoint.
 
-Binding sources: [Constitution v1.0.0](../../.specify/memory/constitution.md) I–VIII (especially VII/VIII); [CS-08/09/11](../../docs/02-standards/code-standards.md); [TEST-01/05/09/10](../../docs/02-standards/testing-standards.md); [AS-08/09](../../docs/02-standards/api-standards.md); [SEC-05/06](../../docs/02-standards/security-standards.md); [Backend Architecture](../../docs/01-architecture/backend-architecture.md) BA-25/BA-30; [Workflow](../../docs/WORKFLOW.md); [F0-03 closure](../../docs/handoff/F0-03_MERGED_AND_CLOSEOUT_2026-11-25.md). [Discovery decisions](discovery.md) are approved; proposed technical details in [plan](plan.md) still require review.
+Binding sources: [Constitution v1.0.0](../../.specify/memory/constitution.md) I–VIII (especially VII/VIII); [CS-08/09/11](../../docs/02-standards/code-standards.md); [TEST-01/05/09/10](../../docs/02-standards/testing-standards.md); [AS-08/09](../../docs/02-standards/api-standards.md); [SEC-05/06](../../docs/02-standards/security-standards.md); [Backend Architecture](../../docs/01-architecture/backend-architecture.md) BA-25/BA-30; [Workflow](../../docs/WORKFLOW.md); [F0-03 closure](../../docs/handoff/F0-03_MERGED_AND_CLOSEOUT_2026-11-25.md). [Discovery decisions](discovery.md) are approved; technical details in [plan](plan.md) are owner-approved; actual compatibility and verification remain pending.
 
 ## 2. User scenarios and independently testable acceptance
 
@@ -105,4 +105,11 @@ No production app feature, tenancy/auth/authorization, migrations, stock/order/f
 
 ## 6. Approval boundary
 
-This is the proposed full Spec for the six approved decisions. Review it together with [Technical Plan](plan.md), [Research](research.md) and [requirements checklist](checklists/requirements.md). Tasks and consistency analysis follow full Spec/Plan approval; separate implementation authorization is mandatory. No install, code/test execution, scanner, new CI, admin mutation or merge authorized at this stage.
+The complete Spec and Plan are owner-approved at the recorded revision below. [Tasks](tasks.md) and [Consistency Analysis](consistency-analysis.md) are prepared for owner review and separate implementation authorization. [Technical Plan](plan.md), [Research](research.md) and [requirements checklist](checklists/requirements.md) retain actual outstanding gates. No install, code/test execution, scanner, new CI, admin mutation or merge authorized at this stage.
+
+
+## 7. Owner approval record (2026-11-25)
+
+On 2026-11-25 the owner explicitly approved the complete F0-04 Spec and Technical Plan at source `effc624e5b019047782eb940a56e288cb9373c93`, including the six A decisions, proposed versions/action pins, CI matrix, security policy (24-hour DB freshness), safety boundaries, timeouts and stated limitations, and requested tasks.md and Consistency Analysis with review only, without executing project code or installing packages. This is not implementation, tool/scanner execution, workflow dispatch, branch administration, merge or deployment authorization.
+
+[Tasks](tasks.md) and [Consistency Analysis](consistency-analysis.md): 2/56 documentary complete, T003 pending. No substantive approved requirement changed by this status reconciliation.
