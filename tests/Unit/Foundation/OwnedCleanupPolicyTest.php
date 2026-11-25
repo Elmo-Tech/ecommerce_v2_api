@@ -116,3 +116,71 @@ it('cannot use a different run record to select cleanup targets for the current 
         $current->close();
     }
 })->group('testing-foundation');
+
+
+it('allows cleanup-only lifecycle transitions but never a changed known port or volume', function (string $case): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $record = &$fixture->record['containers']['postgres'];
+        $observed = &$fixture->observed['postgres'];
+        if ($case === 'captured before allocation') {
+            $record['port'] = null;
+            $record['volumes'] = [];
+        } elseif ($case === 'stopped after allocation') {
+            $observed['port'] = null;
+        } elseif ($case === 'known port changed') {
+            $observed['port']++;
+        } elseif ($case === 'known volume changed') {
+            $observed['volumes'] = [str_repeat('e', 64)];
+        } elseif ($case === 'unknown volume and absent container') {
+            $record['port'] = null;
+            $record['volumes'] = [];
+            $fixture->observed['postgres'] = null;
+        }
+        unset($record, $observed);
+
+        if (in_array($case, ['captured before allocation', 'stopped after allocation'], true)) {
+            $targets = f03CleanupTargets($fixture);
+            expect($targets['containers'][0])->toBe([
+                'id' => str_repeat('a', 64),
+                'volumes' => [str_repeat('c', 64)],
+            ]);
+            expect(fn () => \Tests\Support\OwnedTestRun::validate($fixture->job, $fixture->record, $fixture->descriptor, $fixture->observed, $fixture->checkout->root))->toThrow(RuntimeException::class);
+        } else {
+            expect(fn () => CleanupPolicy::targets($fixture->job, $fixture->record, $fixture->observed, $fixture->checkout->root))->toThrow(RuntimeException::class);
+        }
+    } finally {
+        $fixture->close();
+    }
+})->with(['captured before allocation', 'stopped after allocation', 'known port changed', 'known volume changed', 'unknown volume and absent container'])->group('testing-foundation');
+
+it('selects only private known cleanup files and never deletes or follows a foreign path during selection', function (string $case): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $directory = $fixture->record['directory'];
+        $path = $directory.'/ownership.json';
+        file_put_contents($path, '{}');
+        chmod($path, 0600);
+        if ($case === 'foreign file') {
+            file_put_contents($directory.'/unowned.txt', 'untouched');
+            chmod($directory.'/unowned.txt', 0600);
+        } elseif ($case === 'symlink') {
+            $fixture->checkout->write('untouched', 'untouched');
+            expect(symlink($fixture->checkout->root.'/untouched', $directory.'/runtime.json'))->toBeTrue();
+        } elseif ($case === 'hardlink') {
+            expect(link($path, $directory.'/runtime.json'))->toBeTrue();
+        } elseif ($case === 'public file') {
+            chmod($path, 0644);
+        } elseif ($case === 'nested directory') {
+            mkdir($directory.'/unowned', 0700);
+        }
+        if ($case === 'valid') {
+            expect(CleanupPolicy::files($directory))->toBe([$path]);
+        } else {
+            expect(fn () => CleanupPolicy::files($directory))->toThrow(RuntimeException::class);
+        }
+        expect(file_get_contents($path))->toBe('{}');
+    } finally {
+        $fixture->close();
+    }
+})->with(['valid', 'foreign file', 'symlink', 'hardlink', 'public file', 'nested directory'])->group('testing-foundation');

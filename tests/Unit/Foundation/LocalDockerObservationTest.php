@@ -45,3 +45,29 @@ it('normalizes only exact pinned loopback-bound container observations and rejec
         $fixture->close();
     }
 })->with(['valid', 'wrong image', 'wrong digest', 'wrong architecture', 'wrong reference', 'public port', 'multiple bindings', 'privileged', 'host network', 'shared named volume', 'docker socket mount', 'writable config mount', 'stopped'])->group('testing-foundation');
+
+
+it('permits a stopped owned container with no active mapping only for cleanup observation', function (): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $record = $fixture->record['containers']['postgres'];
+        $id = $record['id'];
+        $directory = $fixture->record['directory'];
+        $image = [$record['image_id'], 'linux', 'amd64', ['postgres@'.$record['manifest']]];
+        $container = [
+            $id, $record['image_id'], 'docker.io/library/postgres:17.12-bookworm@'.$record['manifest'],
+            $record['labels'], [],
+            ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => '']]],
+            false, 'bridge',
+            [['Type' => 'volume', 'Name' => $record['volumes'][0], 'Destination' => '/var/lib/postgresql/data', 'RW' => true]],
+            false,
+        ];
+        expect(fn () => LocalDocker::normalize('postgres', $id, $directory, $container, $image))->toThrow(RuntimeException::class);
+        $record['port'] = null;
+        expect(LocalDocker::normalize('postgres', $id, $directory, $container, $image, true))->toBe($record);
+        $container[5]['5432/tcp'][0]['HostIp'] = '0.0.0.0';
+        expect(fn () => LocalDocker::normalize('postgres', $id, $directory, $container, $image, true))->toThrow(RuntimeException::class);
+    } finally {
+        $fixture->close();
+    }
+})->group('testing-foundation');

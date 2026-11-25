@@ -22,9 +22,48 @@ final class CleanupPolicy
                 continue;
             }
             $container = $record['containers'][$service];
-            $targets[] = ['id' => $container['id'], 'volumes' => $container['volumes']];
+            $targets[] = ['id' => $container['id'], 'volumes' => $observed[$service]['volumes']];
         }
 
         return ['containers' => $targets, 'directory' => $record['directory']];
+    }
+
+    /** Pure filesystem target selection; only known protected artifacts. */
+    public static function files(string $directory): array
+    {
+        $allowed = [
+            'ownership.json', 'ownership.next.json', 'runtime.json', 'runtime.next.json',
+            'redis-evidence.json', 'redis-evidence.next.json', 'pg-password',
+            'redis.conf', 'users.acl', 'setup.json', 'setup.next.json',
+        ];
+        if (realpath($directory) !== $directory || is_link($directory) || !is_dir($directory)
+            || !preg_match('/^f03-[0-9a-f]{16}$/D', basename($directory))
+            || ((@fileperms($directory) ?: 0) & 0777) !== 0700
+            || (function_exists('posix_geteuid') && fileowner($directory) !== posix_geteuid())) {
+            throw new \RuntimeException('Owned cleanup directory rejected.');
+        }
+        $entries = scandir($directory);
+        if ($entries === false) {
+            throw new \RuntimeException('Owned cleanup directory rejected.');
+        }
+        $files = [];
+        foreach ($entries as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+            $path = $directory.'/'.$name;
+            if (!in_array($name, $allowed, true) || is_link($path) || !is_file($path) || realpath($path) !== $path) {
+                throw new \RuntimeException('Unexpected owned cleanup file.');
+            }
+            $stat = lstat($path);
+            if ($stat === false || ($stat['mode'] & 0777) !== 0600 || $stat['nlink'] !== 1
+                || (function_exists('posix_geteuid') && $stat['uid'] !== posix_geteuid())) {
+                throw new \RuntimeException('Unexpected owned cleanup file.');
+            }
+            $files[] = $path;
+        }
+        sort($files);
+
+        return $files;
     }
 }

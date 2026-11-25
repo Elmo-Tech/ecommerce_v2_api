@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use RuntimeException;
-use SensitiveParameter;
 
 /**
  * Read-only bridge from the current hosted job to the independently recorded
@@ -14,7 +13,7 @@ use SensitiveParameter;
  */
 final class IntegrationContext
 {
-    public static function environment(string $root, array $process, array $env, array $server): array
+    public static function environment(string $root, array $process, array $env, array $server, bool $allowAbsentDirectory = false): array
     {
         TestEnvironmentGuard::validateIntegration($root, $process, $env, $server);
         $required = [
@@ -57,11 +56,15 @@ final class IntegrationContext
             self::reject();
         }
         $directory = $temp.'/f03-'.$token;
-        if ($process['F03_RUN_DESCRIPTOR'] !== $directory.'/runtime.json'
-            || realpath($directory) !== $directory || is_link($directory) || !is_dir($directory)
-            || ((@fileperms($directory) ?: 0) & 0777) !== 0700
-            || (function_exists('posix_geteuid') && fileowner($directory) !== posix_geteuid())) {
+        if ($process['F03_RUN_DESCRIPTOR'] !== $directory.'/runtime.json' || is_link($directory)) {
             self::reject();
+        }
+        if (!$allowAbsentDirectory || file_exists($directory)) {
+            if (realpath($directory) !== $directory || !is_dir($directory)
+                || ((@fileperms($directory) ?: 0) & 0777) !== 0700
+                || (function_exists('posix_geteuid') && fileowner($directory) !== posix_geteuid())) {
+                self::reject();
+            }
         }
 
         return [
@@ -117,7 +120,10 @@ final class IntegrationContext
         }
         $path = $directory.'/'.$name;
         clearstatcache(true, $path);
-        $stat = @lstat($path);
+        if (!is_file($path) || is_link($path) || realpath($path) !== $path) {
+            self::reject();
+        }
+        $stat = lstat($path);
         if ($stat === false || is_link($path) || realpath($path) !== $path || !is_file($path)
             || ($stat['mode'] & 0777) !== 0600 || $stat['nlink'] !== 1
             || $stat['size'] <= 0 || $stat['size'] > 65536

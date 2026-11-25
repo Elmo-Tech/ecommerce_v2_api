@@ -7,8 +7,8 @@ namespace Tests\Support;
 use RuntimeException;
 
 /**
- * Bounded, read-only local Docker observations. No arbitrary Docker command
- * is exposed by this class. Never print inspect or container log output.
+ * Bounded local Docker observations and a current-job-only cleanup entry.
+ * No arbitrary Docker command is exposed. Never print inspect or log output.
  */
 final class LocalDocker
 {
@@ -42,7 +42,7 @@ final class LocalDocker
         return $docker;
     }
 
-    public function observe(string $service, string $id, string $directory): ?array
+    public function observe(string $service, string $id, string $directory, bool $cleanup = false): ?array
     {
         $pin = OwnedTestRun::image($service);
         self::assertId($id);
@@ -67,11 +67,11 @@ final class LocalDocker
             $pin['image_id'],
         ])[0], 4);
 
-        return self::normalize($service, $id, $directory, $container, $image);
+        return self::normalize($service, $id, $directory, $container, $image, $cleanup);
     }
 
     /** Pure parser also exercised with synthetic observations in fast tests. */
-    public static function normalize(string $service, string $id, string $directory, array $container, array $image): array
+    public static function normalize(string $service, string $id, string $directory, array $container, array $image, bool $cleanup = false): array
     {
         self::assertId($id);
         $pin = OwnedTestRun::image($service);
@@ -84,7 +84,7 @@ final class LocalDocker
         if ($actualId !== $id || $imageId !== $pin['image_id'] || $imageRef !== $expectedRef
             || $image[0] !== $imageId || $image[1] !== 'linux' || $image[2] !== 'amd64' || !is_array($image[3])
             || $privileged !== false || !in_array($network, ['default', 'bridge'], true)
-            || $running !== true || !is_array($labels) || !is_array($mounts)) {
+            || !is_bool($running) || (!$running && !$cleanup) || !is_array($labels) || !is_array($mounts)) {
             self::reject();
         }
         $validDigest = false;
@@ -97,20 +97,37 @@ final class LocalDocker
             self::reject();
         }
         $portKey = $service === 'postgres' ? '5432/tcp' : '6379/tcp';
-        if (!is_array($ports) || array_keys($ports) !== [$portKey]
-            || !is_array($bindings) || array_keys($bindings) !== [$portKey]
-            || !is_array($ports[$portKey]) || count($ports[$portKey]) !== 1
+        if (!is_array($bindings) || array_keys($bindings) !== [$portKey]
             || !is_array($bindings[$portKey]) || count($bindings[$portKey]) !== 1) {
             self::reject();
         }
-        $binding = $ports[$portKey][0] ?? [];
         $requested = $bindings[$portKey][0] ?? [];
-        $port = $binding['HostPort'] ?? null;
-        if (($binding['HostIp'] ?? null) !== '127.0.0.1' || ($requested['HostIp'] ?? null) !== '127.0.0.1'
-            || !is_string($port) || !preg_match('/^[1-9][0-9]{3,4}$/D', $port)
-            || (int) $port < 1024 || (int) $port > 65535
-            || !in_array($requested['HostPort'] ?? null, ['', '0', $port], true)) {
+        if (($requested['HostIp'] ?? null) !== '127.0.0.1') {
             self::reject();
+        }
+        $port = null;
+        if ($running) {
+            if (!is_array($ports) || array_keys($ports) !== [$portKey]
+                || !is_array($ports[$portKey]) || count($ports[$portKey]) !== 1) {
+                self::reject();
+            }
+            $binding = $ports[$portKey][0] ?? [];
+            $port = $binding['HostPort'] ?? null;
+            if (($binding['HostIp'] ?? null) !== '127.0.0.1'
+                || !is_string($port) || !preg_match('/^[1-9][0-9]{3,4}$/D', $port)
+                || (int) $port < 1024 || (int) $port > 65535
+                || !in_array($requested['HostPort'] ?? null, ['', '0', $port], true)) {
+                self::reject();
+            }
+            $port = (int) $port;
+        } else {
+            // A captured created/stopped container has no active mapping.
+            // No service connection is allowed via this cleanup-only branch.
+            if (!in_array($ports, [null, [], [$portKey => null]], true)
+                || !is_string($requested['HostPort'] ?? null)
+                || !preg_match('/^(?:|0|[1-9][0-9]{3,4})$/D', $requested['HostPort'])) {
+                self::reject();
+            }
         }
         // Only the image's own disposable data volume and explicitly owned
         // read-only config mounts may be present; never the Docker socket.
@@ -149,9 +166,94 @@ final class LocalDocker
 
         return [
             'id' => $id, 'image_id' => $imageId, 'manifest' => $pin['manifest'],
-            'labels' => $ownedLabels, 'host' => '127.0.0.1', 'port' => (int) $port,
+            'labels' => $ownedLabels, 'host' => '127.0.0.1', 'port' => $port,
             'volumes' => $volumes,
         ];
+    }
+
+    /**
+     * Current-job-only cleanup, no supplied container ID or filesystem path.
+     * Validate all resources before mutation; recheck exact identity before
+     * each deletion. Never delete an independently named Docker volume.
+     */
+    public static function cleanupCurrent(string $root): void
+    {
+        $context = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER, true);
+        $directory = $context['directory'];
+        if (!file_exists($directory) && !is_link($directory)) {
+            // Idempotent absence only. This is not independent proof that
+            // a previous interrupted provisioner captured every resource.
+            return;
+        }
+        $record = IntegrationContext::read($directory, 'ownership.json');
+        if (($record['token'] ?? null) !== $context['token']) {
+            self::reject();
+        }
+        OwnedTestRun::validateCapturedRecord($context['job'], $record, $context['temp'], true);
+        $files = \Tests\Support\ci\CleanupPolicy::files($directory);
+        $docker = self::verified();
+        $observed = [];
+        foreach ($record['containers'] as $service => $container) {
+            $observed[$service] = $docker->observe($service, $container['id'], $directory, true);
+        }
+        \Tests\Support\ci\CleanupPolicy::targets($context['job'], $record, $observed, $context['temp']);
+
+        foreach ($record['containers'] as $service => $container) {
+            $current = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER, false);
+            if ($current !== $context || IntegrationContext::read($directory, 'ownership.json') !== $record) {
+                self::reject();
+            }
+            $docker = self::verified();
+            $fresh = $docker->observe($service, $container['id'], $directory, true);
+            $single = $record;
+            $single['containers'] = [$service => $container];
+            \Tests\Support\ci\CleanupPolicy::targets($context['job'], $single, [$service => $fresh], $context['temp']);
+            if ($fresh !== $observed[$service]) {
+                self::reject();
+            }
+
+            $volumes = $fresh === null ? $container['volumes'] : $fresh['volumes'];
+            if ($fresh !== null) {
+                foreach ($volumes as $volume) {
+                    // A volume must belong only to the exact recorded
+                    // container. Never remove a shared or named volume.
+                    $users = trim($docker->command(['ps', '--all', '--no-trunc', '--filter', 'volume='.$volume, '--format', '{{.ID}}'])[0]);
+                    if ($users !== $container['id']) {
+                        self::reject();
+                    }
+                }
+                // Docker removes only this container and its anonymous
+                // volumes. There is no independent volume rm fallback.
+                $docker->command(['container', 'rm', '--force', '--volumes', $container['id']]);
+                if ($docker->observe($service, $container['id'], $directory, true) !== null) {
+                    self::reject();
+                }
+            }
+            foreach ($volumes as $volume) {
+                $names = preg_split('/\R/', trim($docker->command(['volume', 'ls', '--filter', 'name='.$volume, '--format', '{{.Name}}'])[0])) ?: [];
+                if (in_array($volume, $names, true)) {
+                    self::reject();
+                }
+            }
+        }
+
+        // Only exact allowlisted protected files in the verified directory.
+        // No recursive removal, glob, broad storage cleanup or symlink
+        // traversal. Recheck before touching any file.
+        if (\Tests\Support\ci\CleanupPolicy::files($directory) !== $files) {
+            self::reject();
+        }
+        // Remove the ownership record last, so a partial file cleanup
+        // failure retains the captured identity for the next attempt.
+        usort($files, static fn (string $a, string $b): int => (basename($a) === 'ownership.json') <=> (basename($b) === 'ownership.json'));
+        foreach ($files as $file) {
+            if (!in_array($file, \Tests\Support\ci\CleanupPolicy::files($directory), true) || !unlink($file)) {
+                self::reject();
+            }
+        }
+        if (!rmdir($directory)) {
+            self::reject();
+        }
     }
 
     public function postgresDenialCount(string $id, string $role, string $database): int

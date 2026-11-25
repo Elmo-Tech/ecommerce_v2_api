@@ -90,6 +90,17 @@ final class OwnedTestRun
      */
     public static function validateRecord(array $job, array $record, array $observed, string $runnerTemp, bool $partial): void
     {
+        self::checkRecord($job, $record, $observed, $runnerTemp, $partial);
+    }
+
+    /** Structural precheck before inspecting IDs; never a live ownership proof. */
+    public static function validateCapturedRecord(array $job, array $record, string $runnerTemp, bool $partial): void
+    {
+        self::checkRecord($job, $record, null, $runnerTemp, $partial);
+    }
+
+    private static function checkRecord(array $job, array $record, ?array $observed, string $runnerTemp, bool $partial): void
+    {
         self::shape($job, ['repository', 'run_id', 'run_attempt', 'job', 'runner_environment', 'runner_os', 'runner_arch', 'docker_endpoint']);
         if ($job['repository'] !== 'Elmo-Tech/ecommerce_v2_api'
             || !self::matches($job['run_id'], '/^[1-9][0-9]{0,19}$/D')
@@ -122,7 +133,9 @@ final class OwnedTestRun
         if (array_diff($keys, array_keys(self::IMAGES)) !== [] || (!$partial && count($keys) !== 2)) {
             self::reject();
         }
-        self::shape($observed, $keys);
+        if ($observed !== null) {
+            self::shape($observed, $keys);
+        }
         $expectedLabels = [
             'f03.token' => $token,
             'f03.repository' => $job['repository'],
@@ -130,7 +143,7 @@ final class OwnedTestRun
             'f03.run_attempt' => $job['run_attempt'],
             'f03.job' => $job['job'],
         ];
-        $ids = $ports = $volumes = [];
+        $ids = $ports = $volumes = $observedVolumes = $observedPorts = [];
         foreach ($containers as $service => $container) {
             self::shape($container, ['id', 'image_id', 'manifest', 'labels', 'host', 'port', 'volumes']);
             if (!self::matches($container['id'], '/^[0-9a-f]{64}$/D')
@@ -138,24 +151,60 @@ final class OwnedTestRun
                 || $container['manifest'] !== self::IMAGES[$service]['manifest']
                 || !self::same($container['labels'], $expectedLabels)
                 || $container['host'] !== '127.0.0.1'
-                || !is_int($container['port']) || $container['port'] < 1024 || $container['port'] > 65535
-                || in_array($container['id'], $ids, true) || in_array($container['port'], $ports, true)
-                || !is_array($container['volumes']) || !array_is_list($container['volumes'])) {
+                || !self::validPort($container['port'], $partial)
+                || in_array($container['id'], $ids, true)
+                || ($container['port'] !== null && in_array($container['port'], $ports, true))
+                || !is_array($container['volumes']) || !array_is_list($container['volumes'])
+                || count($container['volumes']) > 1
+                || (!$partial && count($container['volumes']) !== 1)) {
                 self::reject();
             }
             $ids[] = $container['id'];
-            $ports[] = $container['port'];
+            if ($container['port'] !== null) {
+                $ports[] = $container['port'];
+            }
             foreach ($container['volumes'] as $volume) {
                 if (!self::matches($volume, '/^[0-9a-f]{64}$/D') || in_array($volume, $volumes, true)) {
                     self::reject();
                 }
                 $volumes[] = $volume;
             }
-            if ($observed[$service] === null && $partial) {
+            if ($observed === null) {
                 continue;
             }
-            if (!self::same($observed[$service], $container)) {
+            if ($observed[$service] === null && $partial) {
+                // A captured ID with unknown volume and no live observation
+                // cannot establish complete cleanup evidence.
+                if ($container['volumes'] === []) {
+                    self::reject();
+                }
+                continue;
+            }
+            $actual = self::shape($observed[$service], array_keys($container));
+            $expected = $container;
+            if ($partial) {
+                // Capture can precede Docker's dynamic port allocation and
+                // volume inspection. A stopped container can lose its live
+                // port. Permit only those lifecycle transitions, never an
+                // alternative known port or known volume.
+                if (!self::validPort($actual['port'], true)
+                    || ($container['port'] !== null && $actual['port'] !== null && $container['port'] !== $actual['port'])
+                    || !is_array($actual['volumes']) || !array_is_list($actual['volumes']) || count($actual['volumes']) !== 1
+                    || !self::matches($actual['volumes'][0], '/^[0-9a-f]{64}$/D')
+                    || ($container['volumes'] !== [] && $container['volumes'] !== $actual['volumes'])) {
+                    self::reject();
+                }
+                $expected['port'] = $actual['port'];
+                $expected['volumes'] = $actual['volumes'];
+            }
+            if (!self::same($actual, $expected)
+                || in_array($actual['volumes'][0], $observedVolumes, true)
+                || ($actual['port'] !== null && in_array($actual['port'], $observedPorts, true))) {
                 self::reject();
+            }
+            $observedVolumes[] = $actual['volumes'][0];
+            if ($actual['port'] !== null) {
+                $observedPorts[] = $actual['port'];
             }
         }
     }
@@ -247,6 +296,11 @@ final class OwnedTestRun
         }
 
         return $a === $b;
+    }
+
+    private static function validPort(mixed $port, bool $partial): bool
+    {
+        return ($partial && $port === null) || (is_int($port) && $port >= 1024 && $port <= 65535);
     }
 
     private static function matches(#[SensitiveParameter] mixed $value, string $pattern): bool
