@@ -56,3 +56,19 @@ it('recognizes the exact Redis dry-run denial forms and binds named keys and com
     expect(RedisFixturePlan::replyCategory("WRONGPASS invalid credentials"))->toBe('authentication-error');
     expect(RedisFixturePlan::replyCategory("unrelated-secret-value"))->toBe('unexpected-response');
 })->group('testing-foundation');
+
+
+it('accepts documented Redis ACL DRYRUN bulk string replies only for the intended owned role and denied command', function (): void {
+    $role = 'f03_0123456789abcdef_a_rt';
+    $other = 'f03_0123456789abcdef_b_rt';
+    $command = "User $role has no permissions to run the 'flushall' command";
+    expect(RedisFixturePlan::denied($command, false, 'FLUSHALL', $role))->toBeTrue();
+    expect(RedisFixturePlan::denied('NOPERM '.$command, false, 'FLUSHALL', $role))->toBeTrue();
+    expect(RedisFixturePlan::denied($command, false, 'FLUSHALL', $other))->toBeFalse();
+    expect(RedisFixturePlan::denied($command, false, 'FLUSHDB', $role))->toBeFalse();
+    expect(RedisFixturePlan::denied("User unrelated has no permissions to run the 'flushall' command", false, 'FLUSHALL', $role))->toBeFalse();
+    expect(RedisFixturePlan::denied("AUTH failed\n".$command, false, 'FLUSHALL', $role))->toBeFalse();
+    expect(RedisFixturePlan::denied('No permissions to access a key', true, 'f03:0123456789abcdef:b:preflight', $role))->toBeTrue();
+    expect(RedisFixturePlan::denied('No permissions to access a key', false, 'FLUSHALL', $role))->toBeFalse();
+    expect(RedisFixturePlan::replyCategory($command))->toBe('command-denied');
+})->group('testing-foundation');

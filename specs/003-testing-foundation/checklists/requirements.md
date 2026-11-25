@@ -13,7 +13,7 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 26/40 complete; actual both services started/ready, PostgreSQL 17.12 setup/grant matrix passed, Redis setup rejected. Native tests BLOCKED; scoped reply parser correction and diagnostics staged. T027–T040 open.
+**Status:** 26/40 complete; actual startup and PostgreSQL grants pass, Redis admin/version/first five allowed probes pass; first prohibited dry-run response classification correction staged. Native Integration BLOCKED; T027–T040 open.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).

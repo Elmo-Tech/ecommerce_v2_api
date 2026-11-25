@@ -220,7 +220,7 @@ final class LocalDocker
             echo 'Owned Redis setup: slot '.$slot." five allowed dry-runs verified.\n";
             foreach ($probes['denied'] as $name => $probe) {
                 $reply = $docker->redisAdmin($record, $admin, $probe);
-                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, false, $name)) {
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, false, $name, $probe[2])) {
                     echo 'Owned Redis setup: slot '.$slot.' denied '.$name.' probe rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($reply).".\n";
                     self::reject();
                 }
@@ -229,7 +229,7 @@ final class LocalDocker
             echo 'Owned Redis setup: slot '.$slot." seven prohibited command dry-runs verified.\n";
             foreach ($probes['foreign'] as $probe) {
                 $reply = $docker->redisAdmin($record, $admin, $probe);
-                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, true, $probe[4])) {
+                if (!\Tests\Support\ci\RedisFixturePlan::denied($reply, true, $probe[4], $probe[2])) {
                     echo 'Owned Redis setup: slot '.$slot.' foreign '.$probe[3].' probe rejected: '.\Tests\Support\ci\RedisFixturePlan::replyCategory($reply).".\n";
                     self::reject();
                 }

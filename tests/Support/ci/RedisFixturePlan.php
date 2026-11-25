@@ -41,13 +41,23 @@ final class RedisFixturePlan
         ];
     }
 
-    public static function denied(string $response, bool $foreignKey = false, ?string $expected = null): bool
+    public static function denied(string $response, bool $foreignKey = false, ?string $expected = null, ?string $expectedUser = null): bool
     {
-        // Exact Redis permission response only. The server can name the
-        // denied key or use the documented generic key denial wording.
-        // Never accept an unrelated error, success or authentication failure.
+        // ACL DRYRUN returns a descriptive bulk string, not necessarily a
+        // RESP error. Redis documents named-user command denials and generic
+        // key denials. Match an entire known permission response only.
         $response = trim($response);
-        $prefix = '(?:(?:ERR|NOPERM) )?This user has no permissions to ';
+        $error = '(?:(?:ERR|NOPERM) )?';
+        if ($foreignKey && preg_match('/^'.$error.'No permissions to access a key$/iD', $response) === 1) {
+            return true;
+        }
+        if (preg_match('/^'.$error.'User (f03_[0-9a-f]{16}_[ab]_rt) has no permissions to (.+)$/iD', $response, $identity) === 1) {
+            if ($expectedUser !== null && $identity[1] !== $expectedUser) {
+                return false;
+            }
+            $response = 'This user has no permissions to '.$identity[2];
+        }
+        $prefix = $error.'This user has no permissions to ';
         if ($foreignKey) {
             if (preg_match('/^'.$prefix.'access (?:the key|one of the keys used as arguments)$/iD', $response) === 1) {
                 return true;
