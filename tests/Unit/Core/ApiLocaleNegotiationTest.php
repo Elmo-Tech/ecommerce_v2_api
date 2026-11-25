@@ -6,7 +6,7 @@ use App\Core\Http\ApiLocaleResolver;
 
 it('negotiates bounded supported request languages', function (?string $header, string $expected): void {
     expect(class_exists(ApiLocaleResolver::class))->toBeTrue();
-    expect((new ApiLocaleResolver)->resolve($header))->toBe($expected);
+    expect((new ApiLocaleResolver())->resolve($header))->toBe($expected);
 })->with([
     [null, 'ar'], ['', 'ar'], ['fr', 'ar'], ['ar', 'ar'], ['en', 'en'],
     ['ar-EG', 'ar'], ['EN-us', 'en'], ['en;q=0.9,ar;q=0.8', 'en'],
@@ -17,4 +17,3 @@ it('negotiates bounded supported request languages', function (?string $header, 
     ['en,'.str_repeat('x', 4096), 'ar'], ['en,'.implode(',', array_fill(0, 32, 'fr')), 'ar'],
     ['en,../../private', 'ar'], ['fr;q=1,en-GB;q=0.3', 'en'],
 ])->group('api-foundation');
-

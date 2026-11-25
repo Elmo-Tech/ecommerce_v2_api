@@ -24,7 +24,7 @@ final class QualityToolCheckout
 
     public function __construct()
     {
-        $this->checkout = new FoundationTestCheckout;
+        $this->checkout = new FoundationTestCheckout();
         $this->root = $this->checkout->root;
         try {
             foreach (['app', 'tools/quality', 'vendor/composer', 'vendor/larastan/larastan', 'home', 'tmp'] as $directory) {

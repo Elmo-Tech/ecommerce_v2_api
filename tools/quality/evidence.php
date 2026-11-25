@@ -337,7 +337,8 @@ final class OwnedEvidenceDirectory
         private readonly array $directoryNode,
         private readonly array $markerNode,
         private readonly string $marker,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $identity

@@ -55,8 +55,7 @@ final class ApiHttpFixtures
                 throw new RuntimeException('SQL SELECT password FROM private_fixture: '.self::PRIVATE_VALUE.' /private/source.php');
             });
             Route::get('custom-error', static function (): never {
-                throw new class extends RuntimeException
-                {
+                throw new class () extends RuntimeException {
                     public function render(): \Illuminate\Http\JsonResponse
                     {
                         return response()->json(['private' => ApiHttpFixtures::PRIVATE_VALUE], 502);
@@ -64,8 +63,7 @@ final class ApiHttpFixtures
                 };
             });
             Route::get('misleading-success', static function (): never {
-                throw new class extends RuntimeException
-                {
+                throw new class () extends RuntimeException {
                     public function render(): \Illuminate\Http\JsonResponse
                     {
                         return response()->json(['private' => ApiHttpFixtures::PRIVATE_VALUE], 200);
@@ -73,8 +71,7 @@ final class ApiHttpFixtures
                 };
             });
             Route::get('misleading-redirect', static function (): never {
-                throw new class extends RuntimeException
-                {
+                throw new class () extends RuntimeException {
                     public function render(): \Illuminate\Http\RedirectResponse
                     {
                         return redirect('/fixture-private-target');
@@ -135,4 +132,3 @@ final class ApiHttpFixtures
         });
     }
 }
-

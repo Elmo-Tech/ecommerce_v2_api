@@ -63,6 +63,7 @@ final class ApiRequestContext
         return $failure instanceof WeakReference && $failure->get() === $exception;
     }
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 }
-

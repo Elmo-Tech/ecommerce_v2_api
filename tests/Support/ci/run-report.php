@@ -68,7 +68,9 @@ try {
             }
             $process = proc_open(
                 [PHP_BINARY, '-d', 'zend.exception_ignore_args=1', $root.'/tests/Support/run-tests.php', ...$options, '--report='.$rawName],
-                [0 => ['file', '/dev/null', 'r'], 1 => $rawOutput[0]['handle'], 2 => $rawOutput[1]['handle']], $pipes, $root,
+                [0 => ['file', '/dev/null', 'r'], 1 => $rawOutput[0]['handle'], 2 => $rawOutput[1]['handle']],
+                $pipes,
+                $root,
             );
             if (!is_resource($process)) {
                 throw new RuntimeException('Cannot start test selection.');

@@ -52,7 +52,7 @@ function f03NativeReportProbe(FoundationTestCheckout $checkout, string $case, st
 }
 
 it('proves actual locked Pest failure flags using isolated native subprocesses', function (string $case): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $result = f03NativeReportProbe($checkout, $case);
         $output = $result->getOutput().$result->getErrorOutput();
@@ -104,7 +104,7 @@ it('proves actual locked Pest failure flags using isolated native subprocesses',
 })->with(['pass', 'empty', 'skipped', 'incomplete', 'risky', 'warning', 'failure'])->group('testing-foundation');
 
 it('suppresses a real native failure JUnit containing a generated synthetic credential fingerprint', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $canary = bin2hex(random_bytes(32));
         $result = f03NativeReportProbe($checkout, 'canary', $canary);

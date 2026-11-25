@@ -53,4 +53,3 @@ it('contains a structurally reviewable shared OpenAPI 3.1 contract with no inven
     };
     $walk($document);
 })->group('api-foundation');
-

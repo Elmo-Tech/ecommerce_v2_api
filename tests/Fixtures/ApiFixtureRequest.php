@@ -30,4 +30,3 @@ final class ApiFixtureRequest extends FormRequest
         return ['customerName.required' => 'fixture-private-validation-value'];
     }
 }
-

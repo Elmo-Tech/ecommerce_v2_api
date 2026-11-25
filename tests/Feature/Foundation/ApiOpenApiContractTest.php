@@ -25,4 +25,3 @@ it('matches representative real HTTP response shapes and status/error mappings t
             ->and(array_keys(get_object_vars($body)))->toEqualCanonicalizing($document->components->schemas->ErrorResponse->required);
     }
 })->group('api-foundation');
-

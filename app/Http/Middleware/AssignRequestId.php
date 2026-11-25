@@ -15,7 +15,9 @@ use WeakReference;
 /** Early v1-only boundary, including requests that never match a route. */
 final class AssignRequestId
 {
-    public function __construct(private readonly ApiLocaleResolver $localeResolver) {}
+    public function __construct(private readonly ApiLocaleResolver $localeResolver)
+    {
+    }
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -62,4 +64,3 @@ final class AssignRequestId
         }
     }
 }
-

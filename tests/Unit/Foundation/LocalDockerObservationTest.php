@@ -6,7 +6,7 @@ use Tests\Fixtures\FoundationOwnedRunFixture;
 use Tests\Support\LocalDocker;
 
 it('normalizes only exact pinned loopback-bound container observations and rejects unsafe variants without daemon I/O', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $record = $fixture->record['containers']['postgres'];
         $id = $record['id'];
@@ -48,7 +48,7 @@ it('normalizes only exact pinned loopback-bound container observations and rejec
 
 
 it('permits a stopped owned container with no active mapping only for cleanup observation', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $record = $fixture->record['containers']['postgres'];
         $id = $record['id'];

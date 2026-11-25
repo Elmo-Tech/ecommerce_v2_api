@@ -136,7 +136,7 @@ final class IntegrationConnections
         $context = $this->context();
         $target = $context['run']->redisSlot($slot);
         $this->readRedisEvidence($context['run']);
-        $redis = new Redis;
+        $redis = new Redis();
         try {
             if (!$redis->connect('127.0.0.1', $context['run']->port('redis'), 5.0, null, 0, 5.0)
                 || !$redis->auth([$target['role'], $target['password']])

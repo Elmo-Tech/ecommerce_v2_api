@@ -10,7 +10,7 @@ it('uses the actual new bootstrap when building and loading an isolated producti
     // exclusively to a scratch copy of the actual native API route seam.
     expect(is_file(base_path('routes/api.php')))->toBeTrue();
     $root = sys_get_temp_dir().'/f0-02-route-cache-'.bin2hex(random_bytes(12));
-    $fs = new Filesystem;
+    $fs = new Filesystem();
     foreach ([
         '/bootstrap/cache', '/routes', '/config', '/storage/framework/cache/data',
         '/storage/framework/sessions', '/storage/framework/views', '/storage/logs', '/storage/app/private',
@@ -56,4 +56,3 @@ it('correlates even the exact v1 boundary and does not include lookalike version
     $this->getJson('/api/v10')->assertNotFound()->assertJsonMissingPath('errorCode')->assertHeaderMissing('X-Request-ID');
     expect(app('db')->getConnections())->toBeEmpty();
 })->group('api-foundation');
-

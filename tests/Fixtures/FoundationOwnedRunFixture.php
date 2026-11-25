@@ -18,7 +18,7 @@ final class FoundationOwnedRunFixture
 
     public function __construct(string $token = '0123456789abcdef', string $runId = '123456', string $attempt = '1')
     {
-        $this->checkout = new FoundationTestCheckout;
+        $this->checkout = new FoundationTestCheckout();
         $directory = $this->checkout->root.'/f03-'.$token;
         mkdir($directory, 0700);
         $this->job = [

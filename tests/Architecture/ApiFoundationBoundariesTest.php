@@ -34,4 +34,3 @@ it('has an empty native API seam and no fixture dependency or unapproved package
     }
     expect(glob($root.'/database/migrations/*.php') ?: [])->toBe([]);
 })->group('api-foundation');
-

@@ -172,7 +172,10 @@ final class IntegrationContext
             self::reject();
         }
         $replacement = \Tests\Support\ci\CleanupPolicy::completeCapture(
-            $context['job'], $expected, $observed, $context['temp'],
+            $context['job'],
+            $expected,
+            $observed,
+            $context['temp'],
         );
         if ($replacement === $expected) {
             return $expected;

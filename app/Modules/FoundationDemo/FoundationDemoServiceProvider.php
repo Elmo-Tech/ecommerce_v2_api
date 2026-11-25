@@ -9,7 +9,7 @@ final class FoundationDemoServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(FoundationMarker::class, static fn (): FoundationMarker => new FoundationMarker);
+        $this->app->singleton(FoundationMarker::class, static fn (): FoundationMarker => new FoundationMarker());
     }
 
     public function boot(): void

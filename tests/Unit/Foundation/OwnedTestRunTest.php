@@ -10,13 +10,16 @@ function f03ValidateOwnedRun(FoundationOwnedRunFixture $fixture): OwnedTestRun
     expect(is_callable([OwnedTestRun::class, 'validate']))->toBeTrue();
 
     return OwnedTestRun::validate(
-        $fixture->job, $fixture->record, $fixture->descriptor,
-        $fixture->observed, $fixture->checkout->root,
+        $fixture->job,
+        $fixture->record,
+        $fixture->descriptor,
+        $fixture->observed,
+        $fixture->checkout->root,
     );
 }
 
 it('accepts a fully matched current job, pinned container observations and fixed runtime slots', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         expect(f03ValidateOwnedRun($fixture))->toBeInstanceOf(OwnedTestRun::class);
     } finally {
@@ -58,7 +61,7 @@ dataset('f03 unsafe owned record', [
 ]);
 
 it('rejects mismatched identity or unsafe descriptor values before any service access', function (string $section, array $path, mixed $value): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $cursor = &$fixture->{$section};
         foreach ($path as $key) {
@@ -82,7 +85,7 @@ it('rejects mismatched identity or unsafe descriptor values before any service a
 })->with('f03 unsafe owned record')->group('testing-foundation');
 
 it('rejects missing, unexpected or duplicated fixed service slots and missing observations', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         match ($case) {
             'missing postgres slot' => $fixture->descriptor['postgres']['slots'] = ['a' => $fixture->descriptor['postgres']['slots']['a']],
@@ -100,7 +103,7 @@ it('rejects missing, unexpected or duplicated fixed service slots and missing ob
 })->with(['missing postgres slot', 'extra postgres slot', 'duplicate role', 'extra redis slot', 'missing container', 'duplicate container'])->group('testing-foundation');
 
 it('rejects an otherwise consistent ownership record if the owned directory is a symlink', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $directory = $fixture->record['directory'];
         rmdir($directory);
@@ -115,7 +118,7 @@ it('rejects an otherwise consistent ownership record if the owned directory is a
 })->group('testing-foundation');
 
 it('does not allow a valid but different run record to authorize the current job', function (): void {
-    $current = new FoundationOwnedRunFixture;
+    $current = new FoundationOwnedRunFixture();
     $other = new FoundationOwnedRunFixture('fedcba9876543210', '999999', '2');
     try {
         expect(is_callable([OwnedTestRun::class, 'validate']))->toBeTrue();
@@ -128,7 +131,7 @@ it('does not allow a valid but different run record to authorize the current job
 
 
 it('rejects an owned run directory that is not private', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         expect(chmod($fixture->record['directory'], 0755))->toBeTrue();
         clearstatcache(true, $fixture->record['directory']);
@@ -141,7 +144,7 @@ it('rejects an owned run directory that is not private', function (): void {
 
 
 it('compares live captured identity without associative ordering artifacts while keeping all keys and scalar types exact', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $expected = $fixture->record['containers']['postgres'];
         $observed = array_reverse($expected, true);

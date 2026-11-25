@@ -225,7 +225,7 @@ it('rejects generated credential canaries even in a syntactically valid version 
 
 it('creates and cleans only the exact private owned evidence directory', function (): void {
     f04LoadEvidencePolicy();
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $parent = $checkout->root.'/reports';
         $token = bin2hex(random_bytes(16));
@@ -247,7 +247,7 @@ it('creates and cleans only the exact private owned evidence directory', functio
 
 it('refuses evidence directory collisions and invalid file destinations without overwriting or following links', function (string $case): void {
     f04LoadEvidencePolicy();
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $parent = $checkout->root.'/reports';
         $token = bin2hex(random_bytes(16));
@@ -279,7 +279,7 @@ it('refuses evidence directory collisions and invalid file destinations without 
 
 it('refuses ambiguous evidence cleanup before deleting any allowed file', function (string $case): void {
     f04LoadEvidencePolicy();
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $parent = $checkout->root.'/reports';
         $owned = OwnedEvidenceDirectory::create($parent, bin2hex(random_bytes(16)), f04ExpectedIdentity(f04ReportFixture()), ['format-result.json', 'second.json']);

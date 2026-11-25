@@ -19,6 +19,7 @@ final class ApiErrorCodes
     public const string SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE';
     public const string HTTP_ERROR = 'HTTP_ERROR';
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 }
-

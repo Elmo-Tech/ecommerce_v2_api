@@ -21,4 +21,3 @@ enum HttpStatusCode: int
     case InternalServerError = 500;
     case ServiceUnavailable = 503;
 }
-

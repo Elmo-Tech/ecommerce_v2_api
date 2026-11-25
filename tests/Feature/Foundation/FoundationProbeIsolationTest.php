@@ -55,7 +55,7 @@ it('excludes the probe from a genuine production-generated route cache in a scra
     // route OUTSIDE the repository, while using the very same Module Registry
     // providers/config and real artisan route:cache command.
     $fixtureRoot = sys_get_temp_dir().'/f0-01-production-route-fixture-'.bin2hex(random_bytes(8));
-    $filesystem = new Filesystem;
+    $filesystem = new Filesystem();
 
     foreach ([
         $fixtureRoot.'/bootstrap/cache',

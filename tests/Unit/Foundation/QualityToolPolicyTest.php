@@ -29,7 +29,7 @@ function f04RequireQualityLauncher(): void
  */
 function f04RealQualityProbe(string $tool, bool $valid, bool $malformed = false): array
 {
-    $fixture = new FoundationTestCheckout;
+    $fixture = new FoundationTestCheckout();
     try {
         $root = $fixture->root;
         foreach (['home', 'tmp'] as $directory) {
@@ -114,7 +114,7 @@ it('executes locked PHPStan at actual level six and reports the intended iterabl
 
 it('runs the fixed quality launcher only with a safe inherited environment and private temporary cache', function (string $mode): void {
     f04RequireQualityLauncher();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         $result = $fixture->launch([$mode]);
         expect($result->getExitCode())->toBe(0);
@@ -147,7 +147,7 @@ it('runs the fixed quality launcher only with a safe inherited environment and p
 
 it('rejects unsafe inherited settings before any synthetic vendor startup', function (string $key, string $value): void {
     f04RequireQualityLauncher();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         $result = $fixture->launch(['analyse'], [$key => $value]);
         expect($result->getExitCode())->toBe(2);
@@ -170,7 +170,7 @@ it('rejects unsafe inherited settings before any synthetic vendor startup', func
 
 it('rejects unsafe checkout configuration and missing or unsupported tools before bootstrap', function (string $case): void {
     f04RequireQualityLauncher();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         if ($case === 'nonempty dotenv') {
             $fixture->write('.env', 'DB_HOST=synthetic-canary.invalid');
@@ -223,7 +223,7 @@ it('rejects unsafe checkout configuration and missing or unsupported tools befor
 
 it('preserves the actual nonzero quality tool exit and cleans scratch without publishing raw child output', function (): void {
     f04RequireQualityLauncher();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         $fixture->write('fail-tool', '');
         $result = $fixture->launch(['analyse']);
@@ -239,7 +239,7 @@ it('preserves the actual nonzero quality tool exit and cleans scratch without pu
 
 it('inventories exact tracked PHP including artisan and whitespace paths without generated files', function (): void {
     f04RequireQualityPolicy();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         $fixture->write('bootstrap/cache/generated.php', '<?php return [];');
         $fixture->write('app/untracked.php', '<?php return [];');
@@ -258,7 +258,7 @@ it('inventories exact tracked PHP including artisan and whitespace paths without
 
 it('rejects indexed symlinks tracked generated PHP and worktree escape', function (string $case): void {
     f04RequireQualityPolicy();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         if ($case === 'indexed symlink') {
             expect(symlink($fixture->root.'/artisan', $fixture->root.'/app/link.php'))->toBeTrue();
@@ -280,7 +280,7 @@ it('rejects indexed symlinks tracked generated PHP and worktree escape', functio
 
 it('requires strict types only for new first party PHP without mass changing legacy semantics', function (): void {
     f04RequireQualityPolicy();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         PhpQualityPolicy::assertNewStrictTypes($fixture->root, ['tests/Support/with space.php']);
         expect(fn () => PhpQualityPolicy::assertNewStrictTypes($fixture->root, ['app/Legacy.php']))->toThrow(RuntimeException::class);
@@ -293,7 +293,7 @@ it('requires strict types only for new first party PHP without mass changing leg
 
 it('accepts only the approved local PSR twelve preset and rejects config scope or risky rule changes', function (string $config): void {
     f04RequireQualityPolicy();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         PhpQualityPolicy::assertPintConfig($fixture->root);
         $fixture->write('pint.json', $config);
@@ -311,7 +311,7 @@ it('accepts only the approved local PSR twelve preset and rejects config scope o
 
 it('requires the reviewed Larastan include and level six config without suppression or external bootstrap', function (string $extra): void {
     f04RequireQualityPolicy();
-    $fixture = new QualityToolCheckout;
+    $fixture = new QualityToolCheckout();
     try {
         PhpQualityPolicy::assertAnalysisConfig($fixture->root);
         $invalid = $extra === 'downgrade'

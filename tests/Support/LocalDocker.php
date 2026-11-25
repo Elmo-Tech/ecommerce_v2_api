@@ -35,7 +35,7 @@ final class LocalDocker
                 }
             }
         }
-        $docker = new self;
+        $docker = new self();
         if ($diagnostic) {
             echo "Owned startup: remote overrides absent.\n";
         }
@@ -111,7 +111,10 @@ final class LocalDocker
             // must remain inspectable on failed start). Image volumes are
             // newly anonymous, with no --volume-from or reused data mount.
             $id = trim($docker->command(\Tests\Support\ci\OwnedServicePlan::createArguments(
-                $context, $service, posix_geteuid(), posix_getegid(),
+                $context,
+                $service,
+                posix_geteuid(),
+                posix_getegid(),
             ))[0]);
             self::assertId($id);
             $record = \Tests\Support\ci\OwnedSetupFiles::appendCapture($context, $record, $service, $id);

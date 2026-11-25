@@ -11,12 +11,15 @@ function f03CleanupTargets(FoundationOwnedRunFixture $fixture): array
 
     // Pure target selection. Do not pass synthetic targets to actual removal.
     return CleanupPolicy::targets(
-        $fixture->job, $fixture->record, $fixture->observed, $fixture->checkout->root,
+        $fixture->job,
+        $fixture->record,
+        $fixture->observed,
+        $fixture->checkout->root,
     );
 }
 
 it('selects only exact captured owned container IDs and anonymous volumes', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $targets = f03CleanupTargets($fixture);
         expect($targets)->toBe([
@@ -33,7 +36,7 @@ it('selects only exact captured owned container IDs and anonymous volumes', func
 })->group('testing-foundation');
 
 it('handles partial setup without inventing cleanup targets for a missing service', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         unset($fixture->record['containers']['redis'], $fixture->observed['redis']);
         $targets = f03CleanupTargets($fixture);
@@ -46,7 +49,7 @@ it('handles partial setup without inventing cleanup targets for a missing servic
 })->group('testing-foundation');
 
 it('treats positively verified absent containers as already removed without selecting other targets', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         // Null means a successful local inspection established the exact ID
         // is absent, not an inspection error. Missing observation must fail.
@@ -58,7 +61,7 @@ it('treats positively verified absent containers as already removed without sele
 })->group('testing-foundation');
 
 it('refuses ambiguous or foreign cleanup identities without touching even the owned scratch directory', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         match ($case) {
             'wrong run' => $fixture->job['run_id'] = '999999',
@@ -79,7 +82,7 @@ it('refuses ambiguous or foreign cleanup identities without touching even the ow
 })->with(['wrong run', 'different label', 'different image', 'different id', 'different volume', 'unexpected container', 'noncanonical path', 'remote daemon'])->group('testing-foundation');
 
 it('refuses cleanup when a local inspection did not return an explicit result for a captured ID', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         unset($fixture->observed['postgres']);
         expect(is_callable([CleanupPolicy::class, 'targets']))->toBeTrue();
@@ -90,7 +93,7 @@ it('refuses cleanup when a local inspection did not return an explicit result fo
 })->group('testing-foundation');
 
 it('refuses to select a symlink directory or touch its synthetic target', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $path = $fixture->record['directory'];
         rmdir($path);
@@ -105,7 +108,7 @@ it('refuses to select a symlink directory or touch its synthetic target', functi
 })->group('testing-foundation');
 
 it('cannot use a different run record to select cleanup targets for the current job', function (): void {
-    $current = new FoundationOwnedRunFixture;
+    $current = new FoundationOwnedRunFixture();
     $other = new FoundationOwnedRunFixture('fedcba9876543210', '999999', '2');
     try {
         expect(is_callable([CleanupPolicy::class, 'targets']))->toBeTrue();
@@ -119,7 +122,7 @@ it('cannot use a different run record to select cleanup targets for the current 
 
 
 it('allows cleanup-only lifecycle transitions but never a changed known port or volume', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $record = &$fixture->record['containers']['postgres'];
         $observed = &$fixture->observed['postgres'];
@@ -155,7 +158,7 @@ it('allows cleanup-only lifecycle transitions but never a changed known port or 
 })->with(['captured before allocation', 'stopped after allocation', 'known port changed', 'known volume changed', 'unknown volume and absent container'])->group('testing-foundation');
 
 it('selects only private known cleanup files and never deletes or follows a foreign path during selection', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $directory = $fixture->record['directory'];
         $path = $directory.'/ownership.json';
@@ -187,7 +190,7 @@ it('selects only private known cleanup files and never deletes or follows a fore
 
 
 it('persists the verified missing volume before removal and keeps a repeat cleanup verifiable after absence', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $fixture->record['containers']['postgres']['port'] = null;
         $fixture->record['containers']['postgres']['volumes'] = [];
@@ -212,7 +215,7 @@ it('persists the verified missing volume before removal and keeps a repeat clean
 })->group('testing-foundation');
 
 it('refuses a stale ownership record or existing staging file without replacing it', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $fixture->record['containers']['postgres']['port'] = null;
         $fixture->record['containers']['postgres']['volumes'] = [];
@@ -241,7 +244,7 @@ it('refuses a stale ownership record or existing staging file without replacing 
 })->with(['stale record', 'existing staging'])->group('testing-foundation');
 
 it('rejects an incomplete capture claiming a different recorded service volume even when that service is absent', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $fixture->record['containers']['postgres']['volumes'] = [];
         $fixture->observed['postgres']['volumes'] = $fixture->record['containers']['redis']['volumes'];
@@ -253,7 +256,7 @@ it('rejects an incomplete capture claiming a different recorded service volume e
 })->group('testing-foundation');
 
 it('refuses direct cleanup CLI without verified job or with arbitrary arguments before any resource operation', function (array $args, array $env): void {
-    $checkout = new \Tests\Fixtures\FoundationTestCheckout;
+    $checkout = new \Tests\Fixtures\FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/ci/cleanup-owned.php'))->toBeTrue();
         $result = $checkout->run(['tests/Support/ci/cleanup-owned.php', ...$args], $env);

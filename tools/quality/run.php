@@ -44,7 +44,7 @@ try {
     $files = PhpQualityPolicy::inventory($root);
     $before = PhpQualityPolicy::fingerprint($root);
 
-    $scratch = new PhpQualityScratch;
+    $scratch = new PhpQualityScratch();
     // Fixed allowlist only; no inherited HOME, Composer credentials or service
     // settings. The parent guard has already rejected unsafe overrides.
     $environment = array_merge($defaults, [
