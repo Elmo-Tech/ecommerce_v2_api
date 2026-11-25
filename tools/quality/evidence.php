@@ -343,7 +343,7 @@ final class OwnedEvidenceDirectory
 
     /**
      * @param array<string, mixed> $identity
-     * @param list<string> $allowed
+     * @param array<array-key, mixed> $allowed Candidate names validated before the directory is created.
      */
     public static function create(string $parent, string $token, array $identity, array $allowed): self
     {
