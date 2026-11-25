@@ -28,6 +28,31 @@ final class CleanupPolicy
         return ['containers' => $targets, 'directory' => $record['directory']];
     }
 
+    /**
+     * Complete only missing capture fields from already validated live
+     * observations before removing anything. This retains volume provenance
+     * if a later cleanup step fails and the container is now absent.
+     */
+    public static function completeCapture(array $job, array $record, array $observed, string $runnerTemp): array
+    {
+        OwnedTestRun::validateRecord($job, $record, $observed, $runnerTemp, true);
+        foreach ($record['containers'] as $service => &$container) {
+            $actual = $observed[$service];
+            if ($actual !== null) {
+                if ($container['volumes'] === []) {
+                    $container['volumes'] = $actual['volumes'];
+                }
+                if ($container['port'] === null) {
+                    $container['port'] = $actual['port'];
+                }
+            }
+        }
+        unset($container);
+        OwnedTestRun::validateRecord($job, $record, $observed, $runnerTemp, true);
+
+        return $record;
+    }
+
     /** Pure filesystem target selection; only known protected artifacts. */
     public static function files(string $directory): array
     {

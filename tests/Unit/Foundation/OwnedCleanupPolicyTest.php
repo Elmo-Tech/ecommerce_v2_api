@@ -184,3 +184,91 @@ it('selects only private known cleanup files and never deletes or follows a fore
         $fixture->close();
     }
 })->with(['valid', 'foreign file', 'symlink', 'hardlink', 'public file', 'nested directory'])->group('testing-foundation');
+
+
+it('persists the verified missing volume before removal and keeps a repeat cleanup verifiable after absence', function (): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $fixture->record['containers']['postgres']['port'] = null;
+        $fixture->record['containers']['postgres']['volumes'] = [];
+        $directory = $fixture->record['directory'];
+        $context = ['job' => $fixture->job, 'token' => $fixture->record['token'], 'temp' => $fixture->checkout->root, 'directory' => $directory];
+        $path = $directory.'/ownership.json';
+        file_put_contents($path, json_encode($fixture->record, JSON_THROW_ON_ERROR));
+        chmod($path, 0600);
+        $completed = \Tests\Support\IntegrationContext::completeOwnership($context, $fixture->record, $fixture->observed);
+        expect($completed['containers']['postgres'])->toBe($fixture->observed['postgres']);
+        expect(\Tests\Support\IntegrationContext::read($directory, 'ownership.json'))->toBe($completed);
+        expect(file_exists($directory.'/ownership.next.json'))->toBeFalse();
+        $fixture->observed['postgres'] = null;
+        expect(CleanupPolicy::targets($fixture->job, $completed, $fixture->observed, $fixture->checkout->root)['containers'])->toBe([
+            ['id' => $completed['containers']['redis']['id'], 'volumes' => $completed['containers']['redis']['volumes']],
+        ]);
+        expect(\Tests\Support\IntegrationContext::completeOwnership($context, $completed, $fixture->observed))->toBe($completed);
+        expect(is_file($path))->toBeTrue();
+    } finally {
+        $fixture->close();
+    }
+})->group('testing-foundation');
+
+it('refuses a stale ownership record or existing staging file without replacing it', function (string $case): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $fixture->record['containers']['postgres']['port'] = null;
+        $fixture->record['containers']['postgres']['volumes'] = [];
+        $directory = $fixture->record['directory'];
+        $context = ['job' => $fixture->job, 'token' => $fixture->record['token'], 'temp' => $fixture->checkout->root, 'directory' => $directory];
+        $path = $directory.'/ownership.json';
+        $stored = $fixture->record;
+        if ($case === 'stale record') {
+            $stored['containers']['postgres']['port'] = 45321;
+        }
+        $raw = json_encode($stored, JSON_THROW_ON_ERROR);
+        file_put_contents($path, $raw);
+        chmod($path, 0600);
+        if ($case === 'existing staging') {
+            file_put_contents($directory.'/ownership.next.json', 'untouched');
+            chmod($directory.'/ownership.next.json', 0600);
+        }
+        expect(fn () => \Tests\Support\IntegrationContext::completeOwnership($context, $fixture->record, $fixture->observed))->toThrow(RuntimeException::class);
+        expect(file_get_contents($path))->toBe($raw);
+        if ($case === 'existing staging') {
+            expect(file_get_contents($directory.'/ownership.next.json'))->toBe('untouched');
+        }
+    } finally {
+        $fixture->close();
+    }
+})->with(['stale record', 'existing staging'])->group('testing-foundation');
+
+it('rejects an incomplete capture claiming a different recorded service volume even when that service is absent', function (): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $fixture->record['containers']['postgres']['volumes'] = [];
+        $fixture->observed['postgres']['volumes'] = $fixture->record['containers']['redis']['volumes'];
+        $fixture->observed['redis'] = null;
+        expect(fn () => CleanupPolicy::targets($fixture->job, $fixture->record, $fixture->observed, $fixture->checkout->root))->toThrow(RuntimeException::class);
+    } finally {
+        $fixture->close();
+    }
+})->group('testing-foundation');
+
+it('refuses direct cleanup CLI without verified job or with arbitrary arguments before any resource operation', function (array $args, array $env): void {
+    $checkout = new \Tests\Fixtures\FoundationTestCheckout;
+    try {
+        expect(is_file($checkout->root.'/tests/Support/ci/cleanup-owned.php'))->toBeTrue();
+        $result = $checkout->run(['tests/Support/ci/cleanup-owned.php', ...$args], $env);
+        expect($result->getExitCode())->toBe(2);
+        expect($result->getErrorOutput())->toContain('Owned cleanup rejected or incomplete.');
+        expect($result->getErrorOutput())->not->toContain('f03-synthetic-canary', 'Warning', 'Fatal error');
+        expect($checkout->reachedAutoload())->toBeFalse();
+        expect($checkout->reachedPest())->toBeFalse();
+        expect(is_dir($checkout->root))->toBeTrue();
+    } finally {
+        $checkout->close();
+    }
+})->with([
+    [[], []],
+    [[], ['APP_ENV' => 'production', 'F03_MODE' => 'integration']],
+    [['f03-synthetic-canary'], ['APP_ENV' => 'testing', 'F03_MODE' => 'integration']],
+    [[], ['APP_ENV' => 'testing', 'F03_MODE' => 'integration', 'DOCKER_HOST' => 'tcp://f03-synthetic-canary.invalid:2375']],
+])->group('testing-foundation');

@@ -197,6 +197,12 @@ final class LocalDocker
             $observed[$service] = $docker->observe($service, $container['id'], $directory, true);
         }
         \Tests\Support\ci\CleanupPolicy::targets($context['job'], $record, $observed, $context['temp']);
+        // Persist discovered volume identity before the first removal, so
+        // a later failure cannot leave an absent ID with unknown volume.
+        $record = IntegrationContext::completeOwnership($context, $record, $observed);
+        if (\Tests\Support\ci\CleanupPolicy::files($directory) !== $files) {
+            self::reject();
+        }
 
         foreach ($record['containers'] as $service => $container) {
             $current = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER, false);

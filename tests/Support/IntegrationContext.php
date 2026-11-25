@@ -159,6 +159,56 @@ final class IntegrationContext
         return $value;
     }
 
+    /**
+     * Replace only the exact expected captured record with its validated
+     * lifecycle completion. No record creation or unrelated file overwrite.
+     * The reviewed job is sequential; this is not a concurrent-writer API.
+     */
+    public static function completeOwnership(array $context, array $expected, array $observed): array
+    {
+        $directory = $context['directory'];
+        if (($expected['token'] ?? null) !== $context['token'] || ($expected['directory'] ?? null) !== $directory
+            || self::read($directory, 'ownership.json') !== $expected) {
+            self::reject();
+        }
+        $replacement = \Tests\Support\ci\CleanupPolicy::completeCapture(
+            $context['job'], $expected, $observed, $context['temp'],
+        );
+        if ($replacement === $expected) {
+            return $expected;
+        }
+        $path = $directory.'/ownership.json';
+        $next = $directory.'/ownership.next.json';
+        if (file_exists($next) || is_link($next)) {
+            self::reject();
+        }
+        $raw = json_encode($replacement, JSON_THROW_ON_ERROR)."\n";
+        $previousUmask = umask(0077);
+        try {
+            $handle = @fopen($next, 'xb');
+        } finally {
+            umask($previousUmask);
+        }
+        if ($handle === false) {
+            self::reject();
+        }
+        try {
+            $stat = fstat($handle);
+            if ($stat === false || ($stat['mode'] & 0777) !== 0600 || $stat['nlink'] !== 1
+                || fwrite($handle, $raw) !== strlen($raw) || !fflush($handle) || !fsync($handle)) {
+                self::reject();
+            }
+        } finally {
+            fclose($handle);
+        }
+        if (is_link($next) || realpath($next) !== $next || self::read($directory, 'ownership.json') !== $expected
+            || !rename($next, $path) || self::read($directory, 'ownership.json') !== $replacement) {
+            self::reject();
+        }
+
+        return $replacement;
+    }
+
     private static function reject(): never
     {
         throw new RuntimeException('Owned integration context rejected.');

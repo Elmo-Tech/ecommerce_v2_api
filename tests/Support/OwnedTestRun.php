@@ -197,6 +197,15 @@ final class OwnedTestRun
                 $expected['port'] = $actual['port'];
                 $expected['volumes'] = $actual['volumes'];
             }
+            // Even if another recorded container is already absent, its
+            // previously captured volume is not available to a different
+            // service's incomplete record.
+            foreach ($containers as $otherService => $other) {
+                if ($otherService !== $service && is_array($other['volumes'] ?? null)
+                    && in_array($actual['volumes'][0], $other['volumes'], true)) {
+                    self::reject();
+                }
+            }
             if (!self::same($actual, $expected)
                 || in_array($actual['volumes'][0], $observedVolumes, true)
                 || ($actual['port'] !== null && in_array($actual['port'], $observedPorts, true))) {

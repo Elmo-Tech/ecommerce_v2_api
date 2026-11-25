@@ -24,7 +24,7 @@ final class FoundationTestCheckout
             throw new RuntimeException('Cannot create owned test checkout.');
         }
 
-        foreach (['bootstrap/cache', 'tests/Support', 'vendor/bin', 'reports'] as $dir) {
+        foreach (['bootstrap/cache', 'tests/Support/ci', 'vendor/bin', 'reports'] as $dir) {
             if (!mkdir($this->root.'/'.$dir, 0700, true)) {
                 $this->close();
                 throw new RuntimeException('Cannot create scratch directory.');
@@ -37,6 +37,13 @@ final class FoundationTestCheckout
             $this->copy($source, 'phpunit.integration.xml');
         }
         foreach (['run-tests.php', 'bootstrap.php', 'TestEnvironmentGuard.php', 'integration-bootstrap.php', 'OwnedTestRun.php', 'IntegrationConnections.php', 'IntegrationContext.php', 'LocalDocker.php'] as $file) {
+            $path = 'tests/Support/'.$file;
+            if (is_file($source.'/'.$path)) {
+                $this->copy($source, $path);
+            }
+        }
+
+        foreach (['ci/CleanupPolicy.php', 'ci/cleanup-owned.php'] as $file) {
             $path = 'tests/Support/'.$file;
             if (is_file($source.'/'.$path)) {
                 $this->copy($source, $path);
