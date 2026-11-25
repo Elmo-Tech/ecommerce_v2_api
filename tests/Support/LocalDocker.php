@@ -19,11 +19,14 @@ final class LocalDocker
     {
     }
 
-    public static function verified(): self
+    public static function verified(bool $diagnostic = false): self
     {
         if (PHP_OS_FAMILY !== 'Linux' || php_uname('m') !== 'x86_64'
             || !is_executable(self::BINARY) || @filetype('/var/run/docker.sock') !== 'socket') {
             self::reject();
+        }
+        if ($diagnostic) {
+            echo "Owned startup: local executable and socket type verified.\n";
         }
         foreach ([getenv(), $_ENV, $_SERVER] as $source) {
             foreach (['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'DOCKER_CONFIG', 'DOCKER_API_VERSION'] as $key) {
@@ -33,9 +36,22 @@ final class LocalDocker
             }
         }
         $docker = new self;
-        if (trim($docker->command(['context', 'show'], false)[0]) !== 'default'
-            || trim($docker->command(['context', 'inspect', 'default', '--format', '{{.Endpoints.docker.Host}}'], false)[0]) !== self::ENDPOINT
-            || trim($docker->command(['version', '--format', '{{.Server.Os}}/{{.Server.Arch}}'])[0]) !== 'linux/amd64') {
+        if ($diagnostic) {
+            echo "Owned startup: remote overrides absent.\n";
+        }
+        if (trim($docker->command(['context', 'show'], false)[0]) !== 'default') {
+            self::reject();
+        }
+        if ($diagnostic) {
+            echo "Owned startup: default context verified.\n";
+        }
+        if (trim($docker->command(['context', 'inspect', 'default', '--format', '{{.Endpoints.docker.Host}}'], false)[0]) !== self::ENDPOINT) {
+            self::reject();
+        }
+        if ($diagnostic) {
+            echo "Owned startup: exact local endpoint verified.\n";
+        }
+        if (trim($docker->command(['version', '--format', '{{.Server.Os}}/{{.Server.Arch}}'])[0]) !== 'linux/amd64') {
             self::reject();
         }
 
@@ -50,25 +66,31 @@ final class LocalDocker
     {
         $context = IntegrationContext::environment($root, getenv(), $_ENV, $_SERVER, true);
         $directory = $context['directory'];
+        echo "Owned startup: hosted job and fresh directory context verified.\n";
         if (file_exists($directory) || is_link($directory)
             || !function_exists('posix_geteuid') || !function_exists('posix_getegid')
             || posix_geteuid() === 0) {
             self::reject();
         }
+        echo "Owned startup: non-root runner and absent directory verified.\n";
         IntegrationConnections::assertNativeDrivers(\PDO::getAvailableDrivers(), phpversion('redis') ?: null);
-        $docker = self::verified();
+        echo "Owned startup: approved native drivers verified.\n";
+        $docker = self::verified(true);
         foreach (['postgres', 'redis'] as $service) {
             $docker->verifyPinnedImage($service);
+            echo 'Owned startup: '.$service." pinned image verified.\n";
         }
         if (!mkdir($directory, 0700)) {
             self::reject();
         }
+        echo "Owned startup: private run directory created.\n";
         $record = [
             'job' => $context['job'], 'token' => $context['token'],
             'directory' => $directory, 'containers' => [],
         ];
         OwnedTestRun::validateCapturedRecord($context['job'], $record, $context['temp'], true);
         \Tests\Support\ci\OwnedSetupFiles::json($directory, 'ownership.json', $record);
+        echo "Owned startup: initial ownership record persisted.\n";
         $credentials = \Tests\Support\ci\OwnedServicePlan::credentials($context['token']);
         foreach (\Tests\Support\ci\OwnedServicePlan::passwords($credentials) as $password) {
             // GitHub workflow command, emitted only after hosted-job preflight.
@@ -93,6 +115,7 @@ final class LocalDocker
             ))[0]);
             self::assertId($id);
             $record = \Tests\Support\ci\OwnedSetupFiles::appendCapture($context, $record, $service, $id);
+            echo 'Owned startup: '.$service." exact creation ID captured.\n";
             $observed = $docker->observeRecord($record, true);
             if (($observed[$service]['port'] ?? null) !== null || $observed[$service] === null) {
                 self::reject();
@@ -103,6 +126,7 @@ final class LocalDocker
             if ($docker->observeRecord($record, true) !== $observed) {
                 self::reject();
             }
+            echo 'Owned startup: '.$service." volume and identity verified before start.\n";
             $docker->command(['container', 'start', $id]);
             $observed = $docker->observeRecord($record, true);
             if ($observed[$service] === null || $observed[$service]['port'] === null) {

@@ -13,7 +13,7 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 24/40 complete; first full fast suite 394/394 passed, Architecture runner exit 0 but report classification failed; corrected regression staged. Integration skipped, no real services. T025/T026 pending.
+**Status:** 26/40 complete; actual fast GREEN 396/2400, actual Integration startup rejected before native tests. T027 open, diagnostic milestones staged.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -23,7 +23,7 @@
 - [x] T006–T014 approved risk-selected test sources authored.
 - [x] T015 actual safe RED verified (CI #45593286201, 205 expected failures /101 passed /1153 assertions); all tracked PHP lint including native Integration passed. Native tests not run.
 - [ ] T016–T025 minimal test-only implementation.
-- [ ] T026–T033 full actual fast and Integration GREEN, owned resources, reports and scope checks.
+- [x] T026 actual full fast GREEN (396/2400, CI #45605270512); T027–T033 remaining real Integration, cleanup/report and full CI gates open.
 
 
 - [x] T016/T017 fast guard/launcher targeted verification (CI #45597723864 and #45598005372).
@@ -32,5 +32,5 @@
 - [x] T020 exact owned cleanup adapter and pure/negative/record-persistence verification (33/33, CI #45600204166; actual deletion/teardown T030 NOT RUN).
 
 
-- [ ] T021–T025 remaining owned startup/setup/report/workflow implementation.
+- [x] T021–T025 scoped implementation and workflow verified; actual startup and native proofs remain T027–T030.
 - [ ] T027–T030 actual service and cleanup verification; not satisfied by T019/T020 safe policy tests.
