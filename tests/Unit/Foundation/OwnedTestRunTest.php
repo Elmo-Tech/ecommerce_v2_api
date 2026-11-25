@@ -138,3 +138,33 @@ it('rejects an owned run directory that is not private', function (): void {
         $fixture->close();
     }
 })->group('testing-foundation');
+
+
+it('compares live captured identity without associative ordering artifacts while keeping all keys and scalar types exact', function (): void {
+    $fixture = new FoundationOwnedRunFixture;
+    try {
+        $expected = $fixture->record['containers']['postgres'];
+        $observed = array_reverse($expected, true);
+        $observed['labels'] = array_reverse($expected['labels'], true);
+        expect($observed === $expected)->toBeFalse();
+        expect(OwnedTestRun::sameObservation($expected, $observed))->toBeTrue();
+        $fixture->observed['postgres'] = $observed;
+        expect(f03ValidateOwnedRun($fixture))->toBeInstanceOf(OwnedTestRun::class);
+        foreach ([
+            ['port' => (string) $expected['port']],
+            ['port' => $expected['port'] + 1],
+            ['port' => null],
+            ['host' => '0.0.0.0'],
+            ['volumes' => [str_repeat('e', 64)]],
+            ['labels' => $expected['labels'] + ['f03.extra' => 'unexpected']],
+            ['labels' => array_diff_key($expected['labels'], ['f03.token' => true])],
+            ['id' => str_repeat('e', 64)],
+        ] as $change) {
+            expect(OwnedTestRun::sameObservation($expected, array_replace($observed, $change)))->toBeFalse();
+        }
+        expect(OwnedTestRun::sameObservation($expected, null))->toBeFalse();
+        expect(OwnedTestRun::sameObservation(['volumes' => ['a', 'b']], ['volumes' => ['b', 'a']]))->toBeFalse();
+    } finally {
+        $fixture->close();
+    }
+})->group('testing-foundation');

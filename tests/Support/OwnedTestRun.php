@@ -290,6 +290,16 @@ final class OwnedTestRun
         return $value;
     }
 
+    /**
+     * Compare independently obtained observations using exact recursive
+     * value/type equality, ignoring associative key insertion order only.
+     * The complete structural and current-job validation is still required.
+     */
+    public static function sameObservation(?array $expected, ?array $actual): bool
+    {
+        return self::same($expected, $actual);
+    }
+
     private static function same(#[SensitiveParameter] mixed $a, #[SensitiveParameter] mixed $b): bool
     {
         if (is_array($a) && is_array($b)) {

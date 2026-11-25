@@ -123,7 +123,7 @@ final class LocalDocker
             $record = IntegrationContext::completeOwnership($context, $record, $observed);
             // Revalidate all captured resources before start; only the newly
             // created exact container ID can be started.
-            if ($docker->observeRecord($record, true) !== $observed) {
+            if (!OwnedTestRun::sameObservation($observed, $docker->observeRecord($record, true))) {
                 self::reject();
             }
             echo 'Owned startup: '.$service." volume and identity verified before start.\n";
@@ -250,7 +250,7 @@ final class LocalDocker
     private function ownedRunningId(array $record, string $service): string
     {
         $observed = $this->observeRecord($record, false);
-        if (!array_key_exists($service, $record['containers']) || $observed[$service] !== $record['containers'][$service]) {
+        if (!array_key_exists($service, $record['containers']) || !OwnedTestRun::sameObservation($record['containers'][$service], $observed[$service])) {
             self::reject();
         }
         return $record['containers'][$service]['id'];
@@ -397,10 +397,15 @@ final class LocalDocker
     private function waitReady(array $record, string $service): void
     {
         $deadline = hrtime(true) + 60_000_000_000;
+        $orderReported = false;
         do {
             $actual = $this->observeRecord($record, true);
-            if ($actual[$service] !== $record['containers'][$service]) {
+            if (!OwnedTestRun::sameObservation($record['containers'][$service], $actual[$service])) {
                 self::reject();
+            }
+            if ($actual[$service] !== $record['containers'][$service] && !$orderReported) {
+                echo 'Owned readiness: '.$service." exact values match; associative key order differs.\n";
+                $orderReported = true;
             }
             $id = $record['containers'][$service]['id'];
             $args = $service === 'postgres'
@@ -588,7 +593,7 @@ final class LocalDocker
             $single = $record;
             $single['containers'] = [$service => $container];
             \Tests\Support\ci\CleanupPolicy::targets($context['job'], $single, [$service => $fresh], $context['temp']);
-            if ($fresh !== $observed[$service]) {
+            if (!OwnedTestRun::sameObservation($observed[$service], $fresh)) {
                 self::reject();
             }
 
