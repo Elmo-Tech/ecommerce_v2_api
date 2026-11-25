@@ -235,6 +235,6 @@ jobs:
           for flag in --configuration --testsuite --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit; do
             grep -F -- "$flag" "$scratch/help.txt" >/dev/null
           done
-          COLUMNS=180 vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml" --no-ansi
+          COLUMNS=180 vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml"
           php -r '$doc = new DOMDocument(); if (!$doc->load($argv[1], LIBXML_NONET) || $doc->getElementsByTagName("testcase")->length < 5) { exit(1); } echo "Native JUnit testcase count=".$doc->getElementsByTagName("testcase")->length.PHP_EOL;' "$scratch/report.xml"
           git diff --exit-code -- .
