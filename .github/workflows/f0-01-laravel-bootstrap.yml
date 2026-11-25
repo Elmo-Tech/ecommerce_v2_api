@@ -543,10 +543,10 @@ jobs:
           print('Owned T016 format diagnostic cleanup verified.')
           PY
 
-  # Temporary T018 guarded read-only Larastan discovery, not the final gate.
+  # Temporary T019 canonical launcher verification, not the final aggregate gate.
   # Real findings remain nonzero; existing regressions and Pint stay independent.
-  f0-04-t018-analysis-diagnostic:
-    name: F0-04 T018 guarded Larastan level 6 discovery
+  f0-04-t019-analysis-verification:
+    name: F0-04 T019 canonical Larastan level 6 verification
     if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -565,8 +565,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          dir="$(mktemp -d "$RUNNER_TEMP/f04-t018-XXXXXXXXXXXX")"
-          printf 'F04_T018_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t019-XXXXXXXXXXXX")"
+          printf 'F04_T019_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
           printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
 
       - name: Install exact PHP quality toolchain
@@ -585,7 +585,7 @@ jobs:
           composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
           composer check-platform-reqs
 
-      - name: Run actual guarded Larastan level 6 and sanitize findings
+      - name: Run canonical guarded Larastan level 6 launcher and verify evidence
         if: ${{ always() && steps.scratch.outcome == 'success' }}
         shell: bash
         env:
@@ -596,12 +596,12 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os, pathlib, re, subprocess, sys, time
           root = pathlib.Path.cwd().resolve()
-          out = pathlib.Path(os.environ['F04_T018_DIR'])
+          out = pathlib.Path(os.environ['F04_T019_DIR'])
           expected_base = '24ce00231dec35a089bb70c081b257f9b5d234e7'
           start = time.monotonic()
-          summary = {'schemaVersion': 1, 'task': 'T018-discovery', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
+          summary = {'schemaVersion': 1, 'task': 'T019-launcher', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
           # Diagnostic-only environment path is never inherited by the launcher.
-          env = {k:v for k,v in os.environ.items() if k not in {'F04_T018_DIR','ACQUISITION_STATUS'}}
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T019_DIR','ACQUISITION_STATUS'}}
           def require(ok):
               if not ok: raise RuntimeError('Diagnostic proof incomplete')
           def git(*args):
@@ -656,59 +656,10 @@ jobs:
                   require([p['version'] for p in installed['packages'] if p['name']==name]==['v'+version] or [p['version'] for p in installed['packages'] if p['name']==name]==[version])
               clean()
               summary.update(stage='analysis',level=6,phpstan=pins['phpstan/phpstan'],larastan=pins['larastan/larastan'],selectedCount=len(paths),inventorySha256=digest,selectedPaths=paths)
-              # This private pipe is consumed only by this process. Never log or
-              # upload the child JSON, arbitrary messages, stderr or tips.
-              code=r'''
-          use Tests\Support\TestEnvironmentGuard;
-          use Tools\Quality\PhpQualityPolicy;
-          use Tools\Quality\PhpQualityScratch;
-          $root=getcwd(); $scratch=null; $raw=null; $exit=2; $mask=umask(0077);
-          try {
-              if (PHP_OS_FAMILY!=='Linux' || !is_string($root) || realpath($root)!==$root) throw new RuntimeException('root');
-              foreach (['tests/Support/TestEnvironmentGuard.php','tools/quality/php-policy.php'] as $file) {
-                  $path=$root.'/'.$file;
-                  if (!is_file($path) || is_link($path) || realpath($path)!==$path) throw new RuntimeException('policy');
-                  require_once $path;
-              }
-              PhpQualityPolicy::assertNoOverrides();
-              TestEnvironmentGuard::applyFast($root);
-              $defaults=TestEnvironmentGuard::validateFast($root,getenv(),$_ENV,$_SERVER);
-              $tool=PhpQualityPolicy::approvedTool($root,'analyse');
-              PhpQualityPolicy::assertAnalysisConfig($root);
-              $files=PhpQualityPolicy::inventory($root);
-              $before=PhpQualityPolicy::fingerprint($root);
-              $scratch=new PhpQualityScratch();
-              $environment=array_merge($defaults,[
-                  'PATH'=>'/usr/bin:/bin','HOME'=>$scratch->path('home'),
-                  'TMPDIR'=>$scratch->path('tmp'),'F04_QUALITY_CACHE'=>$scratch->path('cache'),
-                  'CI'=>'true','NO_COLOR'=>'1','COMPOSER_HOME'=>$scratch->path('home'),
-                  'COMPOSER_NO_INTERACTION'=>'1',
-                  'APP_PACKAGES_CACHE'=>$scratch->path('cache').'/packages.php',
-                  'APP_SERVICES_CACHE'=>$scratch->path('cache').'/services.php',
-                  'APP_CONFIG_CACHE'=>$scratch->path('cache').'/config.php',
-                  'APP_ROUTES_CACHE'=>$scratch->path('cache').'/routes.php',
-                  'APP_EVENTS_CACHE'=>$scratch->path('cache').'/events.php',
-              ]);
-              $command=[PHP_BINARY,'-d','zend.exception_ignore_args=1',$tool,'analyse','--level=6',
-                  '--configuration='.$root.'/phpstan.neon','--no-progress','--error-format=json',
-                  '--no-interaction','--no-ansi','--',...array_map(static fn(string $path):string=>$root.'/'.$path,$files)];
-              $actual=$scratch->execute($command,$root,$environment,900);
-              if (PhpQualityPolicy::fingerprint($root)!==$before) throw new RuntimeException('source');
-              if ($scratch->readOutput('stderr')!=='' || !in_array($actual,[0,1],true)) throw new RuntimeException('tool');
-              $raw=$scratch->readOutput('stdout');
-              $exit=$actual;
-          } catch(Throwable) { $raw=null; $exit=2; }
-          finally {
-              try { if($scratch!==null) $scratch->cleanup(); }
-              catch(Throwable) { $raw=null; $exit=2; }
-              umask($mask);
-          }
-          if($raw!==null) fwrite(STDOUT,$raw);
-          exit($exit);
-          '''
-              result=run_php(['-r',code])
+              # Execute the real launcher, not a second implementation of its guard.
+              result=run_php(['tools/quality/run.php','analyse'])
               clean()
-              summary.update(toolExit=result.returncode,trackedSourceUnchanged=True)
+              summary.update(toolExit=result.returncode,trackedSourceUnchanged=True,launcher='tools/quality/run.php analyse')
               require(result.returncode in (0,1) and not result.stderr and 0<len(result.stdout)<=16777216)
               summary['stage']='result-validation'
               def unique(pairs):
@@ -718,39 +669,30 @@ jobs:
                       obj[key]=value
                   return obj
               report=json.loads(result.stdout,object_pairs_hook=unique)
-              require(isinstance(report,dict) and set(report)=={'totals','files','errors'})
-              totals=report['totals']; files=report['files']; errors=report['errors']
-              require(isinstance(totals,dict) and set(totals)=={'errors','file_errors'})
-              require(all(type(v) is int and 0<=v<=10000 for v in totals.values()))
-              require(isinstance(errors,list) and len(errors)==totals['errors'])
-              summary['globalErrorCount']=totals['errors']
-              require(not errors)
-              require(isinstance(files,dict) or files==[])
-              findings=[]
-              for name,info in (files.items() if isinstance(files,dict) else []):
-                  require(isinstance(name,str))
-                  prefix=str(root)+'/'
-                  path=name[len(prefix):] if name.startswith(prefix) else name
-                  require(path in paths and isinstance(info,dict) and set(info)=={'errors','messages'})
-                  require(type(info['errors']) is int and isinstance(info['messages'],list) and 0<info['errors']==len(info['messages'])<=10000)
-                  maxline=(root/path).read_bytes().count(b'\n')+1
-                  for item in info['messages']:
-                      require(isinstance(item,dict) and {'message','line','ignorable'}<=set(item)<= {'message','line','ignorable','identifier','tip'})
-                      require(isinstance(item['message'],str) and type(item['line']) is int and 1<=item['line']<=maxline and type(item['ignorable']) is bool)
-                      identifier=item.get('identifier')
-                      require(isinstance(identifier,str) and len(identifier)<=100 and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*',identifier))
-                      findings.append({'path':path,'line':item['line'],'identifier':identifier,'ignorable':item['ignorable']})
-                      require(len(findings)<=10000)
-              require(len(findings)==totals['file_errors'] and (result.returncode==0)==(len(findings)==0))
-              findings.sort(key=lambda f:(f['path'],f['line'],f['identifier'],f['ignorable']))
-              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',findingCount=len(findings),findings=findings,ownedChildCleanupVerified=True)
+              require(isinstance(report,dict) and set(report)=={'mode','selectedCount','toolExit','resultValidation','inventorySha256','findingCount','findings'})
+              require(report['mode']=='analyse' and report['resultValidation']=='VERIFIED')
+              require(type(report['selectedCount']) is int and report['selectedCount']==len(paths) and report['inventorySha256']==digest)
+              require(type(report['toolExit']) is int and report['toolExit']==result.returncode)
+              findings=report['findings']
+              require(isinstance(findings,list) and type(report['findingCount']) is int and len(findings)==report['findingCount']<=10000)
+              for finding in findings:
+                  require(isinstance(finding,dict) and set(finding)=={'path','line','identifier','ignorable'})
+                  path=finding['path']
+                  require(isinstance(path,str) and path in paths)
+                  require(type(finding['line']) is int and 1<=finding['line']<=(root/path).read_bytes().count(b'\n')+1)
+                  identifier=finding['identifier']
+                  require(isinstance(identifier,str) and len(identifier)<=100 and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*',identifier))
+                  require(type(finding['ignorable']) is bool)
+              require(findings==sorted(findings,key=lambda f:(f['path'],f['line'],f['identifier'],f['ignorable'])))
+              require((result.returncode==0)==(len(findings)==0))
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',resultValidation='VERIFIED',findingCount=len(findings),findings=findings,ownedChildCleanupVerified=True)
           except (RuntimeError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
               summary['status']='BLOCKED'
           finally:
               summary['durationSeconds']=round(time.monotonic()-start,3)
               with (out/'analysis-diagnostic.json').open('x') as f:
                   json.dump(summary,f,indent=2);f.write('\n')
-              print(json.dumps({'task':'T018-discovery','status':summary['status'],'stage':summary['stage'],'selectedCount':summary.get('selectedCount'),'findingCount':summary.get('findingCount')}))
+              print(json.dumps({'task':'T019-launcher','status':summary['status'],'stage':summary['stage'],'selectedCount':summary.get('selectedCount'),'findingCount':summary.get('findingCount')}))
           sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
           PY
 
@@ -758,8 +700,8 @@ jobs:
         if: ${{ always() && steps.scratch.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: f04-t018-analysis-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.F04_T018_DIR }}/analysis-diagnostic.json
+          name: f04-t019-analysis-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_T019_DIR }}/analysis-diagnostic.json
           if-no-files-found: error
           retention-days: 7
 
@@ -770,10 +712,10 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import os,pathlib,re,stat
-          p=pathlib.Path(os.environ['F04_T018_DIR'])
+          p=pathlib.Path(os.environ['F04_T019_DIR'])
           parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
           expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
-          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t018-[A-Za-z0-9]{12}',p.name)
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t019-[A-Za-z0-9]{12}',p.name)
           assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
           names={x.name for x in p.iterdir()}
           assert names=={'owner','analysis-diagnostic.json'}
@@ -784,5 +726,5 @@ jobs:
           for name in names: (p/name).unlink()
           p.rmdir()
           assert not p.exists()
-          print('Owned T018 analysis diagnostic cleanup verified.')
+          print('Owned T019 analysis diagnostic cleanup verified.')
           PY

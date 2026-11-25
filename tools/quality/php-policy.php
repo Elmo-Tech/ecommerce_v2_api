@@ -51,6 +51,21 @@ final class PhpQualityPolicy
         return $files;
     }
 
+    /**
+     * Independent line bounds for the exact canonical tracked inventory.
+     *
+     * @return array<string, int>
+     */
+    public static function analysisLineBounds(string $root): array
+    {
+        $bounds = [];
+        foreach (self::inventory($root) as $path) {
+            $bounds[$path] = substr_count(self::read($root.'/'.$path, 16777216), "\n") + 1;
+        }
+
+        return $bounds;
+    }
+
     public static function assertPintConfig(string $root): void
     {
         // Deliberately permit only the reviewed preset, not arbitrary rules,
@@ -738,5 +753,151 @@ final class PintResult
     private static function reject(): never
     {
         throw new RuntimeException('Pint result rejected or incomplete.');
+    }
+}
+
+/**
+ * Validate the locked PHPStan JSON reporter without publishing its messages,
+ * tips, global errors or arbitrary paths. The line bounds are independently
+ * derived from the same canonical tracked files, not from the child report.
+ */
+final class AnalysisResult
+{
+    /**
+     * @param array<string, int> $lineBounds canonical tracked relative paths and line limits
+     * @return list<array{path: string, line: int, identifier: string, ignorable: bool}>
+     */
+    public static function validate(
+        #[SensitiveParameter] string $raw,
+        #[SensitiveParameter] string $stderr,
+        int $exit,
+        string $root,
+        array $lineBounds,
+    ): array {
+        if ($raw === '' || strlen($raw) > 16777216 || $stderr !== ''
+            || !in_array($exit, [0, 1], true)
+            || $lineBounds === [] || count($lineBounds) > 10000) {
+            self::reject();
+        }
+        try {
+            $data = json_decode($raw, false, 8, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            self::reject();
+        }
+        if (!$data instanceof \stdClass || !self::keys($data, ['totals', 'files', 'errors'])
+            || !$data->totals instanceof \stdClass || !self::keys($data->totals, ['errors', 'file_errors'])
+            || $data->totals->errors !== 0 || $data->errors !== []
+            || !is_int($data->totals->file_errors)
+            || $data->totals->file_errors < 0 || $data->totals->file_errors > 10000
+            || !($data->files instanceof \stdClass || $data->files === [])) {
+            self::reject();
+        }
+
+        $files = $data->files instanceof \stdClass ? get_object_vars($data->files) : [];
+        if (count($files) > count($lineBounds)) {
+            self::reject();
+        }
+        $findings = [];
+        $seen = [];
+        $members = 5;
+        foreach ($files as $name => $info) {
+            if (!is_string($name)) {
+                self::reject();
+            }
+            $path = str_starts_with($name, $root.'/') ? substr($name, strlen($root) + 1) : $name;
+            if (!isset($lineBounds[$path]) || isset($seen[$path])
+                || !$info instanceof \stdClass || !self::keys($info, ['errors', 'messages'])
+                || !is_int($info->errors) || $info->errors < 1 || $info->errors > 10000
+                || !is_array($info->messages) || !array_is_list($info->messages)
+                || count($info->messages) !== $info->errors) {
+                self::reject();
+            }
+            $seen[$path] = true;
+            $members += 3;
+            foreach ($info->messages as $item) {
+                if (!$item instanceof \stdClass) {
+                    self::reject();
+                }
+                $expected = ['message', 'line', 'identifier', 'ignorable'];
+                if (property_exists($item, 'tip')) {
+                    $expected[] = 'tip';
+                    if (!is_string($item->tip)) {
+                        self::reject();
+                    }
+                }
+                if (!self::keys($item, $expected) || !is_string($item->message)
+                    || !is_int($item->line) || $item->line < 1 || $item->line > $lineBounds[$path]
+                    || !is_bool($item->ignorable) || !is_string($item->identifier)
+                    || strlen($item->identifier) > 100
+                    || preg_match('/\A[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*\z/D', $item->identifier) !== 1) {
+                    self::reject();
+                }
+                $members += count($expected);
+                $findings[] = [
+                    'path' => $path,
+                    'line' => $item->line,
+                    'identifier' => $item->identifier,
+                    'ignorable' => $item->ignorable,
+                ];
+                if (count($findings) > 10000) {
+                    self::reject();
+                }
+            }
+        }
+        // A valid decoded tree has one unquoted colon per object member.
+        // Reject overwritten duplicate members, including escaped aliases.
+        if (self::memberCount($raw) !== $members
+            || count($findings) !== $data->totals->file_errors
+            || ($exit === 0) !== ($findings === [])) {
+            self::reject();
+        }
+        usort($findings, static fn (array $a, array $b): int =>
+            [$a['path'], $a['line'], $a['identifier'], $a['ignorable']]
+            <=> [$b['path'], $b['line'], $b['identifier'], $b['ignorable']]);
+
+        return $findings;
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    private static function keys(\stdClass $object, array $expected): bool
+    {
+        $actual = array_keys(get_object_vars($object));
+        sort($actual, SORT_STRING);
+        sort($expected, SORT_STRING);
+
+        return $actual === $expected;
+    }
+
+    private static function memberCount(#[SensitiveParameter] string $raw): int
+    {
+        $quoted = false;
+        $escaped = false;
+        $count = 0;
+        $length = strlen($raw);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $raw[$i];
+            if ($quoted) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === '"') {
+                    $quoted = false;
+                }
+            } elseif ($char === '"') {
+                $quoted = true;
+            } elseif ($char === ':') {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    private static function reject(): never
+    {
+        throw new RuntimeException('Analysis result rejected or incomplete.');
     }
 }

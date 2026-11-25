@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Tests\Support\TestEnvironmentGuard;
+use Tools\Quality\AnalysisResult;
 use Tools\Quality\PhpQualityPolicy;
 use Tools\Quality\PhpQualityScratch;
 use Tools\Quality\PintResult;
@@ -43,6 +44,10 @@ try {
     }
     $files = PhpQualityPolicy::inventory($root);
     $before = PhpQualityPolicy::fingerprint($root);
+    $lineBounds = $mode === 'analyse' ? PhpQualityPolicy::analysisLineBounds($root) : [];
+    if ($mode === 'analyse' && array_keys($lineBounds) !== $files) {
+        throw new RuntimeException('Analysis inventory changed before execution.');
+    }
 
     $scratch = new PhpQualityScratch();
     // Fixed allowlist only; no inherited HOME, Composer credentials or service
@@ -74,20 +79,27 @@ try {
     if (PhpQualityPolicy::fingerprint($root) !== $before) {
         throw new RuntimeException('Tracked source changed during quality tool execution.');
     }
-    // Pint reports only changed files. Bind its validated result to the
-    // exact independent selected inventory; analysis validation is later.
-    $summary = [
-        'mode' => $mode,
-        'selectedCount' => count($files),
-        'toolExit' => $exit,
-        'resultValidation' => 'PENDING',
-    ];
-    if ($mode === 'format') {
-        $findings = PintResult::validate($scratch->readOutput('stdout'), $scratch->readOutput('stderr'), $exit, $root, $files);
-        $summary['resultValidation'] = 'VERIFIED';
-        $summary['inventorySha256'] = hash('sha256', json_encode($files, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $summary['findingCount'] = count($findings);
-        $summary['files'] = $findings;
+    // An unexpected analyzer process failure is not a validated finding.
+    // Preserve its nonzero exit and never publish a misleading summary.
+    if ($mode === 'analyse' && !in_array($exit, [0, 1], true)) {
+        fwrite(STDERR, "Guarded analysis tool failed without a verified result.\n");
+    } else {
+        $summary = [
+            'mode' => $mode,
+            'selectedCount' => count($files),
+            'toolExit' => $exit,
+            'resultValidation' => 'VERIFIED',
+            'inventorySha256' => hash('sha256', json_encode($files, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
+        ];
+        if ($mode === 'format') {
+            $formatFindings = PintResult::validate($scratch->readOutput('stdout'), $scratch->readOutput('stderr'), $exit, $root, $files);
+            $summary['findingCount'] = count($formatFindings);
+            $summary['files'] = $formatFindings;
+        } else {
+            $analysisFindings = AnalysisResult::validate($scratch->readOutput('stdout'), $scratch->readOutput('stderr'), $exit, $root, $lineBounds);
+            $summary['findingCount'] = count($analysisFindings);
+            $summary['findings'] = $analysisFindings;
+        }
     }
 } catch (Throwable) {
     $summary = null;
