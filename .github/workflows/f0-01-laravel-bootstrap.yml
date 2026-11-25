@@ -603,7 +603,7 @@ jobs:
           summary={'schemaVersion':1,'task':'T017-proposal','runId':os.environ['GITHUB_RUN_ID'],'runAttempt':os.environ['GITHUB_RUN_ATTEMPT'],'status':'BLOCKED','stage':'acquisition'}
           started=time.monotonic()
           def require(ok):
-              if not ok: raise RuntimeError('Read-only proposal incomplete')
+              if not ok: raise RuntimeError('invariant-'+str(sys._getframe(1).f_lineno))
           def git(*args):
               return subprocess.check_output(['git',*args],cwd=root,env=env,stderr=subprocess.DEVNULL,timeout=60)
           def php(code,data=None):
@@ -617,36 +617,21 @@ jobs:
               parts=value.split('\n')
               return [x+'\n' for x in parts[:-1]]+([parts[-1]] if parts[-1] else [])
           def candidate(old,diff,absolute_path):
-              # Parse exact unified hunks in memory. Never invoke patch or write a candidate file.
-              original=lines(old)
+              # Standard patch parser, explicitly read-only: first dry-run,
+              # then render exclusively to captured stdout, never the checkout.
               ds=lines(diff)
               header='"'+absolute_path+'"' if re.search(r'\s',absolute_path) else absolute_path
               require(len(ds)>2 and ds[0]=='--- '+header+'\n' and ds[1]=='+++ '+header+'\n')
-              pos=0; i=2; result=[]
-              while i<len(ds):
-                  m=re.fullmatch(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:[^\n]*)\n?',ds[i])
-                  require(m is not None)
-                  n,c=int(m[1]),int(m[2] or '1')
-                  new_n,new_c=int(m[3]),int(m[4] or '1')
-                  index=n-1 if c else n
-                  require(pos<=index<=len(original))
-                  result.extend(original[pos:index]);pos=index
-                  require(len(result)==(new_n-1 if new_c else new_n))
-                  i+=1;a=0;b=0
-                  while i<len(ds) and not ds[i].startswith('@@ '):
-                      row=ds[i]; i+=1
-                      require(row and row[0] in ' +-')
-                      marker=row[0];content=row[1:]
-                      if i<len(ds) and ds[i].startswith('\\ No newline at end of file'):
-                          require(content.endswith('\n'));content=content[:-1];i+=1
-                      if marker in ' -':
-                          require(pos<len(original) and original[pos]==content)
-                          pos+=1;a+=1
-                      if marker in ' +':
-                          result.append(content);b+=1
-                  require(a==c and b==new_c)
-              result.extend(original[pos:])
-              return ''.join(result)
+              require((pathlib.Path(absolute_path).read_bytes().decode('utf-8','strict'))==old)
+              command=['/usr/bin/patch','--batch','--forward','--fuzz=0','--no-backup-if-mismatch','--reject-file=/dev/null']
+              patch_env={'PATH':'/usr/bin:/bin','LC_ALL':'C','TMPDIR':str(out)}
+              raw=diff.encode('utf-8')
+              check=subprocess.run([*command,'--dry-run','--verbose',absolute_path],input=raw,stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=out,env=patch_env,timeout=30,check=False)
+              require(check.returncode==0 and not check.stderr and not re.search(rb'\b(?:offset|fuzz|FAILED|Skipping|Reversed)\b',check.stdout))
+              render=subprocess.run([*command,'--output=-','--silent',absolute_path],input=raw,stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=out,env=patch_env,timeout=30,check=False)
+              require(render.returncode==0 and not render.stderr and len(render.stdout)<=600000)
+              require(pathlib.Path(absolute_path).read_bytes().decode('utf-8','strict')==old)
+              return render.stdout.decode('utf-8','strict')
           def recipes(old,new):
               # Coordinate-based replacement with bounded, fixed safe characters or
               # references to existing source characters. No source snippets are emitted.
@@ -709,42 +694,47 @@ jobs:
               report=json.loads(child.stdout)
               require(set(report)=={'about','files','time','memory'} and isinstance(report['files'],list) and len(report['files'])==42)
               summary['stage']='review-recipe'
-              reviewed=[]; seen=set()
+              reviewed=[]; seen=set(); blocked=[]
               for f in report['files']:
                   require(set(f)=={'name','diff','appliedFixers'})
                   path=f['name']; path=path[len(str(root))+1:] if path.startswith(str(root)+'/') else path
                   require(path in inventory and path not in seen);seen.add(path)
-                  fixers=f['appliedFixers']
-                  require(isinstance(fixers,list) and fixers and len(fixers)<=100 and all(isinstance(x,str) and re.fullmatch(r'[a-z][a-z0-9_]{0,99}',x) for x in fixers))
-                  old=(root/path).read_bytes().decode('utf-8','strict')
-                  require(len(old)<=150000 and blob(old)==inventory[path] and isinstance(f['diff'],str) and len(f['diff'])<=300000)
-                  new=candidate(old,f['diff'],str(root/path))
-                  require(new!=old and len(new)<=150000)
-                  tok=php(TOKEN_PHP,json.dumps([old,new],ensure_ascii=False).encode())
-                  require(tok.returncode==0 and not tok.stderr)
-                  pair=json.loads(tok.stdout); require(len(pair)==2 and all(re.fullmatch(r'[a-f0-9]{64}',x) for x in pair))
-                  ops=recipes(old,new)
-                  # Verify reconstruction before publishing coordinate recipes.
-                  if ops is not None:
-                      built=[];at=0
-                      for i,j,pieces in ops:
-                          require(at<=i<=j<=len(old))
-                          built.append(old[at:i]); at=j
-                          for piece in pieces:
-                              built.append(piece[1] if piece[0]=='literal' else old[piece[1]:piece[1]+piece[2]])
-                      built.append(old[at:]);require(''.join(built)==new)
-                  reviewed.append({'path':path,'beforeBlob':blob(old),'afterBlob':blob(new),'fixers':sorted(set(fixers)),'tokenEquivalent':pair[0]==pair[1],'operations':ops})
-              require(clean() and len(reviewed)==42)
-              summary.update(status='REVIEW_REQUIRED',stage='complete',pint='1.32.3',toolExit=1,selectedCount=97,findingCount=42,tokenEquivalentCount=sum(x['tokenEquivalent'] for x in reviewed),recipeCount=sum(x['operations'] is not None for x in reviewed),trackedSourceUnchanged=True,files=sorted(reviewed,key=lambda x:x['path']))
+                  try:
+                      fixers=f['appliedFixers']
+                      require(isinstance(fixers,list) and fixers and len(fixers)<=100 and all(isinstance(x,str) and re.fullmatch(r'[a-z][a-z0-9_]{0,99}',x) for x in fixers))
+                      old=(root/path).read_bytes().decode('utf-8','strict')
+                      require(len(old)<=150000 and blob(old)==inventory[path] and isinstance(f['diff'],str) and len(f['diff'])<=300000)
+                      new=candidate(old,f['diff'],str(root/path))
+                      require(new!=old and len(new)<=150000)
+                      tok=php(TOKEN_PHP,json.dumps([old,new],ensure_ascii=False).encode())
+                      require(tok.returncode==0 and not tok.stderr)
+                      pair=json.loads(tok.stdout); require(len(pair)==2 and all(re.fullmatch(r'[a-f0-9]{64}',x) for x in pair))
+                      ops=recipes(old,new)
+                      # Verify reconstruction before publishing coordinate recipes.
+                      if ops is not None:
+                          built=[];at=0
+                          for i,j,pieces in ops:
+                              require(at<=i<=j<=len(old))
+                              built.append(old[at:i]); at=j
+                              for piece in pieces:
+                                  built.append(piece[1] if piece[0]=='literal' else old[piece[1]:piece[1]+piece[2]])
+                          built.append(old[at:]);require(''.join(built)==new)
+                      reviewed.append({'path':path,'beforeBlob':blob(old),'afterBlob':blob(new),'fixers':sorted(set(fixers)),'tokenEquivalent':pair[0]==pair[1],'operations':ops})
+                  except (RuntimeError,OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError,AssertionError) as failure:
+                      code=str(failure) if isinstance(failure,RuntimeError) and re.fullmatch(r'invariant-[0-9]+',str(failure)) else type(failure).__name__
+                      blocked.append({'path':path,'code':code})
+              require(clean() and len(reviewed)+len(blocked)==42 and len(seen)==42)
+              summary.update(status='REVIEW_PARTIAL' if blocked else 'REVIEW_REQUIRED',stage='complete',pint='1.32.3',toolExit=1,selectedCount=97,findingCount=42,tokenEquivalentCount=sum(x['tokenEquivalent'] for x in reviewed),recipeCount=sum(x['operations'] is not None for x in reviewed),trackedSourceUnchanged=True,files=sorted(reviewed,key=lambda x:x['path']),blocked=blocked)
               require(len(json.dumps(summary))<=4194304)
-          except (RuntimeError,OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError,AssertionError):
-              summary={'schemaVersion':1,'task':'T017-proposal','runId':os.environ['GITHUB_RUN_ID'],'runAttempt':os.environ['GITHUB_RUN_ATTEMPT'],'status':'BLOCKED','stage':summary['stage']}
+          except (RuntimeError,OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError,AssertionError) as failure:
+              code=str(failure) if isinstance(failure,RuntimeError) and re.fullmatch(r'invariant-[0-9]+',str(failure)) else type(failure).__name__
+              summary={'schemaVersion':1,'task':'T017-proposal','runId':os.environ['GITHUB_RUN_ID'],'runAttempt':os.environ['GITHUB_RUN_ATTEMPT'],'status':'BLOCKED','stage':summary['stage'],'code':code}
           finally:
               summary['durationSeconds']=round(time.monotonic()-started,3)
               with (out/'format-proposal.json').open('x') as f:
                   json.dump(summary,f,separators=(',',':')); f.write('\n')
               print(json.dumps({k:v for k,v in summary.items() if k!='files'}))
-              if summary['status']=='REVIEW_REQUIRED':
+              if summary['status'] in ('REVIEW_REQUIRED','REVIEW_PARTIAL'):
                   # Same validated coordinate records as the artifact; no raw source or tool output.
                   for record in summary['files']:
                       print('T017_RECIPE '+json.dumps(record,separators=(',',':')))
