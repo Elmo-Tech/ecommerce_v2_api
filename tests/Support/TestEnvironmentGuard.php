@@ -43,7 +43,7 @@ final class TestEnvironmentGuard
                 }
                 if (array_key_exists($key, self::DEFAULTS)) {
                     if ($value !== self::DEFAULTS[$key]) {
-                        throw new RuntimeException('Unsafe fast test environment setting.');
+                        throw new RuntimeException('Unsafe fast test environment setting: '.$key.'.');
                     }
                     continue;
                 }
@@ -57,13 +57,65 @@ final class TestEnvironmentGuard
                 // and inherited integration state are never needed here.
                 if (preg_match('/^(?:DB_|DATABASE_|PG[A-Z_]|MYSQL_|REDIS_|CACHE_|SESSION_|QUEUE_|MAIL_|SMTP_|BROADCAST_|PUSHER_|REVERB_|FILESYSTEM_|AWS_|AZURE_|GOOGLE_|GCS_|S3_|SQS_|DYNAMODB_|MEMCACHED_|BEANSTALKD_|F03_|DOCKER_|APP_(?:.*_CACHE|BASE_PATH|STORAGE_PATH|ENV_PATH|PREVIOUS_KEYS|MAINTENANCE_STORE)$|LARAVEL_STORAGE_PATH$|VIEW_COMPILED_PATH$)/iD', $key)
                     && $value !== '') {
-                    throw new RuntimeException('Unexpected service, path or credential configuration.');
+                    // Report only fixed, known setting names/families, never the value
+                    // or an arbitrary environment key.
+                    $known = ['PGDATA', 'PGROOT', 'PG_CONFIG', 'PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGSERVICE', 'PGPASSFILE',
+                        'DOCKER_CONFIG', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH',
+                        'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION', 'GOOGLE_APPLICATION_CREDENTIALS'];
+                    $category = 'service/path';
+                    if (in_array($key, $known, true)) {
+                        $category = $key;
+                    } else {
+                        foreach (['DB_', 'DATABASE_', 'PG', 'MYSQL_', 'REDIS_', 'CACHE_', 'SESSION_', 'QUEUE_', 'MAIL_', 'AWS_', 'AZURE_', 'GOOGLE_', 'DOCKER_', 'F03_', 'APP_'] as $prefix) {
+                            if (str_starts_with($key, $prefix)) {
+                                $category = $prefix;
+                                break;
+                            }
+                        }
+                    }
+                    throw new RuntimeException('Unexpected service, path or credential configuration: '.$category.'.');
                 }
             }
         }
         self::reportDirectory($process, $env, $server);
 
         return self::DEFAULTS;
+    }
+
+    public static function diagnostic(\Throwable $error): string
+    {
+        // Only messages authored by this guard are emitted. Do not expose
+        // native exception messages or paths from arbitrary libraries.
+        if ($error::class !== RuntimeException::class) {
+            return 'Test environment check failed.';
+        }
+        $message = $error->getMessage();
+        if (in_array($message, [
+            'Invalid isolated test checkout.', 'Cannot inspect isolated test checkout.',
+            'Unsafe dotenv file in test checkout.', 'Unexpected environment file in test checkout.',
+            'Invalid test bootstrap cache directory.', 'Cannot inspect test bootstrap cache.',
+            'Unexpected cached application configuration.', 'Unexpected integration mode in fast tests.',
+            'Cannot establish isolated test defaults.', 'Conflicting test report directory.',
+            'Invalid owned test report directory.', 'Conflicting test runner directory.',
+            'Invalid test report destination.', 'Test report destination already exists.',
+        ], true)) {
+            return $message;
+        }
+        foreach (array_keys(self::DEFAULTS) as $key) {
+            if ($message === 'Unsafe fast test environment setting: '.$key.'.') {
+                return $message;
+            }
+        }
+        // Fixed vocabulary only; no value or raw environment name is included.
+        foreach (['service/path', 'PGDATA', 'PGROOT', 'PG_CONFIG', 'PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGSERVICE', 'PGPASSFILE',
+            'DOCKER_CONFIG', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH',
+            'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION', 'GOOGLE_APPLICATION_CREDENTIALS',
+            'DB_', 'DATABASE_', 'PG', 'MYSQL_', 'REDIS_', 'CACHE_', 'SESSION_', 'QUEUE_', 'MAIL_', 'AWS_', 'AZURE_', 'GOOGLE_', 'DOCKER_', 'F03_', 'APP_'] as $category) {
+            if ($message === 'Unexpected service, path or credential configuration: '.$category.'.') {
+                return $message;
+            }
+        }
+        return 'Test environment check failed.';
     }
 
     public static function applyFast(string $root): void

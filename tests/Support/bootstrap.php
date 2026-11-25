@@ -9,9 +9,9 @@ require_once __DIR__.'/TestEnvironmentGuard.php';
 $root = dirname(__DIR__, 2);
 try {
     TestEnvironmentGuard::applyFast($root);
-} catch (Throwable) {
+} catch (Throwable $error) {
     // No environment value, path, stack trace or secret in diagnostics.
-    fwrite(STDERR, "Fast test environment rejected.\n");
+    fwrite(STDERR, "Fast test environment rejected: ".TestEnvironmentGuard::diagnostic($error)."\n");
     exit(2);
 }
 

@@ -52,7 +52,7 @@ try {
     }
     $status = proc_close($child);
     exit($status >= 0 ? $status : 1);
-} catch (Throwable) {
-    fwrite(STDERR, "Guarded test command rejected.\n");
+} catch (Throwable $error) {
+    fwrite(STDERR, "Guarded test command rejected: ".TestEnvironmentGuard::diagnostic($error)."\n");
     exit(2);
 }
