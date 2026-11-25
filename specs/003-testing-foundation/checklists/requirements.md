@@ -13,7 +13,7 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 17/40 complete; T016/T017 targeted GREEN, T018 and partial T020 staged; additional report path checks pending. No full green or native service evidence.
+**Status:** 18/40 complete; T016/T017/T018 verified in targeted CI; 26 expected later-scope failures, native Integration NOT RUN. T020 partial pure selection 14/14; actual cleanup and remaining tasks open.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -24,3 +24,9 @@
 - [x] T015 actual safe RED verified (CI #45593286201, 205 expected failures /101 passed /1153 assertions); all tracked PHP lint including native Integration passed. Native tests not run.
 - [ ] T016–T025 minimal test-only implementation.
 - [ ] T026–T033 full actual fast and Integration GREEN, owned resources, reports and scope checks.
+
+
+- [x] T016/T017 fast guard/launcher targeted verification (CI #45597723864 and #45598005372).
+- [x] T018 pure owned record validation and fixed slots (40/40 and slot-resolution test, CI #45598005372).
+- [ ] T019 guarded explicit real-service connection entry and native driver policies.
+- [ ] T020 real owned cleanup adapter (pure policy 14/14 only, no deletion executed).
