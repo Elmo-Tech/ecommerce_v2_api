@@ -1,7 +1,7 @@
 # F0-04 — Code Quality & CI Foundation: discovery and proposed decisions
 
 **Date:** 2026-11-25 (Africa/Cairo)
-**Status:** DISCOVERY / PROPOSAL — owner authorized starting the next phase after F0-03 closure. DEC-01–06 below are proposed, not approved. No implementation, dependency installation, scanner execution, CI change, repository-settings mutation or merge authority.
+**Status:** DEC-01–06 A APPROVED by owner on 2026-11-25. Original options below retained for traceability. Full Spec/Plan prepared for separate review. No implementation, dependency installation, scanner execution, CI change, repository-settings mutation or merge authority.
 **Branch:** `feature/f0-04-code-quality-ci`; reviewed development baseline `24ce00231dec35a089bb70c081b257f9b5d234e7`.
 
 ## 1. Verified baseline and scope
@@ -12,7 +12,7 @@ Repository inspection: PHP ^8.4 and Laravel ^13.0, locked Laravel 13.43.0, Pest 
 
 Binding sources: [Constitution VII/VIII](../../.specify/memory/constitution.md), [CS-08/09/11](../../docs/02-standards/code-standards.md), [TEST-01/05/09/10](../../docs/02-standards/testing-standards.md), [AS-08/09](../../docs/02-standards/api-standards.md), [SEC-05/06](../../docs/02-standards/security-standards.md), [Backend Architecture](../../docs/01-architecture/backend-architecture.md), [Workflow](../../docs/WORKFLOW.md), [F0-03 closeout](../../docs/handoff/F0-03_MERGED_AND_CLOSEOUT_2026-11-25.md). These require progressive, applicable risk-based quality checks, reproducibility and no false green; not universal heavy tests for docs. F0-04 owns technical quality only, not business data.
 
-## 2. Proposed decisions — owner review required
+## 2. Original options — all A approved by owner
 
 | ID | Recommended option A | Alternative B |
 | --- | --- | --- |
@@ -43,4 +43,6 @@ Version selection above is published compatibility evidence, not an approved pin
 
 ## 5. Next exact action
 
-Owner reviews DEC-01–06. After choices, draft canonical spec.md and plan.md with requirements, real version compatibility/preflight, exact file scopes and selected gates; obtain owner approval. Then generate tasks.md and consistency analysis for separate review and explicit implementation authorization. No install/run/change CI or settings until approved. Follow technical review, owner/qualified human review, separate development-only merge consent and verified closeout.
+Owner approved all A options. [Spec](spec.md), [Plan](plan.md) and [Research](research.md) now prepared; obtain separate full Spec/Plan approval. Then generate tasks.md and consistency analysis for separate review and explicit implementation authorization. No install/run/change CI or settings until approved. Follow technical review, owner/qualified human review, separate development-only merge consent and verified closeout.
+
+**Explicit decision record (2026-11-25):** DEC-01 A Pint PSR-12; DEC-02 A PHPStan/Larastan level 6; DEC-03 A Redocly; DEC-04 A separate CI jobs; DEC-05 A Trivy + dependency audit; DEC-06 A branch protection plan. Owner requested preparation/review of Spec and Technical Plan only, without code execution or installing packages. Published candidate versions refined in research; actual compatibility remains unverified.
