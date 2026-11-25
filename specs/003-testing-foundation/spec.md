@@ -2,7 +2,7 @@
 
 **Feature Branch:** `feature/f0-03-testing-foundation`  
 **Created:** 2026-11-25 (Africa/Cairo)  
-**Status:** OWNER-APPROVED SPEC; T001–T035 complete at verified executable source, R01 remediation and actual full CI verified. T036–T040 pending; exact current docs-only head/base check required. See [quickstart](quickstart.md) and [canonical tasks](tasks.md).
+**Status:** OWNER-APPROVED SPEC; PR #7 merged and verified on development. T001–T039 verified (39/40); T040 documentation prepared in this closeout candidate. **40/40 becomes effective only after this separate reviewed docs-only PR is merged into development and publication is verified.** Before then T040 remains pending. Approved decisions and scope unchanged. See [tasks](tasks.md).
 **Reviewed development baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163`.  
 **Input:** Owner explicitly approved the complete final F0-03 Spec and Plan at source SHA `722dd440f36269c2e6ac6d052801b35d6cac876e` on 2026-11-25, including DEC-01…04 A, exact proposed PostgreSQL/Redis test image pins, PHP drivers and technical safety design. Owner requested Tasks and Consistency Analysis only, explicitly without implementation. This authorizes planning documents, not source/test/CI execution, packages, provisioning, deployment or merge.
 
@@ -112,3 +112,6 @@ Fast lane remains supported locally only in an isolated checkout with safe test 
 
 
 **T035 update (2026-11-25):** technical review completed at verified executable source, R01 resolved without approved design changes. [Review and owner checklist](../../docs/reviews/F0-03-technical-review-2026-11-25.md). T036–T040 pending; no merge consent.
+
+
+**Merge and closeout update (2026-11-25):** T036/T037 owner approvals recorded; T038/T039 verified. See [dated closeout](../../docs/handoff/F0-03_MERGED_AND_CLOSEOUT_2026-11-25.md). T040 publication remains conditional; no F0-04, main or deployment authorized.

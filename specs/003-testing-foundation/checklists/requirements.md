@@ -1,4 +1,4 @@
-# F0-03 — Requirements review checklist (owner-approved Spec/Plan; verified implementation, review pending)
+# F0-03 — Requirements review checklist (owner-approved Spec/Plan; verified merged implementation, closeout publication pending)
 
 - [x] Reopened current development, verified F0-02 30/30 and prior actual CI.
 - [x] Reopened TEST-01…10, DB/Architecture/Constitution/Workflow and actual test bootstrap/config/CI source.
@@ -11,9 +11,10 @@
 - [x] Generated [tasks.md](../tasks.md) and [consistency analysis](../consistency-analysis.md); documentary coverage/dependency validation complete.
 - [x] T003 separate explicit implementation authorization recorded at approved task revision `74f45e00e289568aca85e071317100f04b20c8be`.
 - [x] Actual baseline, negative/positive regression/real service CI and bounded scope review after authorization (T032–T033).
-- [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
+- [x] ChatGPT technical review, owner human review, separate development-only consent and verified implementation merge (T035–T039; no separate human review claimed).
+- [ ] T040 actual publication of the separately reviewed closeout PR; effective only after verified merge.
 
-**Status:** 35/40 complete at verified executable source; T035 technical review complete and R01 resolved. Current docs-only head/base CI recheck and T036–T040 pending.
+**Status:** T001–T039 verified (39/40); T040 documentation prepared in this closeout candidate. **40/40 becomes effective only after this separate reviewed docs-only PR is merged into development and publication is verified.** Before then T040 remains pending.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -39,4 +40,5 @@
 - [x] T032 actual final implementation full CI (#45609420261): 408/2499 fast, 34/304 native, 31/134 and 9/101 subsets; independent report validation.
 - [x] T033 bounded security/scope review and T034 [quickstart/evidence](../quickstart.md); exact docs-only candidate recheck pending.
 - [x] T035 [technical review and R01 remediation](../../../docs/reviews/F0-03-technical-review-2026-11-25.md) verified at executable source by actual CI #45611222089.
-- [ ] T036 owner/qualified human review; T037 separate merge consent; T038–T040 verified development merge/closeout.
+- [x] T036 owner review; T037 separate consent; T038–T039 verified actual development merge and tested tree equivalence.
+- [ ] T040 publication pending; proposed final ledger checkbox effective only after verified publication.
