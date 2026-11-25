@@ -13,8 +13,8 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 4/40 complete; T004 actual baseline verified, T005 compatibility preflight pending. No F0-03 runtime/test changes or service creation.
+**Status:** 5/40 verified; T006/T007 first test-first regression increment staged, actual run pending. No real service or support implementation.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
-- [ ] T005 exact image and native driver/CLI compatibility preflight.
+- [x] T005 exact image and native driver/CLI compatibility preflight (actual CI #45591605943).
