@@ -21,3 +21,4 @@
 /storage/framework/sessions/*
 /storage/framework/views/*
 /auth.json
+/tools/quality/openapi/node_modules/

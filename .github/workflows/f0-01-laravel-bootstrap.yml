@@ -171,20 +171,37 @@ jobs:
           done
           exit "$status"
 
-      - name: PHP syntax lint and optional quality-tool availability
+      # Transitional acquisition check only (T008). No unguarded quality tool execution.
+      # The actual read-only format and guarded level-6 analysis gates arrive in T012-T019/T042.
+      - name: Verify installed approved quality packages without running analyzers
         if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
         run: |
+          set -euo pipefail
           git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
-          if [ -x vendor/bin/pint ]; then
-            vendor/bin/pint --test
-          else
-            echo "::notice title=Pint unavailable::Laravel Pint is not in the approved composer.lock; no Pint pass is claimed."
-          fi
-          if [ -x vendor/bin/phpstan ]; then
-            vendor/bin/phpstan analyse --no-progress
-          else
-            echo "::notice title=PHPStan unavailable::PHPStan/Larastan is not in the approved composer.lock; no static-analyzer pass is claimed."
-          fi
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          lock_path = pathlib.Path('composer.lock')
+          assert hashlib.sha256(lock_path.read_bytes()).hexdigest() == '4f86a8d3e61aeddae531a177d901a0aa6632713116d9f959537102282079473e'
+          lock = json.loads(lock_path.read_text())
+          installed = json.loads(pathlib.Path('vendor/composer/installed.json').read_text())
+          expected = {p['name']: p for p in lock['packages'] + lock['packages-dev']}
+          actual = {p['name']: p for p in installed['packages']}
+          assert len(expected) == 122 and len(actual) == 122 and set(expected) == set(actual), 'Installed package inventory mismatch'
+          assert installed['dev'] is True
+          for name, record in expected.items():
+              observed = actual[name]
+              assert observed['version'] == record['version'], 'Installed version mismatch: ' + name
+              for kind in ('source', 'dist'):
+                  if record.get(kind, {}).get('reference'):
+                      assert observed.get(kind, {}).get('reference') == record[kind]['reference'], 'Installed reference mismatch: ' + name
+          approved = {'laravel/pint': 'v1.32.3', 'phpstan/phpstan': '2.3.7', 'larastan/larastan': 'v3.15.0', 'iamcal/sql-parser': 'v0.7'}
+          assert all(actual[n]['version'] == v for n, v in approved.items())
+          assert pathlib.Path('vendor/larastan/larastan/extension.neon').is_file()
+          print(json.dumps({'task': 'T008', 'installed_count': len(actual), 'approved_dev_packages': approved, 'installed_metadata': 'PASSED', 'format': 'NOT_RUN', 'analysis': 'NOT_RUN'}, sort_keys=True))
+          PY
+          test -x vendor/bin/pint
+          test -x vendor/bin/phpstan
+          echo "::notice title=Quality gates pending::Acquisition verified; Pint and guarded level-6 analysis are not run by this transitional check."
 
       - name: Verify runtime did not change any tracked repository file
         if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
@@ -361,3 +378,136 @@ jobs:
         id: integration_report_cleanup
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
         run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
+
+  # Temporary T009 acquisition-only diagnostic. No validation or audit pass claimed.
+  f0-04-t009-acquisition:
+    name: F0-04 T009 isolated Redocly locked acquisition
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Exact approved Node version
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.22.3"
+          package-manager-cache: false
+      - name: Create owned private acquisition directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t009-XXXXXXXXXXXX")"
+          printf 'F04_T009_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+      - name: Acquire exact Redocly without scripts or application access
+        shell: bash
+        env:
+          F04_SOURCE: ${{ github.event.pull_request.head.sha }}
+          F04_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, shutil, subprocess, time
+          root = pathlib.Path.cwd().resolve()
+          scratch = pathlib.Path(os.environ['F04_T009_DIR'])
+          out = scratch / 'safe'
+          out.mkdir(mode=0o700)
+          start = time.monotonic()
+          result = {'schema': 1, 'task': 'T009', 'source': os.environ['F04_SOURCE'], 'base': os.environ['F04_BASE'], 'run': os.environ['GITHUB_RUN_ID'], 'attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'identity'}
+          def require(condition, reason):
+              if not condition:
+                  result['reason'] = reason
+                  raise RuntimeError(reason)
+          def sha(p):
+              return hashlib.sha256(p.read_bytes()).hexdigest()
+          def command(args, cwd, stage, env=None):
+              result['stage'] = stage
+              child = subprocess.run(args, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300, check=False)
+              (scratch/(stage+'.private.log')).write_bytes(child.stdout)
+              if child.returncode:
+                  result['exit_code'] = child.returncode
+                  raise RuntimeError('Acquisition command failed')
+              return child.stdout.decode('utf-8','replace').strip()
+          try:
+              result['checkout'] = command(['git','rev-parse','HEAD'],root,'checkout')
+              commit = command(['git','cat-file','-p','HEAD'],root,'parents')
+              parents = re.findall(r'^parent ([0-9a-f]{40})$',commit.split('\n\n',1)[0],re.M)
+              require(result['base']=='24ce00231dec35a089bb70c081b257f9b5d234e7' and parents==[result['base'],result['source']], 'Unexpected integrated checkout')
+              project = root/'tools/quality/openapi'
+              work = scratch/'work'
+              home = scratch/'home'
+              tmp = scratch/'tmp'
+              for path in (work,home,tmp): path.mkdir(mode=0o700)
+              for name in ('package.json','package-lock.json'):
+                  shutil.copyfile(project/name,work/name)
+              lock = work/'package-lock.json'
+              expected = 'a987d3b6bef34c77a4d1acc7bdbdeb163e82f3a87aef0dfa15abd004765466a0'
+              require(sha(lock)==expected,'Unapproved npm lock bytes')
+              manifest = json.loads((work/'package.json').read_text())
+              require(manifest=={'name':'f04-quality-openapi','version':'0.0.0','private':True,'devDependencies':{'@redocly/cli':'2.83.0'}},'Unexpected npm manifest')
+              packages=json.loads(lock.read_text())['packages']
+              require(set(packages)=={'','node_modules/@redocly/cli'},'Unexpected npm lock package inventory')
+              record=packages['node_modules/@redocly/cli']
+              require(record['version']=='2.83.0' and record['resolved']=='https://registry.npmjs.org/@redocly/cli/-/cli-2.83.0.tgz' and record['integrity'].startswith('sha512-') and not record.get('hasInstallScript'),'Unapproved npm package metadata')
+              (scratch/'user.npmrc').touch(mode=0o600)
+              (scratch/'global.npmrc').touch(mode=0o600)
+              env={'PATH':os.environ['PATH'],'HOME':str(home),'TMPDIR':str(tmp),'CI':'true','NPM_CONFIG_USERCONFIG':str(scratch/'user.npmrc'),'NPM_CONFIG_GLOBALCONFIG':str(scratch/'global.npmrc'),'NPM_CONFIG_CACHE':str(scratch/'npm-cache'),'NPM_CONFIG_REGISTRY':'https://registry.npmjs.org/','REDOCLY_TELEMETRY':'off','REDOCLY_SUPPRESS_NOTIFICATIONS':'true','NO_COLOR':'1'}
+              node=command(['node','--version'],work,'node-version',env)
+              npm=command(['npm','--version'],work,'npm-version',env)
+              require(node=='v24.22.3' and tuple(map(int,npm.split('.')[:3])) >= (10,9,2),'Unexpected Node/npm versions')
+              result['versions']={'node':node,'npm':npm}
+              command(['npm','ci','--ignore-scripts','--no-audit','--no-fund','--registry=https://registry.npmjs.org/'],work,'locked-install',env)
+              require(sha(lock)==expected and (work/'package.json').read_bytes()==(project/'package.json').read_bytes(),'Manifest or lock mutated')
+              actual = json.loads((work/'node_modules/.package-lock.json').read_text())['packages']
+              require(set(actual)=={'node_modules/@redocly/cli'},'Installed npm package inventory mismatch')
+              installed=actual['node_modules/@redocly/cli']
+              require(all(installed.get(k)==record[k] for k in ('version','resolved','integrity')),'Installed npm identity mismatch')
+              package=work/'node_modules/@redocly/cli'
+              meta=json.loads((package/'package.json').read_text())
+              require(meta['name']=='@redocly/cli' and meta['version']=='2.83.0' and meta['bin']['redocly']=='bin/cli.js','Installed Redocly metadata mismatch')
+              entry=package/'bin/cli.js'
+              require(entry.is_file() and not entry.is_symlink() and entry.resolve().is_relative_to(package.resolve()),'Unexpected Redocly entrypoint')
+              version=command(['node',str(entry),'--version'],work,'redocly-version',env)
+              require(version=='2.83.0','Redocly version command mismatch')
+              command(['git','diff','--exit-code','--','.'],root,'tracked-source')
+              result.update(status='PASSED',stage='complete',exit_code=0,lock_sha256=expected,installed_packages=1,redocly=version,lifecycle_scripts='disabled',contract_validation='NOT_RUN',npm_audit='NOT_RUN')
+          except (RuntimeError, OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+              result.setdefault('reason','Acquisition failed or incomplete')
+              result.setdefault('exit_code',2)
+          finally:
+              result['duration_seconds']=round(time.monotonic()-start,3)
+              (out/'acquisition.summary.json').write_text(json.dumps(result,indent=2)+'\n')
+              print(json.dumps(result,indent=2))
+          raise SystemExit(0 if result['status']=='PASSED' else 2)
+          PY
+      - name: Publish bounded acquisition evidence
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-t009-acquisition-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_T009_DIR }}/safe/acquisition.summary.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove only owned acquisition directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, re, shutil
+          path = pathlib.Path(os.environ['F04_T009_DIR'])
+          parent = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected = os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          if path.is_symlink() or path.resolve()!=path or path.parent!=parent or not re.fullmatch(r'f04-t009-[A-Za-z0-9]{12}',path.name) or (path/'owner').read_text()!=expected:
+              raise SystemExit('Refused unowned acquisition cleanup')
+          shutil.rmtree(path)
+          print('Owned T009 acquisition cleanup verified.')
+          PY
