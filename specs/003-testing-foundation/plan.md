@@ -1,7 +1,7 @@
 # Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A and full technical design approved; implementation and T032–T034 verification/documentation completed at tested source. T035–T040 open; exact docs-only candidate recheck required. See [quickstart](quickstart.md).
+**Status:** DEC-01…04 A and full technical design approved; T001–T035 completed at verified executable source, R01 resolved; T036–T040 pending and current docs-only candidate recheck required. See [quickstart](quickstart.md).
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
@@ -199,3 +199,6 @@ First reviewed actual workflow staged, separate sequential jobs, safe report art
 
 
 **Verified implementation update (2026-11-25):** T001–T034 complete at actual tested implementation source; 408/2499 fast and 34/304 native (31/134 and 9/101 independent subsets), approved versions, failure diagnostics and cleanup evidence. [Quickstart](quickstart.md) is the current execution evidence; approved design and exclusions unchanged. Recheck docs-only candidate; T035–T040 remain open.
+
+
+**T035 review update:** 417/2518 fast, 34/304 native at exact reviewed executable source; R01 reporting correction verified; see [technical review](../../docs/reviews/F0-03-technical-review-2026-11-25.md). No design/pin change, human review and separate merge consent pending.

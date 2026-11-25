@@ -13,7 +13,7 @@
 - [x] Actual baseline, negative/positive regression/real service CI and bounded scope review after authorization (T032–T033).
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 34/40 complete; T032 actual full green, T033 bounded scope review, T034 quickstart/evidence reconciliation; exact docs-only candidate recheck and T035–T040 open.
+**Status:** 35/40 complete at verified executable source; T035 technical review complete and R01 resolved. Current docs-only head/base CI recheck and T036–T040 pending.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
@@ -38,4 +38,5 @@
 - [x] T031 actual locked Pest negative subprocesses, real failure-path CLI and upload diagnostics, safe artifacts; temporary diagnostic removed (#45609081693).
 - [x] T032 actual final implementation full CI (#45609420261): 408/2499 fast, 34/304 native, 31/134 and 9/101 subsets; independent report validation.
 - [x] T033 bounded security/scope review and T034 [quickstart/evidence](../quickstart.md); exact docs-only candidate recheck pending.
-- [ ] T035 technical PR review; T036 owner/qualified human review; T037 separate merge consent; T038–T040 verified development merge/closeout.
+- [x] T035 [technical review and R01 remediation](../../../docs/reviews/F0-03-technical-review-2026-11-25.md) verified at executable source by actual CI #45611222089.
+- [ ] T036 owner/qualified human review; T037 separate merge consent; T038–T040 verified development merge/closeout.
