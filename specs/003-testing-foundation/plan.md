@@ -1,12 +1,12 @@
-# Implementation Plan: F0-03 — Testing Foundation (final review candidate)
+# Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A approved; final detailed plan submitted for owner review. No code/CI changes, actual service compatibility or implementation approval claimed.  
+**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation approval pending. No code/CI changes or actual service compatibility claimed.  
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
 
-Owner explicitly approved F0-03 DEC-01 A, DEC-02 A, DEC-03 A and DEC-04 A on 2026-11-25, and requested research plus the final Spec/Plan before implementation. These four choices are approved; the complete detailed Spec/Plan and concrete technical selections below await separate owner sign-off. No execution or merge authority.
+Owner explicitly approved the complete final F0-03 Spec and Plan at source SHA `722dd440f36269c2e6ac6d052801b35d6cac876e` on 2026-11-25, including DEC-01…04 A, exact proposed PostgreSQL/Redis test image pins, PHP drivers and technical safety design. Owner requested Tasks and Consistency Analysis only, explicitly without implementation. This authorizes planning documents, not source/test/CI execution, packages, provisioning, deployment or merge.
 
 Keep native Pest/PHPUnit fast tests and explicitly guarded real-service Integration tests separate. F0-03 establishes a test-only PostgreSQL Central/A/B and Redis isolation harness; no application Tenancy, Identity, worker, domain models, migration tracks or business APIs. Test runtime has restricted credentials; only job-owned setup provisions synthetic fixtures. No new Composer dependency.
 
@@ -22,7 +22,7 @@ Keep native Pest/PHPUnit fast tests and explicitly guarded real-service Integrat
 | Native PHP drivers | pdo_pgsql matching PHP 8.4, PhpRedis **6.3.0** | [PDO_PGSQL](https://www.php.net/manual/en/ref.pdo-pgsql.php), [PECL stable 6.3.0](https://pecl.php.net/package/redis/6.3.0); not installed/tested yet |
 | Runner | GitHub-hosted Ubuntu 24.04, linux/amd64 | Existing runner family; verify architecture and Docker availability at preflight |
 
-The exact proposed **platform manifest** pulls (not multi-platform index digests, not mutable tags):
+The exact approved **platform manifest** pulls (not multi-platform index digests, not mutable tags):
 ```text
 docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03
 docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87
@@ -74,7 +74,7 @@ phpunit.integration.xml                   # Integration only, explicit separate 
                                           # extend relevant filters and two jobs
 specs/003-testing-foundation/
   spec.md / plan.md / research.md / checklists/requirements.md
-  tasks.md / consistency-analysis.md       # next approved phase
+  tasks.md / consistency-analysis.md       # prepared, execution approval pending
   quickstart.md                           # actual evidence after execution
 ```
 
@@ -134,11 +134,11 @@ For needed temporary test files, create unique directory within owned RUNNER_TEM
 | CI suite selection/reporting | High | Actual integration and fast results, missing-service fail, skipped/empty fail, report/failure/cleanup semantics; exact revision. |
 | Production boundary and old regressions | High | Diff/architecture plus F0-01/02 full regression, unchanged packages/production seam. |
 
-1. Owner approval of this complete final Spec/Plan (current requested gate).
-2. Prepare `tasks.md` with dependency DAG/traceability and consistency analysis; explicit separate implementation approval.
+1. Owner approval of complete final Spec/Plan — recorded 2026-11-25 (T001 complete).
+2. [Tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared (T002 complete). T003 separate explicit implementation approval remains open.
 3. Actual integrated baseline and pinned-service/extension preflight as scoped by approved tasks; tests first (negative guard/provenance regressions expected RED when feasible), preserve old tests. No service provisioning before approved implementation and verified disposable target.
 4. Minimal implementation and actual GREEN fast + Integration; reproduce/verify required negative cases; bounded secret/scope review, actual reports. Do not claim test count for unwritten tests; no false pass.
 5. ChatGPT technical review, owner review, qualified independent human review for sensitive/high-risk when owner cannot provide it, separate owner development-only merge consent, exact final head/base and actual required CI. CodeRabbit/Copilot optional. No self-approval.
 6. Verify actual merge SHA/tree, publish final handoff/ledger. No F0-04 code, main merge/deployment/Pilot approval.
 
-**Current state:** only documentation and sourced planning. No runtime, driver, image, PostgreSQL/Redis service, JUnit report or F0-03 test has been executed. Concrete selections are for owner sign-off; actual availability/compatibility and real safety evidence are implementation gates, not remaining speculative business decisions.
+**Current state:** owner-approved technical design; documentary T001–T002 complete (2/40). No runtime, driver, image, PostgreSQL/Redis service, JUnit report or F0-03 test has been executed. Actual availability/compatibility and real safety evidence remain blocking execution gates. No implementation authorization.

@@ -2,9 +2,9 @@
 
 **Feature Branch:** `feature/f0-03-testing-foundation`  
 **Created:** 2026-11-25 (Africa/Cairo)  
-**Status:** FINAL REVIEW CANDIDATE — DEC-01…04 approved; complete specification/plan awaiting owner approval. No implementation authorization.  
+**Status:** OWNER-APPROVED SPEC — DEC-01…04 A and complete final technical design approved 2026-11-25; tasks/consistency prepared, separate implementation authorization pending.  
 **Reviewed development baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163`.  
-**Input:** Owner explicitly approved F0-03 DEC-01 A, DEC-02 A, DEC-03 A and DEC-04 A on 2026-11-25, and requested research plus the final Spec/Plan before implementation. These four choices are approved; the complete detailed Spec/Plan and concrete technical selections below await separate owner sign-off. No execution or merge authority.
+**Input:** Owner explicitly approved the complete final F0-03 Spec and Plan at source SHA `722dd440f36269c2e6ac6d052801b35d6cac876e` on 2026-11-25, including DEC-01…04 A, exact proposed PostgreSQL/Redis test image pins, PHP drivers and technical safety design. Owner requested Tasks and Consistency Analysis only, explicitly without implementation. This authorizes planning documents, not source/test/CI execution, packages, provisioning, deployment or merge.
 
 ## 1. Purpose and authority
 
@@ -76,7 +76,7 @@ No business models/factories, domain migration tracks or application DB changes;
 - SC-05: final source and tested integration candidate, actual full applicable results, report status and review evidence recorded; no production changes.
 - SC-06: separate owner approval of revised complete spec/plan, tasks/consistency review and implementation authorization before source edits; later human review and separate development-only merge approval.
 
-## 7. Approved owner decisions and proposed final technical selections
+## 7. Approved owner decisions and final technical selections
 
 | ID | Owner-approved A | Concrete design |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ No business models/factories, domain migration tracks or application DB changes;
 | DEC-03 | Sequential, job-owned GitHub-hosted CI services first | Ubuntu 24.04 linux/amd64; exact official image manifests, localhost-only dynamically allocated ports, no shared/local integration target. |
 | DEC-04 | Scoped JUnit reports, seven-day retention, preserve failures | Separate fast and integration artifacts; sanitized technical evidence, no automated retry/quarantine. |
 
-**Detailed technical choices submitted for final plan approval:** PostgreSQL 17.12 Bookworm, Redis 8.2.11 Bookworm, PHP 8.4 with native pdo_pgsql and stable PhpRedis 6.3.0; image manifest references and source evidence in [plan](plan.md) / [research](research.md). These are test-only version choices, not a production version decision. Pin digest plus verify actual image, extension and server versions in implementation preflight; stop on unavailable image, incompatibility or applicable material security finding. No silent version substitution.
+**Detailed technical choices approved with final plan:** PostgreSQL 17.12 Bookworm, Redis 8.2.11 Bookworm, PHP 8.4 with native pdo_pgsql and stable PhpRedis 6.3.0; image manifest references and source evidence in [plan](plan.md) / [research](research.md). These are test-only version choices, not a production version decision. Pin digest plus verify actual image, extension and server versions in implementation preflight; stop on unavailable image, incompatibility or applicable material security finding. No silent version substitution.
 
 ## 8. Additional acceptance matrix and boundary clarifications
 
@@ -102,4 +102,4 @@ No business models/factories, domain migration tracks or application DB changes;
 
 Fast lane remains supported locally only in an isolated checkout with safe test environment; no local PostgreSQL/Redis integration support is introduced by DEC-03 A. A preflight guard is an accidental-target barrier, not a sandbox for malicious arbitrary PHP/Docker/shell code or a defense against a compromised runner. Production and shared data credentials must not be available in either job.
 
-Full final Spec/Plan approval is the next gate. Tasks and consistency analysis are generated only after that approval, then explicit implementation authorization. No executable files, migrations, package installs, workflows or deployments in this revision.
+Full Spec/Plan approved at the recorded source revision; [tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared. T003 explicit implementation authorization is the next gate. No executable files, migrations, package installs, workflows or deployments in this revision.
