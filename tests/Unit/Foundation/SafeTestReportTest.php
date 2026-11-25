@@ -172,3 +172,36 @@ it('validates actual dotted PHPUnit classnames and PHP namespace names without c
     expect(fn () => SafeTestReport::verifySelection('fast-all', $mixed))->toThrow(RuntimeException::class);
     expect(fn () => SafeTestReport::verifySelection('architecture', ['tests' => 5, 'cases' => array_fill(0, 5, ['class' => $class('Unit', 'WrongTest')])]))->toThrow(RuntimeException::class);
 })->with(['.', '\\'])->group('testing-foundation');
+
+
+it('rejects inconsistent nested JUnit aggregates and duplicate or misplaced case identities', function (string $xml): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $checkout->write('reports/result.xml', $xml);
+        expect(fn () => SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], []))->toThrow(RuntimeException::class);
+    } finally {
+        $checkout->close();
+    }
+})->with([
+    'nested test count' => '<testsuites tests="1"><testsuite tests="2"><testcase name="one"/></testsuite></testsuites>',
+    'nested assertion count' => '<testsuites><testsuite assertions="1"><testsuite assertions="2"><testcase name="one" assertions="1"/></testsuite></testsuite></testsuites>',
+    'nested failure count' => '<testsuites><testsuite failures="1"><testcase name="one"/></testsuite></testsuites>',
+    'nested error count' => '<testsuites><testsuite errors="1"><testcase name="one"/></testsuite></testsuites>',
+    'nested skipped count' => '<testsuites><testsuite skipped="1"><testcase name="one"/></testsuite></testsuites>',
+    'empty nested suite with claimed cases' => '<testsuites><testsuite tests="1"><testcase name="one"/></testsuite><testsuite tests="1"/></testsuites>',
+    'duplicate case across suites' => '<testsuites><testsuite><testcase name="same" classname="Tests.Unit.Probe"/></testsuite><testsuite><testcase name="same" classname="Tests.Unit.Probe"/></testsuite></testsuites>',
+    'misplaced nested suite' => '<testsuites><properties><testsuite><testcase name="one"/></testsuite></properties></testsuites>',
+])->group('testing-foundation');
+
+it('accepts consistent nested JUnit counters with distinct class identities and genuine empty subsuites', function (): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $xml = '<testsuites tests="2" assertions="3" failures="0" errors="0" skipped="0"><testsuite tests="2" assertions="3"><testsuite tests="1" assertions="1"><testcase name="same" classname="Tests.Unit.One" assertions="1"/></testsuite><testsuite tests="1" assertions="2"><testcase name="same" classname="Tests.Unit.Two" assertions="2"/></testsuite><testsuite tests="0" assertions="0" failures="0" errors="0" skipped="0"/></testsuite></testsuites>';
+        $checkout->write('reports/result.xml', $xml);
+        $report = SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], []);
+        expect($report)->toMatchArray(['tests' => 2, 'assertions' => 3, 'failures' => 0, 'errors' => 0, 'skipped' => 0]);
+        expect(SafeTestReport::outcome(0, $report, 0, 0)['status'])->toBe('PASSED');
+    } finally {
+        $checkout->close();
+    }
+})->group('testing-foundation');
