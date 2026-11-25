@@ -50,7 +50,7 @@ try {
         } else {
             TestEnvironmentGuard::applyFast($root);
         }
-        $rawName = $selection.'.raw.xml';
+        $rawName = $selection.'-raw.xml';
         $rawPath = TestEnvironmentGuard::reportPath($rawName);
         $previous = umask(0077);
         try {
@@ -79,7 +79,9 @@ try {
             foreach ($rawOutput as $output) {
                 fclose($output['handle']);
                 if (is_file($output['path']) && !is_link($output['path'])) {
-                    unlink($output['path']);
+                    if (!unlink($output['path'])) {
+                        throw new RuntimeException('Private test output cleanup incomplete.');
+                    }
                 }
             }
         }
@@ -87,10 +89,11 @@ try {
         // A failed partial selection is still useful but cannot satisfy
         // required coverage. Publish the safe actual result if valid.
         $safe = SafeTestReport::safeXml($report, $selection, [], $hashes);
-        $safePath = TestEnvironmentGuard::reportPath($selection.'.safe.xml');
+        $safePath = TestEnvironmentGuard::reportPath($selection.'-safe.xml');
+        $stagedPath = TestEnvironmentGuard::reportPath($selection.'-safe-next.xml');
         $previous = umask(0077);
         try {
-            $file = fopen($safePath, 'xb');
+            $file = fopen($stagedPath, 'xb');
             if ($file === false) {
                 throw new RuntimeException('Cannot publish safe report.');
             }
@@ -103,6 +106,9 @@ try {
             }
         } finally {
             umask($previous);
+        }
+        if (is_link($stagedPath) || file_exists($safePath) || is_link($safePath) || !rename($stagedPath, $safePath)) {
+            throw new RuntimeException('Cannot publish safe report.');
         }
         SafeTestReport::verifySelection($selection, $report);
     }
@@ -134,32 +140,44 @@ try {
     if ($status !== 0 || $lines !== [$checkout]) {
         throw new RuntimeException('Unexpected report checkout.');
     }
+    // Read raw commit parent headers: a depth-1 checkout may hide parents
+    // from git's history formatting even though the commit contains them.
+    $commit = [];
+    exec('/usr/bin/git cat-file -p HEAD', $commit, $status);
     $parents = [];
-    exec('/usr/bin/git show -s --format=%P HEAD', $parents, $status);
+    foreach ($commit as $line) {
+        if ($line === '') {
+            break;
+        }
+        if (preg_match('/^parent ([0-9a-f]{40})$/D', $line, $match)) {
+            $parents[] = $match[1];
+        }
+    }
     $base = null;
     $source = $checkout;
     if (getenv('GITHUB_EVENT_NAME') === 'pull_request') {
-        if ($status !== 0 || count($parents) !== 1 || !preg_match('/^([0-9a-f]{40}) ([0-9a-f]{40})$/D', $parents[0], $matches)) {
+        if ($status !== 0 || count($parents) !== 2) {
             throw new RuntimeException('Unexpected integrated candidate.');
         }
-        $base = $matches[1];
-        $source = $matches[2];
+        [$base, $source] = $parents;
     }
     $counts = $report === null ? null : array_intersect_key($report, array_flip(['tests', 'assertions', 'failures', 'errors', 'skipped', 'duration']));
     $summary = [
         'selection' => $selection, 'status' => $outcome['status'], 'exit_code' => $outcome['exit_code'],
-        'tests_executed' => $started, 'runner_exit' => $started ? $runner : null,
+        'runner_started' => $started, 'tests_executed' => $started ? ($report === null ? null : true) : false,
+        'runner_exit' => $started ? $runner : null,
         'source_sha' => $source, 'base_sha' => $base, 'checkout_sha' => $checkout,
         'run_id' => $run, 'run_attempt' => $attempt, 'php' => PHP_VERSION,
         'duration_seconds' => round((hrtime(true) - $start) / 1e9, 3), 'counts' => $counts,
     ];
     $path = $directory.'/'.$selection.'.summary.json';
-    if (file_exists($path) || is_link($path)) {
+    $staged = $directory.'/'.$selection.'.summary.next.json';
+    if (file_exists($path) || is_link($path) || file_exists($staged) || is_link($staged)) {
         throw new RuntimeException('Unexpected report summary destination.');
     }
     $previous = umask(0077);
     try {
-        $file = fopen($path, 'xb');
+        $file = fopen($staged, 'xb');
         if ($file === false) {
             throw new RuntimeException('Cannot publish safe summary.');
         }
@@ -173,6 +191,9 @@ try {
         }
     } finally {
         umask($previous);
+    }
+    if (is_link($staged) || file_exists($path) || is_link($path) || !rename($staged, $path)) {
+        throw new RuntimeException('Cannot publish safe summary.');
     }
     echo $json;
 } catch (Throwable) {

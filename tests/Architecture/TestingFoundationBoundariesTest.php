@@ -47,6 +47,12 @@ it('keeps narrow relevant workflow triggers, guarded required commands and no pr
     $workflow = file_get_contents($root.'/.github/workflows/f0-01-laravel-bootstrap.yml');
     expect($workflow)->toContain('tests/**', 'app/**', 'bootstrap/**', 'config/**', 'composer.lock', 'contents: read');
     expect($workflow)->not->toContain('pull_request_target:', 'docker system prune', 'migrate:fresh', 'db:wipe', 'FLUSHALL', 'FLUSHDB');
-    expect($workflow)->toContain('phpunit.integration.xml', 'tests/Support/run-tests.php fast', 'tests/Support/run-tests.php integration');
+    expect($workflow)->toContain('phpunit.integration.xml', 'run-report.php foundation', 'run-report.php fast-all', 'run-report.php architecture', 'run-report.php integration', 'needs: bootstrap');
+    $reportRunner = file_get_contents($root.'/tests/Support/ci/run-report.php');
+    expect($reportRunner)->toContain("'/tests/Support/run-tests.php'", "'foundation' => ['fast', '--group=foundation']", "'fast-all' => ['fast']", "'architecture' => ['fast', '--suite=Architecture']", "'integration' => ['integration']");
+    $launcher = file_get_contents($root.'/tests/Support/run-tests.php');
+    expect($launcher)->toContain("'/phpunit.xml' : '/phpunit.integration.xml'", 'IntegrationConnections::preflight');
+    expect($workflow)->toContain('start-owned.php', 'setup-owned.php', 'cleanup-owned.php', 'always()', 'cleanup-reports.php', 'integration-safe.xml');
+    expect($workflow)->not->toContain('continue-on-error: true', 'integration-raw.xml');
     expect($workflow)->toContain('retention-days: 7');
 })->group('testing-foundation');

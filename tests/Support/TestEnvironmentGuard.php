@@ -230,7 +230,8 @@ final class TestEnvironmentGuard
             || !is_string($dir) || $dir === '' || dirname($dir) !== $temp
             || !preg_match('/^f03-reports-[a-zA-Z0-9_-]{8,80}$/D', basename($dir))
             || is_link($dir) || realpath($dir) !== $dir || !is_dir($dir)
-            || ((@fileperms($dir) ?: 0) & 0777) !== 0700) {
+            || ((@fileperms($dir) ?: 0) & 0777) !== 0700
+            || (function_exists('posix_geteuid') && fileowner($dir) !== posix_geteuid())) {
             throw new RuntimeException('Invalid owned test report directory.');
         }
         foreach ([$env, $server] as $source) {

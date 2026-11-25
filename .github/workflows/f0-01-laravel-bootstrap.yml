@@ -19,6 +19,7 @@ on:
       - specs/002-api-foundation/contracts/**
       - tests/**
       - phpunit.xml
+      - phpunit.integration.xml
       - .github/workflows/f0-01-laravel-bootstrap.yml
   pull_request:
     types: [opened, reopened, synchronize, edited, ready_for_review]
@@ -38,6 +39,7 @@ on:
       - specs/002-api-foundation/contracts/**
       - tests/**
       - phpunit.xml
+      - phpunit.integration.xml
       - .github/workflows/f0-01-laravel-bootstrap.yml
   workflow_dispatch:
 
@@ -71,6 +73,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Create private per-job report directory
+        id: report_dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          report_dir="$(mktemp -d "$RUNNER_TEMP/f03-reports-XXXXXXXXXXXX")"
+          printf 'F03_REPORT_DIR=%s\n' "$report_dir" >> "$GITHUB_ENV"
 
       - name: Install PHP 8.4 and required extensions
         uses: shivammathur/setup-php@v2
@@ -126,19 +137,40 @@ jobs:
           php artisan about --no-ansi
           php artisan route:list --json
 
-      - name: Execute foundation smoke test without migrations or real database
-        run: COLUMNS=180 php tests/Support/run-tests.php fast --group=foundation
-
-      - name: Lint all tracked PHP including native Integration sources before expected RED
+      - name: Verify all tracked PHP syntax before tests
+        id: fast_ready
         run: git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
 
-      - name: Execute complete Unit Feature Architecture suite
-        run: COLUMNS=180 php tests/Support/run-tests.php fast
+      - name: Execute original foundation group with native JUnit
+        id: foundation
+        if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php foundation
 
-      - name: Execute Architecture checks independently of Laravel TestCase
-        run: php tests/Support/run-tests.php fast --suite=Architecture
+      - name: Execute complete fast suite with native JUnit
+        id: fast_all
+        if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php fast-all
+
+      - name: Execute independent Architecture with native JUnit
+        id: architecture
+        if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php architecture
+
+      - name: Record blocked fast selections when preflight failed
+        if: ${{ !cancelled() && steps.report_dir.outcome == 'success' && steps.fast_ready.outcome != 'success' }}
+        shell: bash
+        run: |
+          set +e
+          status=0
+          for selection in foundation fast-all architecture; do
+            php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php "$selection" --blocked
+            code=$?
+            if [ "$status" -eq 0 ] && [ "$code" -ne 0 ]; then status="$code"; fi
+          done
+          exit "$status"
 
       - name: PHP syntax lint and optional quality-tool availability
+        if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
         run: |
           git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
           if [ -x vendor/bin/pint ]; then
@@ -153,15 +185,40 @@ jobs:
           fi
 
       - name: Verify runtime did not change any tracked repository file
+        if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
         run: git diff --exit-code -- .
 
-  f0-03-preflight:
-    name: F0-03 pinned service and native driver preflight (no services)
+      - name: Publish only validated fast JUnit and safe summaries
+        id: fast_upload
+        if: ${{ always() && steps.report_dir.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: f03-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F03_REPORT_DIR }}/foundation-safe.xml
+            ${{ env.F03_REPORT_DIR }}/foundation.summary.json
+            ${{ env.F03_REPORT_DIR }}/fast-all-safe.xml
+            ${{ env.F03_REPORT_DIR }}/fast-all.summary.json
+            ${{ env.F03_REPORT_DIR }}/architecture-safe.xml
+            ${{ env.F03_REPORT_DIR }}/architecture.summary.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Clean only owned report files after publication
+        id: fast_report_cleanup
+        if: ${{ always() && steps.report_dir.outcome == 'success' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
+
+  f0-03-integration:
+    name: F0-03 isolated native PostgreSQL and Redis integration
+    needs: bootstrap
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       APP_ENV: testing
       APP_DEBUG: "false"
+      F03_MODE: integration
       DB_CONNECTION: sqlite
       DB_DATABASE: ":memory:"
       DB_URL: ""
@@ -170,15 +227,30 @@ jobs:
       MAIL_MAILER: array
       QUEUE_CONNECTION: sync
       XDEBUG_MODE: off
-      PG_IMAGE: docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03
-      REDIS_IMAGE: docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87
     steps:
       - name: Checkout exact integrated candidate without persisted credentials
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Validate hosted runner and local Docker daemon before pulls
+      - name: Create private report directory
+        id: report_dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          report_dir="$(mktemp -d "$RUNNER_TEMP/f03-reports-XXXXXXXXXXXX")"
+          printf 'F03_REPORT_DIR=%s\n' "$report_dir" >> "$GITHUB_ENV"
+
+      - name: Install approved PHP 8.4 native extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, pdo_pgsql, redis-6.3.0
+          tools: composer:v2
+
+      - name: Validate actual hosted local Docker and immutable approved images
         shell: bash
         run: |
           set -euo pipefail
@@ -191,35 +263,24 @@ jobs:
           test -z "${DOCKER_CONTEXT:-}"
           test -z "${DOCKER_TLS_VERIFY:-}"
           test -z "${DOCKER_CERT_PATH:-}"
+          test -z "${DOCKER_CONFIG:-}"
+          test -z "${DOCKER_API_VERSION:-}"
           test "$(docker context show)" = default
           test "$(docker context inspect default --format '{{.Endpoints.docker.Host}}')" = unix:///var/run/docker.sock
           test -S /var/run/docker.sock
-          docker version --format '{{.Server.Os}}/{{.Server.Arch}} {{.Server.Version}}'
           test "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" = linux/amd64
           echo "Source checkout: $(git rev-parse HEAD)"
-
-      - name: Pull and inspect only approved immutable amd64 manifests
-        shell: bash
-        run: |
-          set -euo pipefail
-          for image in "$PG_IMAGE" "$REDIS_IMAGE"; do
-            docker pull --platform linux/amd64 "$image"
-            test "$(docker image inspect "$image" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+          for image in \
+            docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03 \
+            docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87; do
+            docker --host unix:///var/run/docker.sock pull --platform linux/amd64 "$image"
+            test "$(docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
             digest="${image##*@}"
-            docker image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -F "@$digest" >/dev/null
-            docker image inspect "$image" --format 'Image ID={{.Id}} platform={{.Os}}/{{.Architecture}} RepoDigests={{json .RepoDigests}}'
+            docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -F "@$digest" >/dev/null
+            docker --host unix:///var/run/docker.sock image inspect "$image" --format 'Image ID={{.Id}} platform={{.Os}}/{{.Architecture}} RepoDigests={{json .RepoDigests}}'
           done
-          echo "Preflight pulls only; no services or privileged setup."
 
-      - name: Install approved PHP 8.4 native extensions
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          coverage: none
-          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, pdo_pgsql, redis-6.3.0
-          tools: composer:v2
-
-      - name: Verify actual native drivers and locked dependencies
+      - name: Verify locked packages and approved native drivers before setup
         shell: bash
         run: |
           set -euo pipefail
@@ -232,19 +293,69 @@ jobs:
           composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
           composer check-platform-reqs
           composer audit --locked --no-interaction
+          vendor/bin/pest --version
+          vendor/bin/phpunit --version
+          git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
 
-      - name: Verify locked Pest and PHPUnit CLI and native JUnit output
+      - name: Bind a fresh run identity to this hosted job
+        id: run_identity
         shell: bash
         run: |
           set -euo pipefail
-          vendor/bin/pest --version
-          vendor/bin/phpunit --version
-          scratch="$(mktemp -d "$RUNNER_TEMP/f03-preflight.XXXXXXXX")"
-          trap 'rm -f -- "$scratch/help.txt" "$scratch/report.xml"; rmdir -- "$scratch"' EXIT
-          vendor/bin/pest --help > "$scratch/help.txt"
-          for flag in --configuration --testsuite --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit; do
-            grep -F -- "$flag" "$scratch/help.txt" >/dev/null
-          done
-          COLUMNS=180 env -u PG_IMAGE -u REDIS_IMAGE vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml"
-          php -r '$doc = new DOMDocument(); if (!$doc->load($argv[1], LIBXML_NONET) || $doc->getElementsByTagName("testcase")->length < 5) { exit(1); } echo "Native JUnit testcase count=".$doc->getElementsByTagName("testcase")->length.PHP_EOL;' "$scratch/report.xml"
-          git diff --exit-code -- .
+          umask 077
+          if [ ! -e .env ] && [ ! -L .env ]; then
+            (set -o noclobber; : > .env)
+          fi
+          test -f .env && test ! -L .env && test ! -s .env
+          git check-ignore -q .env
+          token="$(php -r 'echo bin2hex(random_bytes(8));')"
+          [[ "$token" =~ ^[0-9a-f]{16}$ ]]
+          test ! -e "$RUNNER_TEMP/f03-$token"
+          test ! -L "$RUNNER_TEMP/f03-$token"
+          printf 'F03_RUN_TOKEN=%s\nF03_RUN_DESCRIPTOR=%s/f03-%s/runtime.json\n' "$token" "$RUNNER_TEMP" "$token" >> "$GITHUB_ENV"
+
+      - name: Create and capture only owned isolated containers
+        id: owned_start
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/start-owned.php
+
+      - name: Configure owned PostgreSQL grants and Redis ACL
+        id: owned_setup
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/setup-owned.php
+
+      - name: Execute complete explicit native Integration suite
+        id: integration_tests
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php integration
+
+      - name: Record integration blocked before test execution
+        if: ${{ !cancelled() && steps.report_dir.outcome == 'success' && steps.integration_tests.outcome == 'skipped' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/run-report.php integration --blocked
+
+      - name: Verify actual owned cleanup and repeat absence
+        id: owned_cleanup
+        if: ${{ always() && steps.run_identity.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-owned.php
+          php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-owned.php
+
+      - name: Verify integration did not modify tracked repository files
+        if: ${{ !cancelled() && steps.run_identity.outcome == 'success' }}
+        run: git diff --exit-code -- .
+
+      - name: Publish only validated integration JUnit and safe summary
+        id: integration_upload
+        if: ${{ always() && steps.report_dir.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: f03-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F03_REPORT_DIR }}/integration-safe.xml
+            ${{ env.F03_REPORT_DIR }}/integration.summary.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Clean only owned report files after publication
+        id: integration_report_cleanup
+        if: ${{ always() && steps.report_dir.outcome == 'success' }}
+        run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
