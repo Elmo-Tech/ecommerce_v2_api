@@ -13,8 +13,14 @@
 - [ ] Actual baseline, negative/positive regression/real service CI and scope review after authorization.
 - [ ] ChatGPT technical review, owner human review/qualified independent reviewer as applicable, separate merge authorization and verified closeout.
 
-**Status:** 14/40 complete (including authored RED tests T006–T014); actual full safe RED observed; T015 final lint and actual recheck pending. Native service tests authored, NOT RUN.
+**Status:** 15/40 complete; T001–T015 checked, actual safe RED and all tracked PHP syntax verified. Native Integration NOT RUN; T016–T040 open, no merge authority.
 
 
 - [x] T004 actual integrated baseline verified (CI #45591182691, 98/911, 31/134, 5/52).
 - [x] T005 exact image and native driver/CLI compatibility preflight (actual CI #45591605943).
+
+
+- [x] T006–T014 approved risk-selected test sources authored.
+- [x] T015 actual safe RED verified (CI #45593286201, 205 expected failures /101 passed /1153 assertions); all tracked PHP lint including native Integration passed. Native tests not run.
+- [ ] T016–T025 minimal test-only implementation.
+- [ ] T026–T033 full actual fast and Integration GREEN, owned resources, reports and scope checks.
