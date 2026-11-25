@@ -20,10 +20,16 @@ final class IntegrationConnections
     /** @param list<string> $drivers */
     public static function assertNativeDrivers(array $drivers, ?string $redisVersion): void
     {
-        if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4
+        if (self::runtimePhpSeries() !== '8.4'
             || !in_array('pgsql', $drivers, true) || $redisVersion !== '6.3.0') {
             throw new RuntimeException('Approved native integration drivers unavailable.');
         }
+    }
+
+    /** Inspect the executing interpreter, not the analyser's target platform. */
+    private static function runtimePhpSeries(): string
+    {
+        return PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;
     }
 
     /** @return array{run: OwnedTestRun, record: array<array-key, mixed>, docker: LocalDocker} */

@@ -16,7 +16,7 @@ final class ApiResponse
     public const int MAX_FIELD_PATH_BYTES = 256;
 
     /**
-     * @param array<string, mixed>|null $meta Only metadata actually computed by the caller.
+     * @param array<array-key, mixed>|null $meta Caller metadata; invalid keys are rejected here.
      */
     public static function success(
         string $message,
@@ -48,7 +48,7 @@ final class ApiResponse
     }
 
     /**
-     * @param array<string, list<string>> $errors Declared wire field paths, or [].
+     * @param array<array-key, mixed> $errors Candidate field errors; validated here before serialization.
      * @param array<string, string|list<string>> $headers Reviewed protocol headers.
      */
     public static function error(

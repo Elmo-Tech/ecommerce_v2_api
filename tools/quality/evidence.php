@@ -78,8 +78,8 @@ final class LaneEvidence
 
     /**
      * @param array<string, mixed> $expectedIdentity
-     * @param list<string> $artifactNames exact names for a passing lane; failed lanes may have a safe subset
-     * @param list<string> $canaries test/known credential fingerprints, never written to reports
+     * @param array<array-key, mixed> $artifactNames candidate names validated before use; failed lanes may have a safe subset
+     * @param array<array-key, mixed> $canaries candidate fingerprints validated here, never written to reports
      * @return array<string, mixed>
      */
     public static function validate(
@@ -193,7 +193,8 @@ final class LaneEvidence
     }
 
     /**
-     * @param list<string> $names
+     * @param array<array-key, mixed> $names
+     * @phpstan-assert list<string> $names
      */
     public static function assertNames(array $names): void
     {

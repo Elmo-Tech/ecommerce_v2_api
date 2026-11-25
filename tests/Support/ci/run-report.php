@@ -11,6 +11,16 @@ require_once dirname(__DIR__).'/TestEnvironmentGuard.php';
 require_once dirname(__DIR__).'/IntegrationContext.php';
 require_once __DIR__.'/SafeTestReport.php';
 
+/**
+ * Filesystem occupancy is an observation, not a stable property of a path.
+ *
+ * @phpstan-impure
+ */
+function f03ReportSummaryDestinationOccupied(string $path): bool
+{
+    return file_exists($path) || is_link($path);
+}
+
 // Fixed selections only. Raw child output stays private and is not uploaded.
 $selection = $argv[1] ?? '';
 $blocked = ($argv[2] ?? '') === '--blocked' && $argc === 3;
@@ -177,7 +187,7 @@ try {
     ];
     $path = $directory.'/'.$selection.'.summary.json';
     $staged = $directory.'/'.$selection.'.summary.next.json';
-    if (file_exists($path) || is_link($path) || file_exists($staged) || is_link($staged)) {
+    if (f03ReportSummaryDestinationOccupied($path) || f03ReportSummaryDestinationOccupied($staged)) {
         throw new RuntimeException('Unexpected report summary destination.');
     }
     $previous = umask(0077);
@@ -197,7 +207,7 @@ try {
     } finally {
         umask($previous);
     }
-    if (is_link($staged) || file_exists($path) || is_link($path) || !rename($staged, $path)) {
+    if (is_link($staged) || f03ReportSummaryDestinationOccupied($path) || !rename($staged, $path)) {
         throw new RuntimeException('Cannot publish safe summary.');
     }
     echo $json;

@@ -135,7 +135,7 @@ final class IntegrationContext
             self::reject();
         }
         $stat = lstat($path);
-        if ($stat === false || is_link($path) || realpath($path) !== $path || !is_file($path)
+        if ($stat === false || !self::currentCanonicalFile($path)
             || ($stat['mode'] & 0777) !== 0600 || $stat['nlink'] !== 1
             || $stat['size'] <= 0 || $stat['size'] > 65536
             || (function_exists('posix_geteuid') && $stat['uid'] !== posix_geteuid())) {
@@ -220,12 +220,32 @@ final class IntegrationContext
         } finally {
             fclose($handle);
         }
-        if (is_link($next) || realpath($next) !== $next || self::read($directory, 'ownership.json') !== $expected
+        if (!self::currentCanonicalNonLink($next) || self::read($directory, 'ownership.json') !== $expected
             || !rename($next, $path) || self::read($directory, 'ownership.json') !== $replacement) {
             self::reject();
         }
 
         return $replacement;
+    }
+
+    /**
+     * Filesystem identity may change between observations.
+     *
+     * @phpstan-impure
+     */
+    private static function currentCanonicalNonLink(string $path): bool
+    {
+        return !is_link($path) && realpath($path) === $path;
+    }
+
+    /**
+     * Recheck the current filesystem state after lstat, without removing any test.
+     *
+     * @phpstan-impure
+     */
+    private static function currentCanonicalFile(string $path): bool
+    {
+        return self::currentCanonicalNonLink($path) && is_file($path);
     }
 
     private static function reject(): never

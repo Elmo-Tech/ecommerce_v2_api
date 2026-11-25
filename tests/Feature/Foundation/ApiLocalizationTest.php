@@ -12,16 +12,16 @@ beforeEach(fn () => ApiHttpFixtures::register());
 it('applies the selected locale inside the real HTTP request and restores previous application and translator locales', function (): void {
     /** @var \Tests\TestCase $this */
 
-    $this->app->setLocale('en');
-    $this->app['translator']->setLocale('en');
+    $this->foundationApplication()->setLocale('en');
+    $this->foundationApplication()['translator']->setLocale('en');
     foreach ([
         ['ar-EG', 'ar'], ['en-US', 'en'], ['en;q=0.8,ar;q=0.2', 'en'], ['fr', 'ar'],
         ['ar;q=0,*;q=1', 'en'], ['en;q=bad', 'ar'],
     ] as [$header, $locale]) {
         $this->getJson(ApiHttpFixtures::PREFIX.'/locale', ['Accept-Language' => $header])
             ->assertOk()->assertJsonPath('locale', $locale)->assertJsonPath('translatorLocale', $locale);
-        expect($this->app->getLocale())->toBe('en')
-            ->and($this->app['translator']->getLocale())->toBe('en');
+        expect($this->foundationApplication()->getLocale())->toBe('en')
+            ->and($this->foundationApplication()['translator']->getLocale())->toBe('en');
     }
     $ar = $this->getJson('/api/v1/not-registered', ['Accept-Language' => 'ar-EG']);
     $en = $this->getJson('/api/v1/not-registered', ['Accept-Language' => 'en-US']);
@@ -41,7 +41,7 @@ it('falls back to Arabic and then safe human-readable wording without a raw tran
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;
     });
-    $translator = $this->app['translator'];
+    $translator = $this->foundationApplication()['translator'];
     $translator->addLines(['api.fixtureArabicOnly' => 'رسالة آمنة'], 'ar');
     $messages = new ApiMessages($translator);
     expect($messages->get('fixtureArabicOnly', 'en'))->toBe('رسالة آمنة');
@@ -57,7 +57,7 @@ it('has complete nonempty critical shared error translations for both supported 
 
     $codes = array_values((new ReflectionClass(\App\Core\Http\ApiErrorCodes::class))->getConstants());
     $expected = [...$codes, 'INVALID_FIELD'];
-    $translator = $this->app['translator'];
+    $translator = $this->foundationApplication()['translator'];
     foreach (['ar', 'en'] as $locale) {
         $catalog = require base_path('lang/'.$locale.'/api.php');
         expect(array_keys($catalog))->toEqualCanonicalizing($expected);
@@ -78,7 +78,7 @@ it('identifies known missing translation codes without logging an arbitrary supp
             $events[] = $event;
         }
     });
-    $translator = $this->app['translator'];
+    $translator = $this->foundationApplication()['translator'];
     $translator->addLines(['api.BAD_REQUEST' => ''], 'en');
     $messages = new ApiMessages($translator);
     expect($messages->get('BAD_REQUEST', 'en'))->toBe($translator->get('api.BAD_REQUEST', [], 'ar', false));

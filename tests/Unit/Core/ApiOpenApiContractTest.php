@@ -33,6 +33,7 @@ it('contains a structurally reviewable shared OpenAPI 3.1 contract with no inven
     $walk = function (mixed $node) use (&$walk, $document): void {
         if (is_object($node)) {
             if (isset($node->{'$ref'})) {
+                /** @var mixed $reference The assertion below validates the decoded reference. */
                 $reference = $node->{'$ref'};
                 expect($reference)->toStartWith('#/');
                 $target = $document;

@@ -795,11 +795,18 @@ final class LocalDocker
             fclose($pipes[2]);
             $closed = proc_close($process);
         }
-        if (!$allowFailure && ($exit ?? $closed) !== 0) {
+        $resultExit = self::processExitCode($exit, $closed);
+        if (!$allowFailure && $resultExit !== 0) {
             self::reject();
         }
 
-        return [...$output, $exit ?? $closed];
+        return [...$output, $resultExit];
+    }
+
+    /** Prefer the observed exit status; retain proc_close as the fallback. */
+    private static function processExitCode(?int $observed, int $closed): int
+    {
+        return $observed ?? $closed;
     }
 
     private static function reject(): never

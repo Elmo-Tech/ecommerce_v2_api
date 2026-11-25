@@ -69,7 +69,7 @@ final class PhpQualityPolicy
     }
 
     /**
-     * @param list<string> $newPaths independently selected new tracked PHP
+     * @param array<array-key, mixed> $newPaths independently selected candidate paths; validated against the tracked inventory
      */
     public static function assertNewStrictTypes(string $root, array $newPaths): void
     {
@@ -625,7 +625,7 @@ final class PhpQualityScratch
 final class PintResult
 {
     /**
-     * @param list<string> $inventory canonical relative tracked paths
+     * @param array<array-key, mixed> $inventory candidate canonical relative tracked paths; validated before use
      * @return list<string> normalized style finding paths only
      */
     public static function validate(
