@@ -1,7 +1,7 @@
 # Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation authorization recorded; T004 baseline pending. No code/CI changes or actual service compatibility claimed.  
+**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation authorization recorded; T004 verified; T005 preflight pending. No code/CI changes or actual service compatibility claimed.  
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
@@ -141,7 +141,10 @@ For needed temporary test files, create unique directory within owned RUNNER_TEM
 5. ChatGPT technical review, owner review, qualified independent human review for sensitive/high-risk when owner cannot provide it, separate owner development-only merge consent, exact final head/base and actual required CI. CodeRabbit/Copilot optional. No self-approval.
 6. Verify actual merge SHA/tree, publish final handoff/ledger. No F0-04 code, main merge/deployment/Pilot approval.
 
-**Current state:** owner-approved technical design; documentary T001–T002 complete (2/40). No runtime, driver, image, PostgreSQL/Redis service, JUnit report or F0-03 test has been executed. Actual availability/compatibility and real safety evidence remain blocking execution gates. Implementation authorized within approved scope; merge remains unauthorized.
+**Current state:** owner-approved technical design; T001–T004 complete (4/40). Actual T004 baseline verified; no new F0-03 test, driver/image validation, real service or JUnit evidence yet. Actual availability/compatibility and real safety evidence remain blocking execution gates. Implementation authorized within approved scope; merge remains unauthorized.
 
 
 Owner explicitly approved Tasks and Consistency Analysis at `74f45e00e289568aca85e071317100f04b20c8be` and authorized F0-03 implementation within the approved Spec/Plan on 2026-11-25. No merge authority; final ChatGPT technical review, owner/qualified human review and separate development-only merge approval remain mandatory.
+
+
+**T004 verification:** Actual [T004 integrated baseline CI #45591182691](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45591182691), job 139125506168, success: source `d5fbcf4344a506375a70a8734a67fbe921068c7f`, base `97c5895bd5672261247b45f1b7eca5648afaf163`, exact checkout `7697585f1701efd4388017d5f648341e45f63e50` (verified checkout logs). PHP 8.4.28, Composer 2.11.3, Laravel 13.43.0; original foundation 31/134, complete fast 98/911, standalone Architecture 5/52, lock/install/platform/audit (no advisories), PHP lint and clean tracked diff all passed. Source/runtime/test tree unchanged from merged F0-02; triggering workflow was comment-only. No new F0-03 tests, service, or image compatibility claim.

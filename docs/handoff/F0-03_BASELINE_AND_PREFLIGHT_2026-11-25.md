@@ -1,0 +1,5 @@
+# F0-03 — baseline verified; compatibility preflight started
+
+Actual [T004 integrated baseline CI #45591182691](https://github.com/Elmo-Tech/ecommerce_v2_api/actions/runs/45591182691), job 139125506168, success: source `d5fbcf4344a506375a70a8734a67fbe921068c7f`, base `97c5895bd5672261247b45f1b7eca5648afaf163`, exact checkout `7697585f1701efd4388017d5f648341e45f63e50` (verified checkout logs). PHP 8.4.28, Composer 2.11.3, Laravel 13.43.0; original foundation 31/134, complete fast 98/911, standalone Architecture 5/52, lock/install/platform/audit (no advisories), PHP lint and clean tracked diff all passed. Source/runtime/test tree unchanged from merged F0-02; triggering workflow was comment-only. No new F0-03 tests, service, or image compatibility claim.
+
+**Task state:** 4/40. T005 is staged and pending actual immutable pulls, driver and CLI evidence. No service creation or implementation of guards/tests yet. Plan pins unchanged; stop on actual failure and record reason. Owner authorization recorded; no merge authority. PR #7 Draft, development only.

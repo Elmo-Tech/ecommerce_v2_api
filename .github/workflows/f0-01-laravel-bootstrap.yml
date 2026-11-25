@@ -145,3 +145,96 @@ jobs:
       - name: Verify runtime did not change any tracked repository file
         run: git diff --exit-code -- .
 
+  f0-03-preflight:
+    name: F0-03 pinned service and native driver preflight (no services)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      DB_URL: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+      XDEBUG_MODE: off
+      PG_IMAGE: docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03
+      REDIS_IMAGE: docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87
+    steps:
+      - name: Checkout exact integrated candidate without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate hosted runner and local Docker daemon before pulls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          test "$(uname -m)" = x86_64
+          test "$APP_ENV" = testing
+          test -z "${DOCKER_HOST:-}"
+          test -z "${DOCKER_CONTEXT:-}"
+          test -z "${DOCKER_TLS_VERIFY:-}"
+          test -z "${DOCKER_CERT_PATH:-}"
+          test "$(docker context show)" = default
+          test "$(docker context inspect default --format '{{.Endpoints.docker.Host}}')" = unix:///var/run/docker.sock
+          test -S /var/run/docker.sock
+          docker version --format '{{.Server.Os}}/{{.Server.Arch}} {{.Server.Version}}'
+          test "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" = linux/amd64
+          echo "Source checkout: $(git rev-parse HEAD)"
+
+      - name: Pull and inspect only approved immutable amd64 manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in "$PG_IMAGE" "$REDIS_IMAGE"; do
+            docker pull --platform linux/amd64 "$image"
+            test "$(docker image inspect "$image" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+            digest="${image##*@}"
+            docker image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -F "@$digest" >/dev/null
+            docker image inspect "$image" --format 'Image ID={{.Id}} platform={{.Os}}/{{.Architecture}} RepoDigests={{json .RepoDigests}}'
+          done
+          echo "Preflight pulls only; no services or privileged setup."
+
+      - name: Install approved PHP 8.4 native extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, pdo_pgsql, redis-6.3.0
+          tools: composer:v2
+
+      - name: Verify actual native drivers and locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -v
+          composer --version
+          php -r 'if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4 || !in_array("pgsql", PDO::getAvailableDrivers(), true) || phpversion("redis") !== "6.3.0") { fwrite(STDERR, "Approved native driver/version unavailable.\n"); exit(1); } printf("pdo_pgsql=%s; phpredis=%s\n", phpversion("pdo_pgsql"), phpversion("redis"));'
+          test -s composer.lock
+          composer validate --strict --no-check-publish
+          composer check-platform-reqs --lock
+          composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+          composer check-platform-reqs
+          composer audit --locked --no-interaction
+
+      - name: Verify locked Pest and PHPUnit CLI and native JUnit output
+        shell: bash
+        run: |
+          set -euo pipefail
+          vendor/bin/pest --version
+          vendor/bin/phpunit --version
+          scratch="$(mktemp -d "$RUNNER_TEMP/f03-preflight.XXXXXXXX")"
+          trap 'rm -f -- "$scratch/help.txt" "$scratch/report.xml"; rmdir -- "$scratch"' EXIT
+          vendor/bin/pest --help > "$scratch/help.txt"
+          for flag in --configuration --testsuite --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit; do
+            grep -F -- "$flag" "$scratch/help.txt" >/dev/null
+          done
+          COLUMNS=180 vendor/bin/pest --configuration phpunit.xml --testsuite Architecture --fail-on-empty-test-suite --fail-on-warning --fail-on-risky --fail-on-skipped --fail-on-incomplete --log-junit "$scratch/report.xml" --no-ansi
+          php -r '$doc = new DOMDocument(); if (!$doc->load($argv[1], LIBXML_NONET) || $doc->getElementsByTagName("testcase")->length < 5) { exit(1); } echo "Native JUnit testcase count=".$doc->getElementsByTagName("testcase")->length.PHP_EOL;' "$scratch/report.xml"
+          git diff --exit-code -- .
