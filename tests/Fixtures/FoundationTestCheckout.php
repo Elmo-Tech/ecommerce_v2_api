@@ -91,6 +91,42 @@ PHP);
         return $process;
     }
 
+
+    /**
+     * Exercise the installed Pest CLI on a scratch config with exactly one
+     * harmless Unit probe. No real application bootstrap or original test
+     * discovery in the child. The fake configured autoload remains in place.
+     */
+    public function runPestProbe(array $overrides): Process
+    {
+        $source = dirname(__DIR__, 2);
+        foreach (['tests/Unit', 'tests/Feature', 'tests/Architecture', 'app', 'vendor/phpunit/phpunit'] as $dir) {
+            if (!is_dir($this->root.'/'.$dir) && !mkdir($this->root.'/'.$dir, 0700, true)) {
+                throw new RuntimeException('Cannot prepare scratch Pest probe.');
+            }
+        }
+        $this->copy($source, 'composer.json');
+        $this->copy($source, 'vendor/phpunit/phpunit/phpunit.xsd');
+        $this->write('tests/Pest.php', "<?php\n");
+        $this->write('tests/Unit/ProbeTest.php', <<<'PHP'
+<?php
+it('reaches only the harmless scratch probe', function (): void {
+    file_put_contents(dirname(__DIR__, 2).'/probe-reached', 'reached');
+    expect(true)->toBeTrue();
+});
+PHP);
+
+        return $this->run([
+            $source.'/vendor/bin/pest', '--configuration', 'phpunit.xml',
+            '--testsuite', 'Unit', '--fail-on-empty-test-suite',
+        ], $overrides);
+    }
+
+    public function reachedProbe(): bool
+    {
+        return is_file($this->root.'/probe-reached');
+    }
+
     public function configuredBootstrap(): string
     {
         $xml = simplexml_load_file($this->root.'/phpunit.xml', options: LIBXML_NONET);

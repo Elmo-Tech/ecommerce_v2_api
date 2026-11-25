@@ -138,3 +138,32 @@ it('boots the real fast Laravel test case with isolated effective config and no 
         ->and(config('filesystems.default'))->toBe('local')
         ->and(app('db')->getConnections())->toBeEmpty();
 })->group('testing-foundation');
+
+
+it('lets the installed Pest CLI execute exactly one harmless scratch probe when the environment is safe', function (): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $result = $checkout->runPestProbe(['APP_ENV' => 'testing']);
+        expect($result->getExitCode())->toBe(0);
+        expect($checkout->reachedAutoload())->toBeTrue();
+        expect($checkout->reachedProbe())->toBeTrue();
+    } finally {
+        $checkout->close();
+    }
+})->group('testing-foundation');
+
+it('rejects inherited unsafe configuration via the installed direct Pest CLI before configured autoload and probe execution', function (string $key, string $value): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $result = $checkout->runPestProbe(['APP_ENV' => 'testing', $key => $value]);
+        expect($result->getExitCode())->not->toBe(0);
+        expect($checkout->reachedAutoload())->toBeFalse();
+        expect($checkout->reachedProbe())->toBeFalse();
+        expect($result->getOutput().$result->getErrorOutput())->not->toContain('f03-synthetic-canary');
+    } finally {
+        $checkout->close();
+    }
+})->with([
+    ['APP_ENV', 'production'],
+    ['DB_URL', 'f03-synthetic-canary'],
+])->group('testing-foundation');
