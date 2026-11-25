@@ -30,6 +30,7 @@ Resolved public repo version refs to full commits and inspected action.yml at th
 | actions/setup-node | v6 | 249970729cb0ef3589644e2896645e5dc5ba9c38 |
 | actions/setup-python | v6 | ece7cb06caefa5fff74198d8649806c4678c61a1 |
 | shivammathur/setup-php | v2 | eb7c497e18156a6bbabfef1d3a82760b9eda3962 |
+| actions/download-artifact | v8 | 9000827ccba6bdab643e8b6fd33ac0654aef8333 |
 
 Sources: exact GitHub commits and action.yml in the respective official repositories. Before executing: confirm provenance and runner version compatibility, action input/output behavior, artifact retention/download/read-only token, setup-php installed extensions and underlying download sources; pinning an action commit alone does not freeze all of its external inputs. [GitHub secure use](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions), [protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches). No admin settings changed.
 
@@ -46,3 +47,6 @@ Sources: exact GitHub commits and action.yml in the respective official reposito
 ## Remaining verification gates
 
 All candidate package versions, action SHAs and scanner identity above need owner Plan approval, then separate implementation authorization and actual locked execution. The exact npm/Composer transitive lock, analyzer findings, artifact compatibility, vulnerability DB freshness and actual image findings are unknown. If any compatibility/security blocker is material, stop affected work and present revised approved design rather than silently changing level, pins, scope or standards.
+
+
+**Aggregate evidence transport refinement:** reviewed actions/download-artifact v8 candidate action.yml at 9000827ccba6bdab643e8b6fd33ac0654aef8333, Node 24, current-run download without cross-run token, digest mismatch default error. Proposed only; actual artifact compatibility, safe extraction/validation and minimal permission remain implementation checks.
