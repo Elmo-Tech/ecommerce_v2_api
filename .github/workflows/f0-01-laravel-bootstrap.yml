@@ -421,8 +421,9 @@ jobs:
           approved = {'laravel/pint': '1.32.3', 'phpstan/phpstan': '2.3.7', 'larastan/larastan': '3.15.0'}
           expected_base = '24ce00231dec35a089bb70c081b257f9b5d234e7'
           env = {k:v for k,v in os.environ.items() if not any(s in k.upper() for s in ('TOKEN','SECRET','PASSWORD','CREDENTIAL','COMPOSER_AUTH','NPM_CONFIG_','NODE_AUTH','PROXY'))}
-          env.update({'COMPOSER_HOME':str(scratch/'composer-home'), 'COMPOSER_CACHE_DIR':str(scratch/'composer-cache'), 'COMPOSER_NO_INTERACTION':'1', 'NPM_CONFIG_USERCONFIG':str(scratch/'empty.npmrc'), 'NPM_CONFIG_GLOBALCONFIG':str(scratch/'empty.npmrc'), 'NPM_CONFIG_CACHE':str(scratch/'npm-cache'), 'NPM_CONFIG_REGISTRY':'https://registry.npmjs.org/'})
+          env.update({'COMPOSER_HOME':str(scratch/'composer-home'), 'COMPOSER_CACHE_DIR':str(scratch/'composer-cache'), 'COMPOSER_NO_INTERACTION':'1', 'NPM_CONFIG_USERCONFIG':str(scratch/'empty.npmrc'), 'NPM_CONFIG_GLOBALCONFIG':str(scratch/'global.npmrc'), 'NPM_CONFIG_CACHE':str(scratch/'npm-cache'), 'NPM_CONFIG_REGISTRY':'https://registry.npmjs.org/'})
           (scratch/'empty.npmrc').touch(mode=0o600)
+          (scratch/'global.npmrc').touch(mode=0o600)
           def cmd(args, cwd, stage):
               summary['stage'] = stage
               result = subprocess.run(args, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300, check=False)
