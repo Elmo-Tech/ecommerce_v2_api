@@ -148,3 +148,6 @@ T016/T017 initial implementation staged: pure pre-framework raw source guard wit
 
 
 **First T016/T017 execution:** CI #45597116368, jobs 139146021243/139146021386, both failed closed (exit 2) before required tests at guard/bootstrap; T016/T017 remain open. No behavior green claimed. Added narrowly allowlisted diagnostic categories, no environment values, arbitrary variable names, paths or native exception dumps; rerun to determine exact rejection reason. No checks relaxed.
+
+
+**T016/T017 diagnostic execution:** CI #45597306104 both jobs rejected AZURE_ family before tests (no values emitted). The guard now recognizes only enumerated Azure CLI tool metadata names; no exemption for arbitrary AZURE_* keys, Azure config dir or credentials/storage connection strings. Added explicit positive metadata and negative cloud/libpq regressions. CI emits only recognized metadata names present, not values. Exact hosted compatibility must be demonstrated by the next run; T016/T017 remain open. No safety gate or runtime scope change.

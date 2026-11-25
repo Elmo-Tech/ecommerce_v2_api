@@ -116,6 +116,8 @@ jobs:
           fi
           test -f .env && test ! -L .env && test ! -s .env
           git check-ignore -q .env
+          # Emit only known installed-tool metadata names, never values.
+          php -r 'foreach (["AZURE_HTTP_USER_AGENT", "AZURE_EXTENSION_DIR", "AZURE_PS_HOST_ENVIRONMENT", "AZURE_CORE_COLLECT_TELEMETRY", "AZURE_CORE_NO_COLOR", "AZURE_CORE_OUTPUT", "AZURE_CORE_ONLY_SHOW_ERRORS", "AZURE_EXTENSION_USE_DYNAMIC_INSTALL"] as $key) { if (getenv($key) !== false) { echo "Runner tool metadata present: ".$key.PHP_EOL; } }'
           php tests/Support/bootstrap.php
 
       - name: Verify actual installed packages and framework bootstrap

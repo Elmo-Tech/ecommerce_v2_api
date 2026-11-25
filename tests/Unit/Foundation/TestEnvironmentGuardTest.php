@@ -75,6 +75,11 @@ dataset('f03 unsafe fast settings', [
     'remote file storage' => ['FILESYSTEM_DISK', 's3'],
     'ambient cloud key' => ['AWS_ACCESS_KEY_ID', 'f03-synthetic-canary'],
     'ambient cloud secret' => ['AWS_SECRET_ACCESS_KEY', 'f03-synthetic-canary'],
+    'Azure credential' => ['AZURE_CLIENT_SECRET', 'f03-synthetic-canary'],
+    'Azure storage connection' => ['AZURE_STORAGE_CONNECTION_STRING', 'f03-synthetic-canary'],
+    'Azure config directory' => ['AZURE_CONFIG_DIR', 'f03-synthetic-canary'],
+    'Google credentials' => ['GOOGLE_APPLICATION_CREDENTIALS', 'f03-synthetic-canary'],
+    'libpq options' => ['PGOPTIONS', 'f03-synthetic-canary'],
     'cached config override' => ['APP_CONFIG_CACHE', 'f03-synthetic-canary'],
     'routes cache override' => ['APP_ROUTES_CACHE', 'f03-synthetic-canary'],
     'integration descriptor' => ['F03_RUN_DESCRIPTOR', 'f03-synthetic-canary'],
@@ -117,3 +122,15 @@ it('rejects conflicting sources instead of letting a safe value hide an unsafe o
         $checkout->close();
     }
 })->with([0, 1, 2])->group('testing-foundation');
+
+
+it('accepts only the explicit runner tool metadata without exempting cloud credentials', function (): void {
+    $checkout = new FoundationTestCheckout;
+    try {
+        $metadata = ['AZURE_HTTP_USER_AGENT' => 'synthetic-runner-metadata', 'AZURE_EXTENSION_DIR' => '/synthetic/tool-directory'];
+        expect(f03ValidateFast($checkout, $metadata, $metadata, $metadata)['APP_ENV'])->toBe('testing');
+        expect(fn () => TestEnvironmentGuard::validateFast($checkout->root, $metadata + ['AZURE_CLIENT_SECRET' => 'f03-synthetic-canary'], [], []))->toThrow(RuntimeException::class);
+    } finally {
+        $checkout->close();
+    }
+})->group('testing-foundation');

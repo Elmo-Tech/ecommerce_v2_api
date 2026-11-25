@@ -33,6 +33,20 @@ final class TestEnvironmentGuard
         'NIGHTWATCH_ENABLED' => 'false',
     ];
 
+    // Runner-installed Azure CLI metadata is not a service endpoint or
+    // authentication setting. Do not exempt Azure configuration directories,
+    // credentials, storage connection strings, or any arbitrary AZURE_* key.
+    private const TOOL_METADATA = [
+        'AZURE_HTTP_USER_AGENT',
+        'AZURE_EXTENSION_DIR',
+        'AZURE_PS_HOST_ENVIRONMENT',
+        'AZURE_CORE_COLLECT_TELEMETRY',
+        'AZURE_CORE_NO_COLOR',
+        'AZURE_CORE_OUTPUT',
+        'AZURE_CORE_ONLY_SHOW_ERRORS',
+        'AZURE_EXTENSION_USE_DYNAMIC_INSTALL',
+    ];
+
     public static function validateFast(string $root, array $process, array $env, array $server): array
     {
         self::validateCheckout($root);
@@ -45,6 +59,9 @@ final class TestEnvironmentGuard
                     if ($value !== self::DEFAULTS[$key]) {
                         throw new RuntimeException('Unsafe fast test environment setting: '.$key.'.');
                     }
+                    continue;
+                }
+                if (in_array($key, self::TOOL_METADATA, true)) {
                     continue;
                 }
                 if ($key === 'F03_REPORT_DIR' || $key === 'F03_MODE') {
