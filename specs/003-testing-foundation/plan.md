@@ -1,7 +1,7 @@
 # Implementation Plan: F0-03 — Testing Foundation (owner-approved)
 
 **Branch:** `feature/f0-03-testing-foundation` | **Date:** 2026-11-25 | **Spec:** [spec.md](spec.md)  
-**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation approval pending. No code/CI changes or actual service compatibility claimed.  
+**Status:** DEC-01…04 A and full detailed plan approved 2026-11-25 at the recorded source revision. Tasks and analysis prepared; T003 implementation authorization recorded; T004 baseline pending. No code/CI changes or actual service compatibility claimed.  
 **Baseline:** `97c5895bd5672261247b45f1b7eca5648afaf163` on development. F0-02 PR #4/#5/#6 merged; 30/30 verified.
 
 ## 1. Summary and approved scope
@@ -135,10 +135,13 @@ For needed temporary test files, create unique directory within owned RUNNER_TEM
 | Production boundary and old regressions | High | Diff/architecture plus F0-01/02 full regression, unchanged packages/production seam. |
 
 1. Owner approval of complete final Spec/Plan — recorded 2026-11-25 (T001 complete).
-2. [Tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared (T002 complete). T003 separate explicit implementation approval remains open.
+2. [Tasks](tasks.md) and [consistency analysis](consistency-analysis.md) prepared (T002 complete). T003 separate explicit implementation approval recorded.
 3. Actual integrated baseline and pinned-service/extension preflight as scoped by approved tasks; tests first (negative guard/provenance regressions expected RED when feasible), preserve old tests. No service provisioning before approved implementation and verified disposable target.
 4. Minimal implementation and actual GREEN fast + Integration; reproduce/verify required negative cases; bounded secret/scope review, actual reports. Do not claim test count for unwritten tests; no false pass.
 5. ChatGPT technical review, owner review, qualified independent human review for sensitive/high-risk when owner cannot provide it, separate owner development-only merge consent, exact final head/base and actual required CI. CodeRabbit/Copilot optional. No self-approval.
 6. Verify actual merge SHA/tree, publish final handoff/ledger. No F0-04 code, main merge/deployment/Pilot approval.
 
-**Current state:** owner-approved technical design; documentary T001–T002 complete (2/40). No runtime, driver, image, PostgreSQL/Redis service, JUnit report or F0-03 test has been executed. Actual availability/compatibility and real safety evidence remain blocking execution gates. No implementation authorization.
+**Current state:** owner-approved technical design; documentary T001–T002 complete (2/40). No runtime, driver, image, PostgreSQL/Redis service, JUnit report or F0-03 test has been executed. Actual availability/compatibility and real safety evidence remain blocking execution gates. Implementation authorized within approved scope; merge remains unauthorized.
+
+
+Owner explicitly approved Tasks and Consistency Analysis at `74f45e00e289568aca85e071317100f04b20c8be` and authorized F0-03 implementation within the approved Spec/Plan on 2026-11-25. No merge authority; final ChatGPT technical review, owner/qualified human review and separate development-only merge approval remain mandatory.

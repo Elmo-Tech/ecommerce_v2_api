@@ -1,5 +1,7 @@
 name: Laravel foundation validation
 
+# F0-03 T004: trigger the unchanged foundation baseline on the reviewed PR candidate.
+
 on:
   push:
     branches:
