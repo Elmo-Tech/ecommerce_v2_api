@@ -728,3 +728,132 @@ jobs:
           assert not p.exists()
           print('Owned T019 analysis diagnostic cleanup verified.')
           PY
+
+  # Temporary T020 test-first proof. Actual missing-policy failures remain nonzero.
+  f0-04-t020-preflight-tests:
+    name: F0-04 T020 local OpenAPI preflight tests
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create owned preflight evidence directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t020-XXXXXXXXXXXX")"
+          printf 'F04_T020_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+
+      - name: Install approved Node runtime without shared cache
+        id: node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.22.3'
+          package-manager-cache: false
+
+      - name: Run dependency-free synthetic preflight tests and validate safe evidence
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        env:
+          NODE_SETUP: ${{ steps.node.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,sys
+          root=pathlib.Path.cwd().resolve()
+          out=pathlib.Path(os.environ['F04_T020_DIR'])
+          summary={'schemaVersion':1,'task':'T020','runId':os.environ['GITHUB_RUN_ID'],'runAttempt':os.environ['GITHUB_RUN_ATTEMPT'],'status':'BLOCKED','stage':'setup'}
+          def require(ok):
+              if not ok: raise RuntimeError('Preflight test evidence incomplete')
+          def git(*args):
+              return subprocess.check_output(['git',*args],cwd=root,stderr=subprocess.DEVNULL,timeout=30)
+          def clean():
+              for args in (['diff','--quiet','--','.'],['diff','--cached','--quiet','--','.']):
+                  require(subprocess.run(['git',*args],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode==0)
+          try:
+              require(os.environ['NODE_SETUP']=='success')
+              require(subprocess.check_output(['node','--version'],timeout=30).decode().strip()=='v24.22.3')
+              event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr=event['pull_request']; source=pr['head']['sha']; base=pr['base']['sha']; checkout=git('rev-parse','HEAD').decode().strip()
+              require(event['number']==9 and pr['base']['ref']=='development' and base=='24ce00231dec35a089bb70c081b257f9b5d234e7')
+              require(all(re.fullmatch(r'[a-f0-9]{40}',v) for v in [source,base,checkout]))
+              parents=re.findall(rb'^parent ([a-f0-9]{40})$',git('cat-file','-p','HEAD').split(b'\n\n',1)[0],re.M)
+              require([v.decode() for v in parents]==[base,source])
+              summary.update(sourceSha=source,baseSha=base,checkoutSha=checkout,node='24.22.3',stage='tests')
+              clean()
+              directory=root/'tools/quality/openapi'
+              test=directory/'preflight.test.mjs'
+              require(test.is_file() and not test.is_symlink() and test.resolve()==test)
+              env={'PATH':os.environ['PATH'],'HOME':str(out),'TMPDIR':str(out),'CI':'true'}
+              result=subprocess.run(['node','--permission','--allow-fs-read='+str(directory),'--allow-fs-read='+str(directory)+'/*',str(test)],cwd=root,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
+              clean()
+              require(result.returncode in (0,1) and not result.stderr and 0<len(result.stdout)<=65536)
+              report=json.loads(result.stdout)
+              expected=['fixture-control','components-only-root','valid-local-pointer','valid-escaped-pointer','valid-local-fragment','valid-recursive-pointer','valid-cross-file-cycle','empty-root-registry','missing-tracked-root','extra-tracked-root','renamed-tracked-root','duplicate-root','symlink-root','untracked-fragment','symlink-fragment','wrong-oas-version','malformed-json','duplicate-json-key','escaped-duplicate-json-key','malformed-root-shape','missing-info','non-string-ref','absolute-ref','network-path-ref','remote-ref','file-scheme-ref','encoded-path-ref','backslash-ref','escaping-traversal-ref','unregistered-tracked-ref','unresolved-pointer','unresolved-anchor','unsupported-id-rebasing','unsupported-dynamic-ref','unsupported-schema-dialect','file-size-bound','depth-bound','document-count-bound']
+              require(set(report)=={'schemaVersion','suite','implementationPresent','total','passed','failed','networkAttempts','deniedReads','permittedReads','results'})
+              require(report['schemaVersion']==1 and report['suite']=='T020-preflight' and type(report['implementationPresent']) is bool)
+              require(all(type(report[k]) is int and 0<=report[k]<=100000 for k in ['total','passed','failed','networkAttempts','deniedReads','permittedReads']))
+              rows=report['results']
+              require(isinstance(rows,list) and len(rows)==report['total']==len(expected) and [v['id'] for v in rows]==expected)
+              for row in rows:
+                  require((set(row)=={'id','status'} and row['status']=='PASSED') or (set(row)=={'id','status','reason'} and row['status']=='FAILED' and row['reason'] in ['MISSING_PREFLIGHT','ASSERTION_FAILED']))
+              require(sum(v['status']=='PASSED' for v in rows)==report['passed'] and sum(v['status']=='FAILED' for v in rows)==report['failed'])
+              require(rows[0]['status']=='PASSED')
+              require((result.returncode==0)==(report['failed']==0 and report['networkAttempts']==0 and report['deniedReads']==0))
+              require(report['implementationPresent']==(directory/'validate.mjs').is_file())
+              if not report['implementationPresent']:
+                  require(report['passed']==1 and all(v.get('reason')=='MISSING_PREFLIGHT' for v in rows[1:]) and report['permittedReads']==1 and report['networkAttempts']==0 and report['deniedReads']==0)
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',toolExit=result.returncode,trackedSourceUnchanged=True,testSha256=hashlib.sha256(test.read_bytes()).hexdigest(),**report)
+          except (RuntimeError,OSError,ValueError,KeyError,TypeError,AttributeError,subprocess.SubprocessError):
+              summary['status']='BLOCKED'
+          finally:
+              with (out/'preflight.summary.json').open('x') as file:
+                  json.dump(summary,file,indent=2);file.write('\n')
+              print(json.dumps({'task':'T020','status':summary['status'],'stage':summary['stage'],'passed':summary.get('passed'),'failed':summary.get('failed')}))
+          sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
+          PY
+
+      - name: Publish only validated preflight test summary
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-t020-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_T020_DIR }}/preflight.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean exact owned preflight report directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_T020_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t020-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          assert {x.name for x in p.iterdir()}=={'owner','preflight.summary.json'}
+          for name in ['owner','preflight.summary.json']:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          assert (p/'owner').read_text()==expected
+          (p/'preflight.summary.json').unlink()
+          (p/'owner').unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned T020 preflight evidence cleanup verified.')
+          PY
+
