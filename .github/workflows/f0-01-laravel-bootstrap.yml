@@ -824,12 +824,22 @@ jobs:
           sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
           PY
 
+      - name: Run locked Redocly positive and negative controls
+        if: ${{ always() && steps.scratch.outcome == 'success' && steps.node.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node tools/quality/openapi/redocly.test.mjs "$F04_T020_DIR"
+
       - name: Publish only validated preflight test summary
         if: ${{ always() && steps.scratch.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: f04-t020-preflight-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.F04_T020_DIR }}/preflight.summary.json
+          path: |
+            ${{ env.F04_T020_DIR }}/preflight.summary.json
+            ${{ env.F04_T020_DIR }}/redocly.summary.json
           if-no-files-found: error
           retention-days: 7
 
@@ -845,13 +855,13 @@ jobs:
           expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
           assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t020-[A-Za-z0-9]{12}',p.name)
           assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
-          assert {x.name for x in p.iterdir()}=={'owner','preflight.summary.json'}
-          for name in ['owner','preflight.summary.json']:
+          names={x.name for x in p.iterdir()}
+          assert names in ({'owner','preflight.summary.json'},{'owner','preflight.summary.json','redocly.summary.json'})
+          for name in names:
               f=p/name;s=f.lstat()
               assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
           assert (p/'owner').read_text()==expected
-          (p/'preflight.summary.json').unlink()
-          (p/'owner').unlink()
+          for name in names: (p/name).unlink()
           p.rmdir()
           assert not p.exists()
           print('Owned T020 preflight evidence cleanup verified.')
