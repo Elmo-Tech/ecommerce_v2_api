@@ -11,7 +11,7 @@ function f03ReportFixture(string $body): string
 }
 
 it('reads scoped synthetic JUnit cases and independently counts results without treating the fixture as a real run', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $checkout->write('reports/result.xml', f03ReportFixture('<testcase name="case-one" assertions="2" time="0.10"/><testcase name="case-two" assertions="3" time="0.20"/>'));
         expect(is_callable([SafeTestReport::class, 'inspect']))->toBeTrue();
@@ -23,7 +23,9 @@ it('reads scoped synthetic JUnit cases and independently counts results without 
 })->group('testing-foundation');
 
 it('rejects missing malformed empty or incomplete-selection reports instead of manufacturing a passing count', function (string $case): void {
-    $checkout = new FoundationTestCheckout;
+    /** @var 'missing'|'malformed'|'empty'|'wrong selection'|'DTD' $case */
+
+    $checkout = new FoundationTestCheckout();
     try {
         match ($case) {
             'missing' => null,
@@ -40,7 +42,7 @@ it('rejects missing malformed empty or incomplete-selection reports instead of m
 })->with(['missing', 'malformed', 'empty', 'wrong selection', 'DTD'])->group('testing-foundation');
 
 it('rejects report paths outside the owned directory or through symlinks', function (string $case): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $checkout->write('outside.xml', f03ReportFixture('<testcase name="case-one" assertions="1"/>'));
         $path = $checkout->root.'/outside.xml';
@@ -57,7 +59,7 @@ it('rejects report paths outside the owned directory or through symlinks', funct
 })->with(['outside', 'symlink'])->group('testing-foundation');
 
 it('blocks reports containing generated credential canaries without echoing them', function (bool $encoded): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $canary = 'f03-synthetic-credential<&>';
         $raw = $encoded ? htmlspecialchars($canary, ENT_QUOTES | ENT_XML1, 'UTF-8') : 'f03-synthetic-credential-hex';
@@ -71,14 +73,14 @@ it('blocks reports containing generated credential canaries without echoing them
             $failure = $error;
         }
         expect($failure)->toBeInstanceOf(RuntimeException::class);
-        expect($failure->getMessage())->not->toContain($secret)->not->toContain($raw);
+        expect($failure->getMessage())->not()->toContain($secret)->not()->toContain($raw);
     } finally {
         $checkout->close();
     }
 })->with([false, true])->group('testing-foundation');
 
 it('counts failure error and skipped cases from real JUnit structure even when a caller exit is zero', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $checkout->write('reports/result.xml', f03ReportFixture('<testcase name="failed" assertions="1"><failure>safe failure</failure></testcase><testcase name="error" assertions="0"><error>safe error</error></testcase><testcase name="skipped" assertions="0"><skipped/></testcase>'));
         expect(is_callable([SafeTestReport::class, 'inspect']))->toBeTrue();
@@ -109,9 +111,8 @@ it('records preflight rejection as blocked and not a run with a passing result',
     expect(SafeTestReport::blocked(2))->toMatchArray(['status' => 'BLOCKED', 'exit_code' => 2, 'tests_executed' => false]);
 })->group('testing-foundation');
 
-
 it('publishes only safe derived JUnit cases and omits raw stack traces, properties and test output', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $xml = f03ReportFixture('<properties><property name="hidden" value="raw-property"/></properties><testcase name="case &amp; one" classname="Synthetic" assertions="2" time="0.15"><failure>raw-stack-trace</failure><system-out>raw-output</system-out></testcase>');
         $checkout->write('reports/result.xml', $xml);
@@ -128,7 +129,7 @@ it('publishes only safe derived JUnit cases and omits raw stack traces, properti
 })->group('testing-foundation');
 
 it('rejects generated credential fingerprints even embedded in a longer hex value and never emits plaintext', function (bool $embedded): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $password = str_repeat('1a', 32);
         $value = $embedded ? 'ab'.$password.'cd' : $password;
@@ -145,7 +146,7 @@ it('rejects generated credential fingerprints even embedded in a longer hex valu
 })->with([false, true])->group('testing-foundation');
 
 it('rejects inconsistent aggregate counts and contradictory per-case outcomes', function (string $xml): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $checkout->write('reports/result.xml', $xml);
         expect(fn () => SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], []))->toThrow(RuntimeException::class);
@@ -156,7 +157,6 @@ it('rejects inconsistent aggregate counts and contradictory per-case outcomes', 
     '<testsuites tests="5"><testsuite><testcase name="one"/></testsuite></testsuites>',
     '<testsuites><testsuite><testcase name="one"><failure/><skipped/></testcase></testsuite></testsuites>',
 ])->group('testing-foundation');
-
 
 it('validates actual dotted PHPUnit classnames and PHP namespace names without confusing fast and integration suites', function (string $separator): void {
     $class = static fn (string $group, string $name): string => implode($separator, ['Tests', $group, $name]);
@@ -173,9 +173,8 @@ it('validates actual dotted PHPUnit classnames and PHP namespace names without c
     expect(fn () => SafeTestReport::verifySelection('architecture', ['tests' => 5, 'cases' => array_fill(0, 5, ['class' => $class('Unit', 'WrongTest')])]))->toThrow(RuntimeException::class);
 })->with(['.', '\\'])->group('testing-foundation');
 
-
 it('rejects inconsistent nested JUnit aggregates and duplicate or misplaced case identities', function (string $xml): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $checkout->write('reports/result.xml', $xml);
         expect(fn () => SafeTestReport::inspect($checkout->root.'/reports/result.xml', $checkout->root.'/reports', [], []))->toThrow(RuntimeException::class);
@@ -194,7 +193,7 @@ it('rejects inconsistent nested JUnit aggregates and duplicate or misplaced case
 ])->group('testing-foundation');
 
 it('accepts consistent nested JUnit counters with distinct class identities and genuine empty subsuites', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $xml = '<testsuites tests="2" assertions="3" failures="0" errors="0" skipped="0"><testsuite tests="2" assertions="3"><testsuite tests="1" assertions="1"><testcase name="same" classname="Tests.Unit.One" assertions="1"/></testsuite><testsuite tests="1" assertions="2"><testcase name="same" classname="Tests.Unit.Two" assertions="2"/></testsuite><testsuite tests="0" assertions="0" failures="0" errors="0" skipped="0"/></testsuite></testsuites>';
         $checkout->write('reports/result.xml', $xml);

@@ -11,21 +11,25 @@ namespace Tests\Fixtures;
 final class FoundationOwnedRunFixture
 {
     public readonly FoundationTestCheckout $checkout;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $job;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $record;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $descriptor;
+    /** @var array<array-key, mixed> Mutable synthetic input, including deliberately invalid records. */
     public array $observed;
 
     public function __construct(string $token = '0123456789abcdef', string $runId = '123456', string $attempt = '1')
     {
-        $this->checkout = new FoundationTestCheckout;
+        $this->checkout = new FoundationTestCheckout();
         $directory = $this->checkout->root.'/f03-'.$token;
         mkdir($directory, 0700);
         $this->job = [
             'repository' => 'Elmo-Tech/ecommerce_v2_api',
             'run_id' => $runId,
             'run_attempt' => $attempt,
-            'job' => 'f0-03-integration',
+            'job' => 'native-integration',
             'runner_environment' => 'github-hosted',
             'runner_os' => 'Linux',
             'runner_arch' => 'X64',
@@ -41,8 +45,8 @@ final class FoundationOwnedRunFixture
         $containers = [
             'postgres' => [
                 'id' => str_repeat('a', 64),
-                'image_id' => 'sha256:850a2f036953dbe09006295666ee46737e4a15f9ede370bf3bf5718ec0a9e087',
-                'manifest' => 'sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03',
+                'image_id' => 'sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7',
+                'manifest' => 'sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec',
                 'labels' => $labels,
                 'host' => '127.0.0.1',
                 'port' => 45321,
@@ -50,8 +54,8 @@ final class FoundationOwnedRunFixture
             ],
             'redis' => [
                 'id' => str_repeat('b', 64),
-                'image_id' => 'sha256:443f407d5d5a3ab81be78ebb136791c5d90f4e469231bc922dd187f55660fac6',
-                'manifest' => 'sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87',
+                'image_id' => 'sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a',
+                'manifest' => 'sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed',
                 'labels' => $labels,
                 'host' => '127.0.0.1',
                 'port' => 46379,

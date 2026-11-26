@@ -1,0 +1,13 @@
+CI-only derivative of the official Redis 8.2.11 Alpine 3.22 image.
+Base digest: sha256:a18fce2f705d9782ccf6968f8dd94fa04566ff97e10a8d322ad72645243e4c0c
+Redis engine and modules are unchanged; only Alpine libcrypto3/libssl3 3.5.9-r2
+replace 3.5.9-r0. Original base components and notices are retained.
+Redis license choices and original text are included, not the old BSD-only claim.
+Source and upstream build instructions:
+https://github.com/redis/redis/tree/8.2.11
+https://github.com/redis/docker-library-redis/tree/ffe34ace97d06343e05e3f39eb8a43f829dded24/alpine
+https://github.com/openssl/openssl/tree/openssl-3.5.9
+https://gitlab.alpinelinux.org/alpine/aports/-/tree/3.22-stable/main/openssl
+https://gitlab.alpinelinux.org/alpine/aports/-/tree/3.22-stable
+Derivative recipe: https://github.com/Elmo-Tech/ecommerce_v2_api/tree/feature/f0-04-code-quality-ci/tools/quality/security/test-images
+No public package visibility or production distribution is authorized by this notice.

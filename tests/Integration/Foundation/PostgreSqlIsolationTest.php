@@ -24,7 +24,7 @@ it('opens the three independent owned databases using their own restricted nativ
         $first = $connections->postgres($slot);
         $second = $connections->postgres($slot);
         expect($first)->toBeInstanceOf(PDO::class);
-        expect($second)->toBeInstanceOf(PDO::class)->not->toBe($first);
+        expect($second)->toBeInstanceOf(PDO::class)->not()->toBe($first);
         expect($first->getAttribute(PDO::ATTR_PERSISTENT))->toBeFalse();
         expect($first->getAttribute(PDO::ATTR_DRIVER_NAME))->toBe('pgsql');
 
@@ -103,6 +103,8 @@ it('proves runtime role flags, membership, database, schema, table and default g
 })->with(['central', 'a', 'b'])->group('testing-foundation-integration');
 
 it('actually denies controlled schema, table and role creation inside the verified owned database', function (string $slot, string $kind): void {
+    /** @var 'schema'|'table'|'role' $kind */
+
     $connections = f03PostgresConnections();
     $db = $connections->postgres($slot);
     // All statements are fixed and scoped to verified disposable resources.

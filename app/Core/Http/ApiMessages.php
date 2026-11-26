@@ -10,7 +10,9 @@ use Throwable;
 
 final class ApiMessages
 {
-    public function __construct(private readonly Translator $translator) {}
+    public function __construct(private readonly Translator $translator)
+    {
+    }
 
     public function get(string $key, string $locale, ?string $requestId = null): string
     {
@@ -63,4 +65,3 @@ final class ApiMessages
         return is_string($message) && trim($message) !== '' && $message !== $key ? $message : null;
     }
 }
-

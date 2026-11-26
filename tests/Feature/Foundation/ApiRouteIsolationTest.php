@@ -10,7 +10,7 @@ it('uses the actual new bootstrap when building and loading an isolated producti
     // exclusively to a scratch copy of the actual native API route seam.
     expect(is_file(base_path('routes/api.php')))->toBeTrue();
     $root = sys_get_temp_dir().'/f0-02-route-cache-'.bin2hex(random_bytes(12));
-    $fs = new Filesystem;
+    $fs = new Filesystem();
     foreach ([
         '/bootstrap/cache', '/routes', '/config', '/storage/framework/cache/data',
         '/storage/framework/sessions', '/storage/framework/views', '/storage/logs', '/storage/app/private',
@@ -40,7 +40,7 @@ it('uses the actual new bootstrap when building and loading an isolated producti
         $cache->mustRun();
         expect(is_file($cachePath))->toBeTrue();
         expect(file_get_contents($cachePath))->toContain('__f0-02-cache-control')
-            ->not->toContain('__foundation/module-probe', '__f0-api');
+            ->not()->toContain('__foundation/module-probe', '__f0-api');
         $list = new Process([PHP_BINARY, $root.'/artisan', 'route:list', '--json'], $root, $env);
         $list->setTimeout(90);
         $list->mustRun();
@@ -52,8 +52,9 @@ it('uses the actual new bootstrap when building and loading an isolated producti
 })->group('api-foundation');
 
 it('correlates even the exact v1 boundary and does not include lookalike versions', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $this->getJson('/api/v1')->assertNotFound()->assertJsonPath('errorCode', 'RESOURCE_NOT_FOUND')->assertHeader('X-Request-ID');
     $this->getJson('/api/v10')->assertNotFound()->assertJsonMissingPath('errorCode')->assertHeaderMissing('X-Request-ID');
     expect(app('db')->getConnections())->toBeEmpty();
 })->group('api-foundation');
-

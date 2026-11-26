@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\HttpStatusCode;
+use Tests\Support\FoundationDependencyPolicy;
 
 it('keeps the API foundation technical and the project HTTP enum int-backed', function (): void {
     $root = dirname(__DIR__, 2);
@@ -26,12 +27,10 @@ it('keeps the API foundation technical and the project HTTP enum int-backed', fu
 it('has an empty native API seam and no fixture dependency or unapproved packages at this foundation milestone', function (): void {
     $root = dirname(__DIR__, 2);
     $manifest = json_decode(file_get_contents($root.'/composer.json'), true, flags: JSON_THROW_ON_ERROR);
-    expect(array_keys($manifest['require']))->toEqualCanonicalizing(['php', 'laravel/framework'])
-        ->and(array_keys($manifest['require-dev']))->toEqualCanonicalizing(['pestphp/pest', 'pestphp/pest-plugin-laravel']);
+    FoundationDependencyPolicy::assertApproved($manifest);
     expect(is_file($root.'/routes/api.php'))->toBeTrue();
     foreach (token_get_all(file_get_contents($root.'/routes/api.php')) as $token) {
         expect(is_array($token) && in_array($token[0], [T_OPEN_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true))->toBeTrue();
     }
     expect(glob($root.'/database/migrations/*.php') ?: [])->toBe([]);
 })->group('api-foundation');
-

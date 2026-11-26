@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
 
 it('loads the listed FoundationDemo through the native Laravel provider lifecycle', function (): void {
+    /** @var \Tests\TestCase $this */
+
     /** @var ModuleRegistry $registry */
     $registry = app(ModuleRegistry::class);
 

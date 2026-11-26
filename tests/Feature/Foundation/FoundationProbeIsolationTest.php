@@ -55,7 +55,7 @@ it('excludes the probe from a genuine production-generated route cache in a scra
     // route OUTSIDE the repository, while using the very same Module Registry
     // providers/config and real artisan route:cache command.
     $fixtureRoot = sys_get_temp_dir().'/f0-01-production-route-fixture-'.bin2hex(random_bytes(8));
-    $filesystem = new Filesystem;
+    $filesystem = new Filesystem();
 
     foreach ([
         $fixtureRoot.'/bootstrap/cache',
@@ -132,8 +132,8 @@ PHP);
         $content = file_get_contents($cachePath);
 
         expect($content)->toContain('__f0-cache-control')
-            ->not->toContain('__foundation/module-probe')
-            ->not->toContain('foundation.demo.probe');
+            ->not()->toContain('__foundation/module-probe')
+            ->not()->toContain('foundation.demo.probe');
 
         $list = new Process([PHP_BINARY, $fixtureRoot.'/artisan', 'route:list', '--json'], $fixtureRoot, $env);
         $list->setTimeout(90);
@@ -143,7 +143,7 @@ PHP);
         $uris = array_column($routes, 'uri');
 
         expect($uris)->toContain('__f0-cache-control')
-            ->not->toContain('api/v1/__foundation/module-probe');
+            ->not()->toContain('api/v1/__foundation/module-probe');
     } finally {
         // Delete only the uniquely named test scratch directory, never the
         // actual GitHub checkout, project vendor/ or any production data.

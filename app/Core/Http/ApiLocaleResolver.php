@@ -93,4 +93,3 @@ final class ApiLocaleResolver
         return (int) $whole * 1000 + (int) str_pad($fraction, 3, '0');
     }
 }
-

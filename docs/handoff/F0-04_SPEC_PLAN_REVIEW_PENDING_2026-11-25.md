@@ -1,0 +1,8 @@
+# F0-04 — Spec and Technical Plan prepared; owner approval next
+
+**Date:** 2026-11-25 (Africa/Cairo). PR #9 Draft, `feature/f0-04-code-quality-ci`, baseline `24ce00231dec35a089bb70c081b257f9b5d234e7`.
+**Status:** F0-03 verified closed 40/40. F0-04 DEC-01…06 A approved; canonical Spec/Plan drafted and documentary review completed, not yet approved in full. No implementation authorization or task count. No packages installed, code/tests/scans/CI executed, repository settings changed, merge or deployment.
+
+Read [Spec](../../specs/004-code-quality-ci/spec.md), [Technical Plan](../../specs/004-code-quality-ci/plan.md), [Research](../../specs/004-code-quality-ci/research.md), [requirements checklist](../../specs/004-code-quality-ci/checklists/requirements.md). Proposed versions and action SHAs verified against published metadata only; actual lock resolution, type findings, scans, tool runtime, exact stable check and admin access pending. Existing two architecture files assert old dependency/workflow policy; narrowly adapt with equivalent/stronger regression mapping only after authorization.
+
+**Next exact action:** owner review and explicit approval of full Spec/Plan (including version candidates, conservative CI matrix, 24h freshness, timeouts, contract boundary and conditional branch activation plan). Then prepare tasks.md and consistency analysis, review and obtain separate implementation authorization. Do not start implementation before approval. No F0-05, main, deployment, migration, production access or automatic branch settings change. D-201 OPEN; BA-16 DEFERRED; BA-30 G3 BLOCKED.

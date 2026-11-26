@@ -15,6 +15,12 @@ final class SafeTestReport
     private const LIMIT = 16777216;
     private const KEYS = ['tests', 'assertions', 'failures', 'errors', 'skipped'];
 
+    /**
+     * @param array<array-key, mixed> $secrets
+     * @param list<string> $required
+     * @param array<array-key, mixed> $hashes
+     * @return array{tests: int, assertions: int, failures: int, errors: int, skipped: int, duration: float, cases: list<array{name: string, class: string, assertions: int, time: float, status: string}>}
+     */
     public static function inspect(string $path, string $directory, #[SensitiveParameter] array $secrets, array $required, #[SensitiveParameter] array $hashes = []): array
     {
         if (!is_dir($directory) || is_link($directory) || realpath($directory) !== $directory
@@ -164,6 +170,9 @@ final class SafeTestReport
         return $result;
     }
 
+    /**
+     * @param array<array-key, mixed> $report
+     */
     public static function verifySelection(string $selection, array $report): void
     {
         $minimum = match ($selection) {
@@ -198,7 +207,13 @@ final class SafeTestReport
         }
     }
 
-    /** No stack traces, properties, system output, paths or raw failures. */
+    /**
+     * No stack traces, properties, system output, paths or raw failures.
+     *
+     * @param array<array-key, mixed> $report
+     * @param array<array-key, mixed> $secrets
+     * @param array<array-key, mixed> $hashes
+     */
     public static function safeXml(array $report, string $selection, #[SensitiveParameter] array $secrets = [], #[SensitiveParameter] array $hashes = []): string
     {
         $doc = new DOMDocument('1.0', 'UTF-8');
@@ -231,6 +246,10 @@ final class SafeTestReport
         return $xml;
     }
 
+    /**
+     * @param array<array-key, mixed>|null $report
+     * @return array{status: 'PASSED'|'FAILED', exit_code: int}
+     */
     public static function outcome(int $runner, ?array $report, int $cleanup, int $upload): array
     {
         $exit = $runner !== 0 ? $runner : ($cleanup !== 0 ? $cleanup : ($upload !== 0 ? $upload : 0));
@@ -247,12 +266,20 @@ final class SafeTestReport
         return ['status' => $exit === 0 ? 'PASSED' : 'FAILED', 'exit_code' => $exit > 0 ? $exit : ($exit === 0 ? 0 : 1)];
     }
 
+    /**
+     * @return array{status: 'BLOCKED', exit_code: int, tests_executed: false}
+     */
     public static function blocked(int $status): array
     {
         return ['status' => 'BLOCKED', 'exit_code' => $status > 0 ? $status : 1, 'tests_executed' => false];
     }
 
-    /** Scan plaintext values and protected SHA256 fingerprints of hex secrets. */
+    /**
+     * Scan plaintext values and protected SHA256 fingerprints of hex secrets.
+     *
+     * @param array<array-key, mixed> $secrets
+     * @param array<array-key, mixed> $hashes
+     */
     private static function scan(#[SensitiveParameter] string $text, #[SensitiveParameter] array $secrets, #[SensitiveParameter] array $hashes): void
     {
         foreach ($secrets as $secret) {

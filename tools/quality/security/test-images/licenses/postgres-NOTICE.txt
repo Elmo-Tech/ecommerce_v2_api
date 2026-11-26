@@ -1,0 +1,16 @@
+CI-only derivative of the official PostgreSQL 17.12 Alpine 3.23 image.
+Base digest: sha256:833be86fa9cbc2e12ca52ecf8afa306a3f20f6f57772037caeae65075aeb4616
+Upstream build and source: https://github.com/docker-library/postgres/tree/ac9627dcf544a8454f212a12ddeebfcdc0803d3e/17/alpine3.23
+https://github.com/postgres/postgres/tree/REL_17_12
+https://gitlab.alpinelinux.org/alpine/aports/-/tree/3.23-stable
+Original gosu source: https://github.com/tianon/gosu/tree/29b939aa5bd4dc588af765b8248f6e39150d2565
+Gosu original Apache-2.0 license is included. Changes: rebuilt with Go 1.26.11,
+updated x/sys to v0.44.0 and module metadata, and made the version string
+linker-settable in version.go; local version v1.20.0+f04.1.
+https://github.com/golang/go/tree/go1.26.11
+https://github.com/golang/sys/tree/v0.44.0
+https://github.com/moby/sys/tree/user/v0.4.1
+Go and x/sys share identical reviewed BSD license and PATENTS texts;
+moby/sys/user and gosu share the reviewed Apache-2.0 license text.
+Reviewed build sources and recipes: https://github.com/Elmo-Tech/ecommerce_v2_api/tree/feature/f0-04-code-quality-ci/tools/quality/security/test-images
+Base-image notices and original components are retained. Internal CI use only.

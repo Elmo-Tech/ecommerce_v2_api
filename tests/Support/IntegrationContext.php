@@ -13,13 +13,19 @@ use RuntimeException;
  */
 final class IntegrationContext
 {
+    /**
+     * @param array<array-key, mixed> $process
+     * @param array<array-key, mixed> $env
+     * @param array<array-key, mixed> $server
+     * @return array{job: array<string, string>, token: string, temp: string, directory: string}
+     */
     public static function environment(string $root, array $process, array $env, array $server, bool $allowAbsentDirectory = false): array
     {
         TestEnvironmentGuard::validateIntegration($root, $process, $env, $server);
         $required = [
             'GITHUB_ACTIONS' => 'true',
             'GITHUB_REPOSITORY' => 'Elmo-Tech/ecommerce_v2_api',
-            'GITHUB_JOB' => 'f0-03-integration',
+            'GITHUB_JOB' => 'native-integration',
             'RUNNER_ENVIRONMENT' => 'github-hosted',
             'RUNNER_OS' => 'Linux',
             'RUNNER_ARCH' => 'X64',
@@ -84,6 +90,7 @@ final class IntegrationContext
         ];
     }
 
+    /** @return array{run: OwnedTestRun, record: array<array-key, mixed>, docker: LocalDocker} */
     public static function current(string $root): array
     {
         $context = self::environment($root, getenv(), $_ENV, $_SERVER);
@@ -110,7 +117,11 @@ final class IntegrationContext
         return ['run' => $run, 'record' => $record, 'docker' => $docker];
     }
 
-    /** Only fixed job-owned files, bounded size, private regular files. */
+    /**
+     * Only fixed job-owned files, bounded size, private regular files.
+     *
+     * @return array<array-key, mixed> Decoded JSON, validated structurally by the consumer.
+     */
     public static function read(string $directory, string $name): array
     {
         if (!in_array($name, ['ownership.json', 'runtime.json', 'redis-evidence.json', 'setup.json', 'credentials-hashes.json'], true)
@@ -124,7 +135,7 @@ final class IntegrationContext
             self::reject();
         }
         $stat = lstat($path);
-        if ($stat === false || is_link($path) || realpath($path) !== $path || !is_file($path)
+        if ($stat === false || !self::currentCanonicalFile($path)
             || ($stat['mode'] & 0777) !== 0600 || $stat['nlink'] !== 1
             || $stat['size'] <= 0 || $stat['size'] > 65536
             || (function_exists('posix_geteuid') && $stat['uid'] !== posix_geteuid())) {
@@ -163,6 +174,11 @@ final class IntegrationContext
      * Replace only the exact expected captured record with its validated
      * lifecycle completion. No record creation or unrelated file overwrite.
      * The reviewed job is sequential; this is not a concurrent-writer API.
+     *
+     * @param array{job: array<array-key, mixed>, token: string, temp: string, directory: string} $context
+     * @param array<array-key, mixed> $expected
+     * @param array<array-key, mixed> $observed
+     * @return array<array-key, mixed>
      */
     public static function completeOwnership(array $context, array $expected, array $observed): array
     {
@@ -172,7 +188,10 @@ final class IntegrationContext
             self::reject();
         }
         $replacement = \Tests\Support\ci\CleanupPolicy::completeCapture(
-            $context['job'], $expected, $observed, $context['temp'],
+            $context['job'],
+            $expected,
+            $observed,
+            $context['temp'],
         );
         if ($replacement === $expected) {
             return $expected;
@@ -201,12 +220,32 @@ final class IntegrationContext
         } finally {
             fclose($handle);
         }
-        if (is_link($next) || realpath($next) !== $next || self::read($directory, 'ownership.json') !== $expected
+        if (!self::currentCanonicalNonLink($next) || self::read($directory, 'ownership.json') !== $expected
             || !rename($next, $path) || self::read($directory, 'ownership.json') !== $replacement) {
             self::reject();
         }
 
         return $replacement;
+    }
+
+    /**
+     * Filesystem identity may change between observations.
+     *
+     * @phpstan-impure
+     */
+    private static function currentCanonicalNonLink(string $path): bool
+    {
+        return !is_link($path) && realpath($path) === $path;
+    }
+
+    /**
+     * Recheck the current filesystem state after lstat, without removing any test.
+     *
+     * @phpstan-impure
+     */
+    private static function currentCanonicalFile(string $path): bool
+    {
+        return self::currentCanonicalNonLink($path) && is_file($path);
     }
 
     private static function reject(): never

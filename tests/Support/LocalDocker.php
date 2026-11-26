@@ -35,7 +35,7 @@ final class LocalDocker
                 }
             }
         }
-        $docker = new self;
+        $docker = new self();
         if ($diagnostic) {
             echo "Owned startup: remote overrides absent.\n";
         }
@@ -111,7 +111,10 @@ final class LocalDocker
             // must remain inspectable on failed start). Image volumes are
             // newly anonymous, with no --volume-from or reused data mount.
             $id = trim($docker->command(\Tests\Support\ci\OwnedServicePlan::createArguments(
-                $context, $service, posix_geteuid(), posix_getegid(),
+                $context,
+                $service,
+                posix_geteuid(),
+                posix_getegid(),
             ))[0]);
             self::assertId($id);
             $record = \Tests\Support\ci\OwnedSetupFiles::appendCapture($context, $record, $service, $id);
@@ -259,6 +262,9 @@ final class LocalDocker
         echo "Owned runtime descriptor published after setup; setup credential files removed.\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function ownedRunningId(array $record, string $service): string
     {
         $observed = $this->observeRecord($record, false);
@@ -268,6 +274,9 @@ final class LocalDocker
         return $record['containers'][$service]['id'];
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function psql(array $record, string $database, #[\SensitiveParameter] string $sql): string
     {
         if ($database !== 'postgres' && !in_array($database, array_map(static fn (string $slot): string => 'f03_'.$record['token'].'_'.$slot, ['central', 'a', 'b']), true)) {
@@ -279,6 +288,10 @@ final class LocalDocker
             '-U', 'postgres', '-d', $database], true, false, $sql."\n")[0];
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     * @param list<string> $args
+     */
     private function redisAdmin(array $record, #[\SensitiveParameter] string $password, array $args): string
     {
         if (!preg_match('/^[0-9a-f]{64}$/D', $password)) {
@@ -329,6 +342,9 @@ final class LocalDocker
         return 'unclassified';
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function diagnoseStartup(array $record, string $service): void
     {
         try {
@@ -383,15 +399,18 @@ final class LocalDocker
         $pin = OwnedTestRun::image($service);
         $image = $this->jsonLines($this->command([
             'image', 'inspect', '--format', '{{json .Id}}'."\n".'{{json .Os}}'."\n".'{{json .Architecture}}'."\n".'{{json .RepoDigests}}',
-            \Tests\Support\ci\OwnedServicePlan::imageRef($service),
+            OwnedTestRun::imageRef($service),
         ])[0], 4);
         if ($image[0] !== $pin['image_id'] || $image[1] !== 'linux' || $image[2] !== 'amd64'
-            || !is_array($image[3]) || (!in_array($service.'@'.$pin['manifest'], $image[3], true)
-                && !in_array('docker.io/library/'.$service.'@'.$pin['manifest'], $image[3], true))) {
+            || !is_array($image[3]) || !in_array(OwnedTestRun::imageRef($service), $image[3], true)) {
             self::reject();
         }
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     * @return array<string, array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}|null>
+     */
     private function observeRecord(array $record, bool $partial): array
     {
         $context = IntegrationContext::environment(dirname(__DIR__, 2), getenv(), $_ENV, $_SERVER);
@@ -407,6 +426,9 @@ final class LocalDocker
         return $observed;
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     */
     private function waitReady(array $record, string $service): void
     {
         $deadline = hrtime(true) + 60_000_000_000;
@@ -434,6 +456,9 @@ final class LocalDocker
         self::reject();
     }
 
+    /**
+     * @return array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}|null
+     */
     public function observe(string $service, string $id, string $directory, bool $cleanup = false): ?array
     {
         $pin = OwnedTestRun::image($service);
@@ -462,7 +487,13 @@ final class LocalDocker
         return self::normalize($service, $id, $directory, $container, $image, $cleanup);
     }
 
-    /** Pure parser also exercised with synthetic observations in fast tests. */
+    /**
+     * Pure parser also exercised with synthetic observations in fast tests.
+     *
+     * @param array<array-key, mixed> $container
+     * @param array<array-key, mixed> $image
+     * @return array{id: string, image_id: string, manifest: string, labels: array<string, mixed>, host: string, port: int|null, volumes: list<string>}
+     */
     public static function normalize(string $service, string $id, string $directory, array $container, array $image, bool $cleanup = false): array
     {
         self::assertId($id);
@@ -471,21 +502,14 @@ final class LocalDocker
             self::reject();
         }
         [$actualId, $imageId, $imageRef, $labels, $ports, $bindings, $privileged, $network, $mounts, $running] = $container;
-        $tag = $service === 'postgres' ? 'postgres:17.12-bookworm' : 'redis:8.2.11-bookworm';
-        $expectedRef = 'docker.io/library/'.$tag.'@'.$pin['manifest'];
+        $expectedRef = OwnedTestRun::imageRef($service);
         if ($actualId !== $id || $imageId !== $pin['image_id'] || $imageRef !== $expectedRef
             || $image[0] !== $imageId || $image[1] !== 'linux' || $image[2] !== 'amd64' || !is_array($image[3])
             || $privileged !== false || !in_array($network, ['default', 'bridge'], true)
             || !is_bool($running) || (!$running && !$cleanup) || !is_array($labels) || !is_array($mounts)) {
             self::reject();
         }
-        $validDigest = false;
-        foreach ($image[3] as $digest) {
-            if (in_array($digest, [$service.'@'.$pin['manifest'], 'docker.io/library/'.$service.'@'.$pin['manifest']], true)) {
-                $validDigest = true;
-            }
-        }
-        if (!$validDigest) {
+        if (!in_array($expectedRef, $image[3], true)) {
             self::reject();
         }
         $portKey = $service === 'postgres' ? '5432/tcp' : '6379/tcp';
@@ -674,6 +698,9 @@ final class LocalDocker
         return $count;
     }
 
+    /**
+     * @return list<mixed>
+     */
     private function jsonLines(string $raw, int $count): array
     {
         $lines = explode("\n", rtrim($raw, "\r\n"));
@@ -694,6 +721,10 @@ final class LocalDocker
         }
     }
 
+    /**
+     * @param list<string> $args
+     * @return array{string, string, int}
+     */
     private function command(array $args, bool $explicitEndpoint = true, bool $allowFailure = false, #[\SensitiveParameter] ?string $input = null): array
     {
         $argv = [self::BINARY, ...($explicitEndpoint ? ['--host', self::ENDPOINT] : []), ...$args];
@@ -756,11 +787,18 @@ final class LocalDocker
             fclose($pipes[2]);
             $closed = proc_close($process);
         }
-        if (!$allowFailure && ($exit ?? $closed) !== 0) {
+        $resultExit = self::processExitCode($exit, $closed);
+        if (!$allowFailure && $resultExit !== 0) {
             self::reject();
         }
 
-        return [...$output, $exit ?? $closed];
+        return [...$output, $resultExit];
+    }
+
+    /** Prefer the observed exit status; retain proc_close as the fallback. */
+    private static function processExitCode(?int $observed, int $closed): int
+    {
+        return $observed ?? $closed;
     }
 
     private static function reject(): never

@@ -4,6 +4,8 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Route;
 
 it('boots the isolated foundation without accessing a database', function (): void {
+    /** @var \Tests\TestCase $this */
+
     expect(config('app.env'))->toBe('testing')
         ->and(config('cache.default'))->toBe('array')
         ->and(config('session.driver'))->toBe('array')

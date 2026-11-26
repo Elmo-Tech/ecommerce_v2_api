@@ -16,4 +16,3 @@ return [
     'HTTP_ERROR' => 'The request could not be completed.',
     'INVALID_FIELD' => 'Please enter a valid value for this field.',
 ];
-

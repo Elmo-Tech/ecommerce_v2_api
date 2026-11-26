@@ -8,7 +8,7 @@ use Tests\Support\OwnedTestRun;
 use Tests\Support\IntegrationConnections;
 
 it('does not allow integration mode to start the test runner without the owned job prerequisites', function (array $environment): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/run-tests.php'))->toBeTrue();
         $process = $checkout->run(['tests/Support/run-tests.php', 'integration'], $environment);
@@ -28,7 +28,7 @@ it('does not allow integration mode to start the test runner without the owned j
 ])->group('testing-foundation');
 
 it('fails closed when the dedicated integration bootstrap is invoked without a verified job and descriptor', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/integration-bootstrap.php'))->toBeTrue();
         $process = $checkout->run(['tests/Support/integration-bootstrap.php'], ['APP_ENV' => 'testing', 'F03_MODE' => 'integration']);
@@ -41,7 +41,7 @@ it('fails closed when the dedicated integration bootstrap is invoked without a v
 })->group('testing-foundation');
 
 it('resolves only approved fixed postgres and redis slots, never an arbitrary target or fallback', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         expect(is_callable([OwnedTestRun::class, 'validate']))->toBeTrue();
         $run = OwnedTestRun::validate($fixture->job, $fixture->record, $fixture->descriptor, $fixture->observed, $fixture->checkout->root);
@@ -82,7 +82,7 @@ it('accepts only the required native driver preflight without opening a connecti
 
 
 it('rejects unsafe protected integration files without loading Composer or contacting a service', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $directory = $fixture->record['directory'];
         $path = $directory.'/runtime.json';
@@ -103,7 +103,7 @@ it('rejects unsafe protected integration files without loading Composer or conta
 })->with(['missing', 'public', 'symlink', 'malformed'])->group('testing-foundation');
 
 it('reads only an exact private runtime descriptor and rejects arbitrary filenames', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $file = $fixture->record['directory'].'/runtime.json';
         file_put_contents($file, json_encode($fixture->descriptor, JSON_THROW_ON_ERROR));
@@ -117,7 +117,9 @@ it('reads only an exact private runtime descriptor and rejects arbitrary filenam
 })->group('testing-foundation');
 
 it('validates integration job inputs independently from the descriptor before Docker access', function (string $case): void {
-    $fixture = new FoundationOwnedRunFixture;
+    /** @var 'valid'|'wrong job'|'obsolete job'|'wrong token'|'foreign descriptor'|'conflicting source'|'ambient DB'|'remote docker' $case */
+
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $process = [
             'APP_ENV' => 'testing', 'F03_MODE' => 'integration', 'GITHUB_ACTIONS' => 'true',
@@ -131,6 +133,7 @@ it('validates integration job inputs independently from the descriptor before Do
         match ($case) {
             'valid' => null,
             'wrong job' => $process['GITHUB_JOB'] = 'wrong',
+            'obsolete job' => $process['GITHUB_JOB'] = 'f0-03-integration',
             'wrong token' => $process['F03_RUN_TOKEN'] = 'fedcba9876543210',
             'foreign descriptor' => $process['F03_RUN_DESCRIPTOR'] = '/synthetic/runtime.json',
             'conflicting source' => $env['GITHUB_RUN_ID'] = '999999',
@@ -146,4 +149,4 @@ it('validates integration job inputs independently from the descriptor before Do
     } finally {
         $fixture->close();
     }
-})->with(['valid', 'wrong job', 'wrong token', 'foreign descriptor', 'conflicting source', 'ambient DB', 'remote docker'])->group('testing-foundation');
+})->with(['valid', 'wrong job', 'obsolete job', 'wrong token', 'foreign descriptor', 'conflicting source', 'ambient DB', 'remote docker'])->group('testing-foundation');

@@ -1,6 +1,6 @@
 name: Laravel foundation validation
 
-# F0-03 T004: trigger the unchanged foundation baseline on the reviewed PR candidate.
+# F0-04: risk-selected development PR checks; legacy push/manual fast checks retained.
 
 on:
   push:
@@ -26,21 +26,6 @@ on:
     branches:
       - feature/f0-spec-kit-setup
       - development
-    paths:
-      - composer.json
-      - composer.lock
-      - artisan
-      - app/**
-      - bootstrap/**
-      - config/**
-      - public/**
-      - routes/**
-      - lang/**
-      - specs/002-api-foundation/contracts/**
-      - tests/**
-      - phpunit.xml
-      - phpunit.integration.xml
-      - .github/workflows/f0-01-laravel-bootstrap.yml
   workflow_dispatch:
 
 permissions:
@@ -51,10 +36,748 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  bootstrap:
-    name: Isolated PHP 8.4 Composer and Laravel smoke
+  classify:
+    name: Verify integrated Git change classification
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      classification: ${{ steps.selection.outputs.classification }}
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Derive required lanes from actual integrated Git diff
+        id: selection
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(python3 -B tools/quality/classify.py)"
+          printf 'classification=%s\n' "$result" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$result"
+
+  docs:
+    name: Changed repository documentation
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['docs'].required }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create exact private report directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-docs-XXXXXXXXXXXX")"
+          printf 'F04_DOCS_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+
+      - name: Validate changed tracked Markdown without external network
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          set -o noclobber
+          python3 -B tools/quality/check-docs.py > "$F04_DOCS_DIR/docs.summary.json"
+
+      - name: Seal validated docs evidence
+        run: python3 -B tools/quality/artifact-io.py seal docs "$F04_DOCS_DIR"
+
+      - name: Upload fixed safe docs reports
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-docs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_DOCS_DIR }}/docs.summary.json
+            ${{ env.F04_DOCS_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify exact owned report cleanup
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        run: python3 -B tools/quality/artifact-io.py cleanup-lane docs "$F04_DOCS_DIR"
+
+  format:
+    name: Pint read-only PSR-12
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['format'].required }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate and base
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create owned format diagnostic output directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t016-XXXXXXXXXXXX")"
+          printf 'F04_T016_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+
+      - name: Install exact PHP quality toolchain
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, tokenizer
+          tools: composer:2.11.3
+
+      - name: Install approved locked packages without scripts or plugins
+        id: install
+        run: |
+          set -euo pipefail
+          composer validate --strict --no-check-publish
+          composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+          composer check-platform-reqs
+
+      - name: Verify strict types of new files and run actual read-only format
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        env:
+          ACQUISITION_STATUS: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess, sys, time
+          root = pathlib.Path.cwd().resolve()
+          out = pathlib.Path(os.environ['F04_T016_DIR'])
+          start = time.monotonic()
+          summary = {'schemaVersion': 1, 'task': 'T016', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
+          # Diagnostic-only environment path is never inherited by the launcher.
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T016_DIR','F04_LANE_STARTED','ACQUISITION_STATUS'}}
+          def require(ok):
+              if not ok: raise RuntimeError('Diagnostic proof incomplete')
+          def git(*args):
+              return subprocess.check_output(['git', *args], cwd=root, env=env, stderr=subprocess.DEVNULL, timeout=60)
+          def run_php(args, input_bytes=None):
+              return subprocess.run(['php', '-d', 'zend.exception_ignore_args=1', *args], cwd=root, env=env, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=650, check=False)
+          def clean():
+              for args in (['diff','--quiet','--','.'], ['diff','--cached','--quiet','--','.']):
+                  require(subprocess.run(['git',*args], cwd=root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60).returncode == 0)
+          try:
+              require(os.environ['ACQUISITION_STATUS']=='success')
+              summary['stage']='identity'
+              event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr=event['pull_request']
+              source=pr['head']['sha']; base=pr['base']['sha']; checkout=git('rev-parse','HEAD').decode().strip()
+              require(type(event['number']) is int and event['number']>0 and pr['base']['ref']=='development' and pr['base']['repo']['full_name']==os.environ['GITHUB_REPOSITORY']=='Elmo-Tech/ecommerce_v2_api' and os.environ['GITHUB_EVENT_NAME']=='pull_request' and os.environ['RUNNER_ENVIRONMENT']=='github-hosted' and checkout==os.environ['GITHUB_SHA'] and os.environ['GITHUB_REF']=='refs/pull/'+str(event['number'])+'/merge')
+              require(all(re.fullmatch(r'[0-9a-f]{40}',x) for x in (source,base,checkout)))
+              parents=re.findall(rb'^parent ([a-f0-9]{40})$',git('cat-file','-p','HEAD').split(b'\n\n',1)[0],re.M)
+              require([x.decode() for x in parents]==[base,source])
+              summary.update(sourceSha=source,baseSha=base,checkoutSha=checkout)
+              summary['stage']='inventory'
+              index=git('ls-files','--stage','-z').split(b'\0')
+              require(index[-1]==b'')
+              paths=[]
+              for record in index[:-1]:
+                  meta, name=record.split(b'\t',1)
+                  path=name.decode('utf-8','strict')
+                  if path=='artisan' or path.endswith('.php'):
+                      require(meta.startswith((b'100644 ',b'100755 ')) and meta.endswith(b' 0'))
+                      require((root/path).is_file() and not (root/path).is_symlink() and (root/path).resolve()==root/path)
+                      paths.append(path)
+              paths=sorted(paths)
+              require(paths and len(paths)==len(set(paths)) and len(paths)<=10000)
+              old=set(git('ls-tree','-r','--name-only','-z',base).decode('utf-8','strict').split('\0'))
+              new=[path for path in paths if path not in old]
+              code=r'''
+          require 'tests/Support/TestEnvironmentGuard.php';
+          require 'tools/quality/php-policy.php';
+          \Tools\Quality\PhpQualityPolicy::assertNoOverrides();
+          \Tests\Support\TestEnvironmentGuard::applyFast(getcwd());
+          $new=json_decode(stream_get_contents(STDIN),true,flags:JSON_THROW_ON_ERROR);
+          \Tools\Quality\PhpQualityPolicy::assertNewStrictTypes(getcwd(),$new);
+          \Tools\Quality\PhpQualityPolicy::assertPintConfig(getcwd());
+          echo json_encode(\Tools\Quality\PhpQualityPolicy::inventory(getcwd()),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+          '''
+              probe=run_php(['-r',code],json.dumps(new).encode())
+              require(probe.returncode==0 and not probe.stderr and json.loads(probe.stdout)==paths)
+              digest=hashlib.sha256(json.dumps(paths,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+              installed=json.loads((root/'vendor/composer/installed.json').read_text())
+              require([p['version'] for p in installed['packages'] if p['name']=='laravel/pint']==['v1.32.3'])
+              clean()
+              summary['stage']='format'
+              result=run_php(['tools/quality/run.php','format'])
+              clean()
+              require(result.returncode in (0,1) and not result.stderr)
+              report=json.loads(result.stdout)
+              require(set(report)=={'mode','selectedCount','toolExit','resultValidation','inventorySha256','findingCount','files'})
+              require(report['mode']=='format' and report['resultValidation']=='VERIFIED' and report['selectedCount']==len(paths) and report['toolExit']==result.returncode and report['inventorySha256']==digest)
+              findings=report['files']
+              require(isinstance(findings,list) and findings==sorted(set(findings)) and set(findings)<=set(paths) and len(findings)==report['findingCount'])
+              require((result.returncode==0)==(len(findings)==0))
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',pint='1.32.3',toolExit=result.returncode,selectedCount=len(paths),inventorySha256=digest,selectedPaths=paths,newStrictTypesPaths=new,findingCount=len(findings),findingPaths=findings,trackedSourceUnchanged=True)
+          except (RuntimeError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+              summary['status']='BLOCKED'
+          finally:
+              summary['durationSeconds']=round(time.monotonic()-start,3)
+              with (out/'format-diagnostic.json').open('x') as f:
+                  json.dump(summary,f,indent=2);f.write('\n')
+              print(json.dumps({'task':'T016','status':summary['status'],'stage':summary['stage'],'selectedCount':summary.get('selectedCount'),'findingCount':summary.get('findingCount')}))
+          sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
+          PY
+
+      - name: Seal validated format evidence
+        run: python3 -B tools/quality/artifact-io.py seal format "$F04_T016_DIR"
+
+      - name: Upload fixed safe format reports
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-format-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_T016_DIR }}/format-diagnostic.json
+            ${{ env.F04_T016_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean exact owned format diagnostic directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_T016_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t016-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          names={x.name for x in p.iterdir()}
+          assert names in ({'owner','format-diagnostic.json'},{'owner','format-diagnostic.json','lane.summary.json'})
+          for name in names:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          assert (p/'owner').read_text()==expected
+          for name in names: (p/name).unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned T016 format diagnostic cleanup verified.')
+          PY
+
+  analysis:
+    name: Guarded Larastan level 6
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['analysis'].required }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate and base
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create owned analysis diagnostic output directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t019-XXXXXXXXXXXX")"
+          printf 'F04_T019_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+
+      - name: Install exact PHP quality toolchain
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, tokenizer
+          tools: composer:2.11.3
+
+      - name: Install approved locked packages without scripts or plugins
+        id: install
+        run: |
+          set -euo pipefail
+          composer validate --strict --no-check-publish
+          composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+          composer check-platform-reqs
+
+      - name: Run canonical guarded Larastan level 6 launcher and verify evidence
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        env:
+          ACQUISITION_STATUS: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess, sys, time
+          root = pathlib.Path.cwd().resolve()
+          out = pathlib.Path(os.environ['F04_T019_DIR'])
+          start = time.monotonic()
+          summary = {'schemaVersion': 1, 'task': 'T019-launcher', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
+          # Diagnostic-only environment path is never inherited by the launcher.
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T019_DIR','F04_LANE_STARTED','ACQUISITION_STATUS'}}
+          def require(ok):
+              if not ok: raise RuntimeError('Diagnostic proof incomplete')
+          def git(*args):
+              return subprocess.check_output(['git', *args], cwd=root, env=env, stderr=subprocess.DEVNULL, timeout=60)
+          def run_php(args, input_bytes=None):
+              return subprocess.run(['php', '-d', 'zend.exception_ignore_args=1', *args], cwd=root, env=env, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=950, check=False)
+          def clean():
+              for args in (['diff','--quiet','--','.'], ['diff','--cached','--quiet','--','.']):
+                  require(subprocess.run(['git',*args], cwd=root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60).returncode == 0)
+          try:
+              require(os.environ['ACQUISITION_STATUS']=='success')
+              summary['stage']='identity'
+              event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr=event['pull_request']
+              source=pr['head']['sha']; base=pr['base']['sha']; checkout=git('rev-parse','HEAD').decode().strip()
+              require(type(event['number']) is int and event['number']>0 and pr['base']['ref']=='development' and pr['base']['repo']['full_name']==os.environ['GITHUB_REPOSITORY']=='Elmo-Tech/ecommerce_v2_api' and os.environ['GITHUB_EVENT_NAME']=='pull_request' and os.environ['RUNNER_ENVIRONMENT']=='github-hosted' and checkout==os.environ['GITHUB_SHA'] and os.environ['GITHUB_REF']=='refs/pull/'+str(event['number'])+'/merge')
+              require(all(re.fullmatch(r'[0-9a-f]{40}',x) for x in (source,base,checkout)))
+              parents=re.findall(rb'^parent ([a-f0-9]{40})$',git('cat-file','-p','HEAD').split(b'\n\n',1)[0],re.M)
+              require([x.decode() for x in parents]==[base,source])
+              summary.update(sourceSha=source,baseSha=base,checkoutSha=checkout)
+              summary['stage']='inventory'
+              index=git('ls-files','--stage','-z').split(b'\0')
+              require(index[-1]==b'')
+              paths=[]
+              for record in index[:-1]:
+                  meta, name=record.split(b'\t',1)
+                  path=name.decode('utf-8','strict')
+                  if path=='artisan' or path.endswith('.php'):
+                      require(meta.startswith((b'100644 ',b'100755 ')) and meta.endswith(b' 0'))
+                      require((root/path).is_file() and not (root/path).is_symlink() and (root/path).resolve()==root/path)
+                      paths.append(path)
+              paths=sorted(paths)
+              require(paths and len(paths)==len(set(paths)) and len(paths)<=10000)
+              old=set(git('ls-tree','-r','--name-only','-z',base).decode('utf-8','strict').split('\0'))
+              new=[path for path in paths if path not in old]
+              code=r'''
+          require 'tests/Support/TestEnvironmentGuard.php';
+          require 'tools/quality/php-policy.php';
+          \Tools\Quality\PhpQualityPolicy::assertNoOverrides();
+          \Tests\Support\TestEnvironmentGuard::applyFast(getcwd());
+          $new=json_decode(stream_get_contents(STDIN),true,flags:JSON_THROW_ON_ERROR);
+          \Tools\Quality\PhpQualityPolicy::assertNewStrictTypes(getcwd(),$new);
+          \Tools\Quality\PhpQualityPolicy::assertAnalysisConfig(getcwd());
+          echo json_encode(\Tools\Quality\PhpQualityPolicy::inventory(getcwd()),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+          '''
+              probe=run_php(['-r',code],json.dumps(new).encode())
+              require(probe.returncode==0 and not probe.stderr and json.loads(probe.stdout)==paths)
+              digest=hashlib.sha256(json.dumps(paths,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+              installed=json.loads((root/'vendor/composer/installed.json').read_text())
+              pins={'phpstan/phpstan':'2.3.7','larastan/larastan':'3.15.0'}
+              for name,version in pins.items():
+                  require([p['version'] for p in installed['packages'] if p['name']==name]==['v'+version] or [p['version'] for p in installed['packages'] if p['name']==name]==[version])
+              clean()
+              summary.update(stage='analysis',level=6,phpstan=pins['phpstan/phpstan'],larastan=pins['larastan/larastan'],selectedCount=len(paths),inventorySha256=digest,selectedPaths=paths)
+              # Execute the real launcher, not a second implementation of its guard.
+              result=run_php(['tools/quality/run.php','analyse'])
+              clean()
+              summary.update(toolExit=result.returncode,trackedSourceUnchanged=True,launcher='tools/quality/run.php analyse')
+              require(result.returncode in (0,1) and not result.stderr and 0<len(result.stdout)<=16777216)
+              summary['stage']='result-validation'
+              def unique(pairs):
+                  obj={}
+                  for key,value in pairs:
+                      require(key not in obj)
+                      obj[key]=value
+                  return obj
+              report=json.loads(result.stdout,object_pairs_hook=unique)
+              require(isinstance(report,dict) and set(report)=={'mode','selectedCount','toolExit','resultValidation','inventorySha256','findingCount','findings'})
+              require(report['mode']=='analyse' and report['resultValidation']=='VERIFIED')
+              require(type(report['selectedCount']) is int and report['selectedCount']==len(paths) and report['inventorySha256']==digest)
+              require(type(report['toolExit']) is int and report['toolExit']==result.returncode)
+              findings=report['findings']
+              require(isinstance(findings,list) and type(report['findingCount']) is int and len(findings)==report['findingCount']<=10000)
+              for finding in findings:
+                  require(isinstance(finding,dict) and set(finding)=={'path','line','identifier','ignorable'})
+                  path=finding['path']
+                  require(isinstance(path,str) and path in paths)
+                  require(type(finding['line']) is int and 1<=finding['line']<=(root/path).read_bytes().count(b'\n')+1)
+                  identifier=finding['identifier']
+                  require(isinstance(identifier,str) and len(identifier)<=100 and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*',identifier))
+                  require(type(finding['ignorable']) is bool)
+              require(findings==sorted(findings,key=lambda f:(f['path'],f['line'],f['identifier'],f['ignorable'])))
+              require((result.returncode==0)==(len(findings)==0))
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',resultValidation='VERIFIED',findingCount=len(findings),findings=findings,ownedChildCleanupVerified=True)
+          except (RuntimeError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+              summary['status']='BLOCKED'
+          finally:
+              summary['durationSeconds']=round(time.monotonic()-start,3)
+              with (out/'analysis-diagnostic.json').open('x') as f:
+                  json.dump(summary,f,indent=2);f.write('\n')
+              print(json.dumps({'task':'T019-launcher','status':summary['status'],'stage':summary['stage'],'selectedCount':summary.get('selectedCount'),'findingCount':summary.get('findingCount')}))
+          sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
+          PY
+
+      - name: Seal validated analysis evidence
+        run: python3 -B tools/quality/artifact-io.py seal analysis "$F04_T019_DIR"
+
+      - name: Upload fixed safe analysis reports
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-analysis-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_T019_DIR }}/analysis-diagnostic.json
+            ${{ env.F04_T019_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean exact owned analysis diagnostic directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_T019_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t019-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          names={x.name for x in p.iterdir()}
+          assert names in ({'owner','analysis-diagnostic.json'},{'owner','analysis-diagnostic.json','lane.summary.json'})
+          for name in names:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          assert (p/'owner').read_text()==expected
+          for name in names: (p/name).unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned T019 analysis diagnostic cleanup verified.')
+          PY
+
+  contracts:
+    name: OpenAPI preflight and offline Redocly
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['contracts'].required }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create owned preflight evidence directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-t020-XXXXXXXXXXXX")"
+          printf 'F04_T020_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+          printf '%s:%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$dir/owner"
+
+      - name: Install approved Node runtime without shared cache
+        id: node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.22.3'
+          package-manager-cache: false
+
+      - name: Run dependency-free synthetic preflight tests and validate safe evidence
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        env:
+          NODE_SETUP: ${{ steps.node.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,sys
+          root=pathlib.Path.cwd().resolve()
+          out=pathlib.Path(os.environ['F04_T020_DIR'])
+          summary={'schemaVersion':1,'task':'T020','runId':os.environ['GITHUB_RUN_ID'],'runAttempt':os.environ['GITHUB_RUN_ATTEMPT'],'status':'BLOCKED','stage':'setup'}
+          def require(ok):
+              if not ok: raise RuntimeError('Preflight test evidence incomplete')
+          def git(*args):
+              return subprocess.check_output(['git',*args],cwd=root,stderr=subprocess.DEVNULL,timeout=30)
+          def clean():
+              for args in (['diff','--quiet','--','.'],['diff','--cached','--quiet','--','.']):
+                  require(subprocess.run(['git',*args],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode==0)
+          try:
+              require(os.environ['NODE_SETUP']=='success')
+              require(subprocess.check_output(['node','--version'],timeout=30).decode().strip()=='v24.22.3')
+              event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr=event['pull_request']; source=pr['head']['sha']; base=pr['base']['sha']; checkout=git('rev-parse','HEAD').decode().strip()
+              require(type(event['number']) is int and event['number']>0 and pr['base']['ref']=='development' and pr['base']['repo']['full_name']==os.environ['GITHUB_REPOSITORY']=='Elmo-Tech/ecommerce_v2_api' and os.environ['GITHUB_EVENT_NAME']=='pull_request' and os.environ['RUNNER_ENVIRONMENT']=='github-hosted' and checkout==os.environ['GITHUB_SHA'] and os.environ['GITHUB_REF']=='refs/pull/'+str(event['number'])+'/merge')
+              require(all(re.fullmatch(r'[a-f0-9]{40}',v) for v in [source,base,checkout]))
+              parents=re.findall(rb'^parent ([a-f0-9]{40})$',git('cat-file','-p','HEAD').split(b'\n\n',1)[0],re.M)
+              require([v.decode() for v in parents]==[base,source])
+              summary.update(sourceSha=source,baseSha=base,checkoutSha=checkout,node='24.22.3',stage='tests')
+              clean()
+              directory=root/'tools/quality/openapi'
+              test=directory/'preflight.test.mjs'
+              require(test.is_file() and not test.is_symlink() and test.resolve()==test)
+              env={'PATH':os.environ['PATH'],'HOME':str(out),'TMPDIR':str(out),'CI':'true'}
+              result=subprocess.run(['node','--permission','--allow-fs-read='+str(directory),'--allow-fs-read='+str(directory)+'/*',str(test)],cwd=root,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
+              clean()
+              require(result.returncode in (0,1) and not result.stderr and 0<len(result.stdout)<=65536)
+              report=json.loads(result.stdout)
+              expected=['fixture-control','components-only-root','valid-local-pointer','valid-escaped-pointer','valid-local-fragment','valid-recursive-pointer','valid-cross-file-cycle','empty-root-registry','missing-tracked-root','extra-tracked-root','renamed-tracked-root','duplicate-root','symlink-root','untracked-fragment','symlink-fragment','wrong-oas-version','malformed-json','duplicate-json-key','escaped-duplicate-json-key','malformed-root-shape','missing-info','non-string-ref','absolute-ref','network-path-ref','remote-ref','file-scheme-ref','encoded-path-ref','backslash-ref','escaping-traversal-ref','unregistered-tracked-ref','unresolved-pointer','unresolved-anchor','unsupported-id-rebasing','unsupported-dynamic-ref','unsupported-schema-dialect','file-size-bound','depth-bound','document-count-bound']
+              require(set(report)=={'schemaVersion','suite','implementationPresent','total','passed','failed','networkAttempts','deniedReads','permittedReads','results'})
+              require(report['schemaVersion']==1 and report['suite']=='T020-preflight' and type(report['implementationPresent']) is bool)
+              require(all(type(report[k]) is int and 0<=report[k]<=100000 for k in ['total','passed','failed','networkAttempts','deniedReads','permittedReads']))
+              rows=report['results']
+              require(isinstance(rows,list) and len(rows)==report['total']==len(expected) and [v['id'] for v in rows]==expected)
+              for row in rows:
+                  require((set(row)=={'id','status'} and row['status']=='PASSED') or (set(row)=={'id','status','reason'} and row['status']=='FAILED' and row['reason'] in ['MISSING_PREFLIGHT','ASSERTION_FAILED']))
+              require(sum(v['status']=='PASSED' for v in rows)==report['passed'] and sum(v['status']=='FAILED' for v in rows)==report['failed'])
+              require(rows[0]['status']=='PASSED')
+              require((result.returncode==0)==(report['failed']==0 and report['networkAttempts']==0 and report['deniedReads']==0))
+              require(report['implementationPresent']==(directory/'validate.mjs').is_file())
+              if not report['implementationPresent']:
+                  require(report['passed']==1 and all(v.get('reason')=='MISSING_PREFLIGHT' for v in rows[1:]) and report['permittedReads']==1 and report['networkAttempts']==0 and report['deniedReads']==0)
+              summary.update(status='PASSED' if result.returncode==0 else 'FAILED',stage='complete',toolExit=result.returncode,trackedSourceUnchanged=True,testSha256=hashlib.sha256(test.read_bytes()).hexdigest(),**report)
+          except (RuntimeError,OSError,ValueError,KeyError,TypeError,AttributeError,subprocess.SubprocessError):
+              summary['status']='BLOCKED'
+          finally:
+              with (out/'preflight.summary.json').open('x') as file:
+                  json.dump(summary,file,indent=2);file.write('\n')
+              print(json.dumps({'task':'T020','status':summary['status'],'stage':summary['stage'],'passed':summary.get('passed'),'failed':summary.get('failed')}))
+          sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
+          PY
+
+      - name: Run integrated offline Redocly lint and bundle controls
+        if: ${{ always() && steps.scratch.outcome == 'success' && steps.node.outcome == 'success' }}
+        shell: bash
+        env:
+          F04_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: |
+          set -euo pipefail
+          umask 077
+          node tools/quality/openapi/redocly.test.mjs "$F04_T020_DIR"
+
+      - name: Seal validated contracts evidence
+        run: python3 -B tools/quality/artifact-io.py seal contracts "$F04_T020_DIR"
+
+      - name: Upload fixed safe contracts reports
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_T020_DIR }}/preflight.summary.json
+            ${{ env.F04_T020_DIR }}/redocly.summary.json
+            ${{ env.F04_T020_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean exact owned preflight report directory
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_T020_DIR'])
+          parent=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          expected=os.environ['GITHUB_RUN_ID']+':'+os.environ['GITHUB_RUN_ATTEMPT']+'\n'
+          assert not p.is_symlink() and p.resolve()==p and p.parent==parent and re.fullmatch(r'f04-t020-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          names={x.name for x in p.iterdir()}
+          assert names in ({'owner','preflight.summary.json'},{'owner','preflight.summary.json','redocly.summary.json'},{'owner','preflight.summary.json','redocly.summary.json','lane.summary.json'})
+          for name in names:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          assert (p/'owner').read_text()==expected
+          for name in names: (p/name).unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned T020 preflight evidence cleanup verified.')
+          PY
+
+  dependency-audit:
+    name: Locked Composer and npm dependency audits
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['dependency-audit'].required }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create exact private report directory
+        id: scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-audit-XXXXXXXXXXXX")"
+          printf 'F04_AUDIT_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+
+      - name: Install approved PHP and Composer toolchain
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, tokenizer
+          tools: composer:2.11.3
+
+      - name: Install approved isolated Node toolchain
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.22.3'
+          package-manager-cache: false
+
+      - name: Install exact locked Composer graph without scripts or plugins
+        run: |
+          set -euo pipefail
+          composer validate --strict --no-check-publish
+          composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
+          composer check-platform-reqs
+
+      - name: Audit installed locked Composer graph
+        id: composer_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          set -o noclobber
+          python3 -B tools/quality/security/audit.py composer "$GITHUB_WORKSPACE" > "$F04_AUDIT_DIR/composer-audit.summary.json"
+
+      - name: Audit separate locked npm graph
+        if: ${{ always() && steps.scratch.outcome == 'success' && !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          set -o noclobber
+          python3 -B tools/quality/security/audit-npm.py > "$F04_AUDIT_DIR/npm-audit.summary.json"
+
+      - name: Ensure no tracked file changed
+        run: git diff --exit-code -- .
+
+      - name: Seal validated dependency-audit evidence
+        run: python3 -B tools/quality/artifact-io.py seal dependency-audit "$F04_AUDIT_DIR"
+
+      - name: Upload fixed safe dependency-audit reports
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_AUDIT_DIR }}/composer-audit.summary.json
+            ${{ env.F04_AUDIT_DIR }}/npm-audit.summary.json
+            ${{ env.F04_AUDIT_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify exact owned report cleanup
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        run: python3 -B tools/quality/artifact-io.py cleanup-lane dependency-audit "$F04_AUDIT_DIR"
+
+  image-scan:
+    name: Trivy pinned test-image security
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['image-scan'].required }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create private scanner evidence directory
+        id: scan_dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-image-scan-XXXXXXXXXXXX")"
+          printf 'F04_SCAN_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+
+      - name: Run actual pinned Trivy and publish safe result only
+        shell: bash
+        env:
+          F04_GHCR_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          set -o noclobber
+          python3 -B tools/quality/security/scan-images.py > "$F04_SCAN_DIR/scan.summary.json"
+
+      - name: Seal validated image-scan evidence
+        run: python3 -B tools/quality/artifact-io.py seal image-scan "$F04_SCAN_DIR"
+
+      - name: Upload fixed safe image-scan reports
+        if: ${{ always() && steps.scan_dir.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f04-image-scan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F04_SCAN_DIR }}/scan.summary.json
+            ${{ env.F04_SCAN_DIR }}/lane.summary.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean only owned scanner evidence
+        if: ${{ always() && steps.scan_dir.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,stat
+          p=pathlib.Path(os.environ['F04_SCAN_DIR'])
+          assert p.parent==pathlib.Path(os.environ['RUNNER_TEMP']).resolve() and p.resolve()==p
+          assert re.fullmatch(r'f04-image-scan-[A-Za-z0-9]{12}',p.name)
+          assert p.stat().st_uid==os.geteuid() and stat.S_IMODE(p.stat().st_mode)==0o700
+          names={x.name for x in p.iterdir()}
+          assert names in ({'scan.summary.json'},{'scan.summary.json','lane.summary.json'})
+          for name in names:
+              f=p/name;s=f.lstat()
+              assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o600
+          for name in names: (p/name).unlink()
+          p.rmdir()
+          assert not p.exists()
+          print('Owned image scan evidence cleanup verified.')
+          PY
+
+  bootstrap:
+    name: Isolated PHP 8.4 Composer and Laravel smoke
+    needs: classify
+    # Legacy push/manual/non-development PR keeps the original fast suite.
+    if: ${{ !cancelled() && (!(github.event_name == 'pull_request' && github.base_ref == 'development') || (needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['bootstrap'].required)) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     env:
       APP_NAME: EcommerceSaaSAPI
       APP_ENV: testing
@@ -70,9 +793,10 @@ jobs:
       XDEBUG_MODE: off
     steps:
       - name: Checkout the reviewed feature branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Create private per-job report directory
         id: report_dir
@@ -82,14 +806,15 @@ jobs:
           umask 077
           report_dir="$(mktemp -d "$RUNNER_TEMP/f03-reports-XXXXXXXXXXXX")"
           printf 'F03_REPORT_DIR=%s\n' "$report_dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
 
       - name: Install PHP 8.4 and required extensions
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: "8.4"
           coverage: none
           extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite
-          tools: composer:v2
+          tools: composer:2.11.3
 
       - name: Verify PHP and validate minimal Composer manifest
         run: |
@@ -104,7 +829,7 @@ jobs:
           composer check-platform-reqs --lock
 
       - name: Publish committed lockfile for reproducibility review
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: f0-01-committed-composer-lock
           path: composer.lock
@@ -114,8 +839,9 @@ jobs:
       - name: Install pinned dependencies without Composer scripts or plugins
         run: composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
 
-      - name: Audit pinned dependency versions
-        run: composer audit --locked --no-interaction
+      - name: Audit pinned dependency versions for legacy validation
+        if: ${{ !(github.event_name == 'pull_request' && github.base_ref == 'development') }}
+        run: python3 -B tools/quality/security/audit.py composer "$GITHUB_WORKSPACE"
 
       - name: Establish safe fast environment before framework bootstrap
         shell: bash
@@ -169,29 +895,65 @@ jobs:
           done
           exit "$status"
 
-      - name: PHP syntax lint and optional quality-tool availability
+      # Transitional acquisition check only (T008). No unguarded quality tool execution.
+      # The actual read-only format and guarded level-6 analysis gates arrive in T012-T019/T042.
+      - name: Verify installed approved quality packages without running analyzers
         if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
         run: |
+          set -euo pipefail
           git ls-files -z -- '*.php' | xargs -0 -r -n 1 php -l
-          if [ -x vendor/bin/pint ]; then
-            vendor/bin/pint --test
-          else
-            echo "::notice title=Pint unavailable::Laravel Pint is not in the approved composer.lock; no Pint pass is claimed."
-          fi
-          if [ -x vendor/bin/phpstan ]; then
-            vendor/bin/phpstan analyse --no-progress
-          else
-            echo "::notice title=PHPStan unavailable::PHPStan/Larastan is not in the approved composer.lock; no static-analyzer pass is claimed."
-          fi
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          lock_path = pathlib.Path('composer.lock')
+          assert hashlib.sha256(lock_path.read_bytes()).hexdigest() == '9028f6191bf4f725c84890c28a0113c62b5ba0d9fc548559b8b33341ed4520f5'
+          lock = json.loads(lock_path.read_text())
+          installed = json.loads(pathlib.Path('vendor/composer/installed.json').read_text())
+          expected = {p['name']: p for p in lock['packages'] + lock['packages-dev']}
+          actual = {p['name']: p for p in installed['packages']}
+          assert len(expected) == 122 and len(actual) == 122 and set(expected) == set(actual), 'Installed package inventory mismatch'
+          assert installed['dev'] is True
+          for name, record in expected.items():
+              observed = actual[name]
+              assert observed['version'] == record['version'], 'Installed version mismatch: ' + name
+              for kind in ('source', 'dist'):
+                  if record.get(kind, {}).get('reference'):
+                      assert observed.get(kind, {}).get('reference') == record[kind]['reference'], 'Installed reference mismatch: ' + name
+          approved = {'laravel/pint': 'v1.32.3', 'phpstan/phpstan': '2.3.7', 'larastan/larastan': 'v3.15.0', 'iamcal/sql-parser': 'v0.7'}
+          assert all(actual[n]['version'] == v for n, v in approved.items())
+          assert pathlib.Path('vendor/larastan/larastan/extension.neon').is_file()
+          print(json.dumps({'task': 'T008', 'installed_count': len(actual), 'approved_dev_packages': approved, 'installed_metadata': 'PASSED'}, sort_keys=True))
+          PY
+          test -x vendor/bin/pint
+          test -x vendor/bin/phpstan
 
       - name: Verify runtime did not change any tracked repository file
         if: ${{ !cancelled() && steps.fast_ready.outcome == 'success' }}
         run: git diff --exit-code -- .
 
+      - name: Seal validated bootstrap evidence
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+        run: python3 -B tools/quality/artifact-io.py seal bootstrap "$F03_REPORT_DIR"
+
       - name: Publish only validated fast JUnit and safe summaries
         id: fast_upload
-        if: ${{ always() && steps.report_dir.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.report_dir.outcome == 'success' && (github.event_name == 'pull_request' && github.base_ref == 'development') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: f03-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.F03_REPORT_DIR }}/foundation-safe.xml
+            ${{ env.F03_REPORT_DIR }}/foundation.summary.json
+            ${{ env.F03_REPORT_DIR }}/fast-all-safe.xml
+            ${{ env.F03_REPORT_DIR }}/fast-all.summary.json
+            ${{ env.F03_REPORT_DIR }}/architecture-safe.xml
+            ${{ env.F03_REPORT_DIR }}/architecture.summary.json
+            ${{ env.F03_REPORT_DIR }}/lane.summary.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Publish legacy fast JUnit and safe summaries
+        if: ${{ always() && steps.report_dir.outcome == 'success' && !(github.event_name == 'pull_request' && github.base_ref == 'development') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: f03-fast-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -209,12 +971,15 @@ jobs:
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
         run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
 
-  f0-03-integration:
+  native-integration:
     name: F0-03 isolated native PostgreSQL and Redis integration
-    needs: bootstrap
-    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    needs: [classify, bootstrap]
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['native-integration'].required && needs.bootstrap.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
     env:
       APP_ENV: testing
       APP_DEBUG: "false"
@@ -229,9 +994,10 @@ jobs:
       XDEBUG_MODE: off
     steps:
       - name: Checkout exact integrated candidate without persisted credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Create private report directory
         id: report_dir
@@ -241,17 +1007,20 @@ jobs:
           umask 077
           report_dir="$(mktemp -d "$RUNNER_TEMP/f03-reports-XXXXXXXXXXXX")"
           printf 'F03_REPORT_DIR=%s\n' "$report_dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
 
       - name: Install approved PHP 8.4 native extensions
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: "8.4"
           coverage: none
           extensions: mbstring, dom, xml, curl, fileinfo, pdo_sqlite, pdo_pgsql, redis-6.3.0
-          tools: composer:v2
+          tools: composer:2.11.3
 
       - name: Validate actual hosted local Docker and immutable approved images
         shell: bash
+        env:
+          F04_GHCR_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$RUNNER_ENVIRONMENT" = github-hosted
@@ -270,13 +1039,34 @@ jobs:
           test -S /var/run/docker.sock
           test "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" = linux/amd64
           echo "Source checkout: $(git rev-parse HEAD)"
+          umask 077
+          registry_config="$(mktemp -d "$RUNNER_TEMP/f04-ghcr-read-XXXXXXXXXXXX")"
+          cleanup_registry() {
+            local status=$?
+            trap - EXIT
+            docker --config "$registry_config" logout ghcr.io >/dev/null 2>&1 || status=1
+            if [ -f "$registry_config/config.json" ] && [ ! -L "$registry_config/config.json" ]; then
+              rm -- "$registry_config/config.json" || status=1
+            fi
+            rmdir -- "$registry_config" || status=1
+            exit "$status"
+          }
+          trap cleanup_registry EXIT
+          test -n "$F04_GHCR_READ_TOKEN"
+          printf '%s\n' "$F04_GHCR_READ_TOKEN" | docker --config "$registry_config" login ghcr.io --username "$GITHUB_ACTOR" --password-stdin >/dev/null
+          unset F04_GHCR_READ_TOKEN
           for image in \
-            docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03 \
-            docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87; do
-            docker --host unix:///var/run/docker.sock pull --platform linux/amd64 "$image"
+            ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec \
+            ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed; do
+            docker --config "$registry_config" --host unix:///var/run/docker.sock pull --platform linux/amd64 "$image"
             test "$(docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
-            digest="${image##*@}"
-            docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -F "@$digest" >/dev/null
+            case "$image" in
+              ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec) expected_id=sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7 ;;
+              ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed) expected_id=sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a ;;
+              *) exit 2 ;;
+            esac
+            test "$(docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Id}}')" = "$expected_id"
+            docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fx "$image" >/dev/null
             docker --host unix:///var/run/docker.sock image inspect "$image" --format 'Image ID={{.Id}} platform={{.Os}}/{{.Architecture}} RepoDigests={{json .RepoDigests}}'
           done
 
@@ -343,15 +1133,19 @@ jobs:
         if: ${{ !cancelled() && steps.run_identity.outcome == 'success' }}
         run: git diff --exit-code -- .
 
+      - name: Seal validated native-integration evidence
+        run: python3 -B tools/quality/artifact-io.py seal native-integration "$F03_REPORT_DIR"
+
       - name: Publish only validated integration JUnit and safe summary
         id: integration_upload
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: f03-integration-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.F03_REPORT_DIR }}/integration-safe.xml
             ${{ env.F03_REPORT_DIR }}/integration.summary.json
+            ${{ env.F03_REPORT_DIR }}/lane.summary.json
           retention-days: 7
           if-no-files-found: error
 
@@ -359,3 +1153,140 @@ jobs:
         id: integration_report_cleanup
         if: ${{ always() && steps.report_dir.outcome == 'success' }}
         run: php -d zend.exception_ignore_args=1 tests/Support/ci/cleanup-reports.php
+
+  spec-kit:
+    name: Spec Kit regressions
+    needs: classify
+    if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['spec-kit'].required }}
+    uses: ./.github/workflows/fnd-01-spec-kit-review.yml
+    permissions:
+      contents: read
+
+  gate:
+    name: F0-04 / Quality Gate
+    if: ${{ always() && github.event_name == 'pull_request' && github.base_ref == 'development' }}
+    needs: [classify, docs, format, analysis, contracts, dependency-audit, image-scan, bootstrap, native-integration, spec-kit]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact integrated candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create exact private report directory
+        id: gate_dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$(mktemp -d "$RUNNER_TEMP/f04-gate-XXXXXXXXXXXX")"
+          printf 'F04_GATE_DIR=%s\n' "$dir" >> "$GITHUB_ENV"
+          printf 'F04_LANE_STARTED=%s\n' "$(python3 -c 'import time; print(time.monotonic())')" >> "$GITHUB_ENV"
+
+      - name: Download exact same-attempt docs archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['docs'].required && needs['docs'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-docs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-docs-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt format archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['format'].required && needs['format'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-format-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-format-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt analysis archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['analysis'].required && needs['analysis'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-analysis-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-analysis-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt contracts archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['contracts'].required && needs['contracts'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt dependency-audit archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['dependency-audit'].required && needs['dependency-audit'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt image-scan archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['image-scan'].required && needs['image-scan'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-image-scan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-image-scan-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt bootstrap archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['bootstrap'].required && needs['bootstrap'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f03-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f03-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt native-integration archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['native-integration'].required && needs['native-integration'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f03-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f03-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Download exact same-attempt spec-kit archive
+        if: ${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['spec-kit'].required && needs['spec-kit'].result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: f04-spec-kit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F04_GATE_DIR }}/archive-f04-spec-kit-${{ github.run_id }}-${{ github.run_attempt }}
+          digest-mismatch: error
+          skip-decompress: true
+          merge-multiple: false
+
+      - name: Validate and extract fixed safe archive inventories
+        if: ${{ always() && steps.gate_dir.outcome == 'success' }}
+        run: python3 -B tools/quality/artifact-io.py extract-downloads "$F04_GATE_DIR"
+
+      - name: Verify all required outcomes and same-candidate evidence
+        if: ${{ always() && steps.gate_dir.outcome == 'success' }}
+        env:
+          F04_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -B tools/quality/verify-gate.py "$F04_GATE_DIR"
+
+      - name: Verify exact owned gate cleanup
+        if: ${{ always() && steps.gate_dir.outcome == 'success' }}
+        run: python3 -B tools/quality/artifact-io.py cleanup-downloads "$F04_GATE_DIR"

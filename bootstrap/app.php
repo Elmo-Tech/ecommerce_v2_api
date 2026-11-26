@@ -35,6 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
             if (! app()->bound('request')) {
                 return false;
             }
+            // A bound container key can hold an unexpected runtime value.
+            /** @var mixed $request */
             $request = app('request');
             if (! $request instanceof Request || ! ApiRequestContext::canReport($request, $exception)) {
                 return false;
@@ -57,4 +59,3 @@ return Application::configure(basePath: dirname(__DIR__))
                     : $response,
         );
     })->create();
-

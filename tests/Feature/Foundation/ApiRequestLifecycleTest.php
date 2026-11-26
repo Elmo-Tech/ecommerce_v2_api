@@ -11,6 +11,8 @@ use Tests\Fixtures\ApiHttpFixtures;
 beforeEach(fn () => ApiHttpFixtures::register());
 
 it('returns a fresh trusted request ID on success, no content, unmatched routes, validation and native errors', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $header = ['X-Request-ID' => 'spoofed-fixture-id', 'Accept-Language' => 'en'];
     $responses = [
         $this->getJson(ApiHttpFixtures::PREFIX.'/ok', $header)->assertOk(),
@@ -34,8 +36,10 @@ it('returns a fresh trusted request ID on success, no content, unmatched routes,
 })->group('api-foundation');
 
 it('correlates safe technical diagnostics and restores unrelated logging and locale state after failures', function (): void {
+    /** @var \Tests\TestCase $this */
+
     config(['app.debug' => true]);
-    $this->app->setLocale('en');
+    $this->foundationApplication()->setLocale('en');
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;
@@ -55,7 +59,7 @@ it('correlates safe technical diagnostics and restores unrelated logging and loc
         }
         $this->getJson(ApiHttpFixtures::PREFIX.'/locale', ['Accept-Language' => 'en'])->assertJsonPath('locale', 'en');
         $this->getJson(ApiHttpFixtures::PREFIX.'/locale', ['Accept-Language' => 'fr'])->assertJsonPath('locale', 'ar');
-        expect($this->app->getLocale())->toBe('en')->and($this->app['translator']->getLocale())->toBe('en');
+        expect($this->foundationApplication()->getLocale())->toBe('en')->and($this->foundationApplication()['translator']->getLocale())->toBe('en');
         Log::info('fixture.after');
         $after = end($events);
         expect($after->context['fixtureUnrelatedContext'] ?? null)->toBe('retained')
@@ -67,6 +71,8 @@ it('correlates safe technical diagnostics and restores unrelated logging and loc
 
 
 it('reports distinct short-lived exceptions independently and does not suppress the next unrelated native report', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;
@@ -88,10 +94,12 @@ it('reports distinct short-lived exceptions independently and does not suppress 
 })->group('api-foundation');
 
 it('sanitizes a failure inside locale selection or restoration and unconditionally clears attempt state', function (string $failureLocale): void {
-    $this->app->setLocale('en');
+    /** @var \Tests\TestCase $this */
+
+    $this->foundationApplication()->setLocale('en');
     // Make application and translator locales deliberately distinct, so
     // restoration proves both prior values rather than one shared default.
-    $this->app['translator']->setLocale('ar');
+    $this->foundationApplication()['translator']->setLocale('ar');
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;
@@ -107,9 +115,9 @@ it('sanitizes a failure inside locale selection or restoration and unconditional
     $failure->assertStatus(500)->assertJsonPath('errorCode', 'INTERNAL_ERROR')->assertHeader('X-Request-ID');
     $id = $failure->headers->get('X-Request-ID');
     expect($failure->getContent())->not->toContain('fixture-private-locale-lifecycle')
-        ->and($this->app->getLocale())->toBe('en')
-        ->and($this->app['translator']->getLocale())->toBe('ar');
-    $attributes = $this->app['request']->attributes;
+        ->and($this->foundationApplication()->getLocale())->toBe('en')
+        ->and($this->foundationApplication()['translator']->getLocale())->toBe('ar');
+    $attributes = $this->foundationApplication()['request']->attributes;
     foreach ([
         \App\Core\Http\ApiRequestContext::ACTIVE,
         \App\Core\Http\ApiRequestContext::REPORTED,
@@ -126,13 +134,15 @@ it('sanitizes a failure inside locale selection or restoration and unconditional
     }
     $this->getJson(ApiHttpFixtures::PREFIX.'/locale', ['Accept-Language' => 'en'])
         ->assertOk()->assertJsonPath('locale', 'en');
-    expect($this->app['translator']->getLocale())->toBe('ar');
+    expect($this->foundationApplication()['translator']->getLocale())->toBe('ar');
     $this->getJson('/api/v10/__f0-api/legacy-fault')->assertStatus(500)->assertHeaderMissing('X-Request-ID');
     expect(array_filter($events, static fn (MessageLogged $event): bool =>
         str_contains($event->message, 'legacy-fixture-native-error')))->not->toBeEmpty();
 })->with(['ar', 'en'])->group('api-foundation');
 
 it('distinguishes exception classification from the actual rendered HTTP status without a second error report', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $events = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $event) use (&$events): void {
         $events[] = $event;

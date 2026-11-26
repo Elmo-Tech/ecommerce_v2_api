@@ -31,7 +31,8 @@ final class ApiExceptionMapper
     public function __construct(
         private readonly ApiLocaleResolver $localeResolver,
         private readonly ApiMessages $messages,
-    ) {}
+    ) {
+    }
 
     public function render(Throwable $exception, Request $request): ?Response
     {
@@ -121,7 +122,7 @@ final class ApiExceptionMapper
 
         $reported = $request->attributes->get(ApiRequestContext::REPORTED);
         if (! $reported instanceof WeakMap) {
-            $reported = new WeakMap;
+            $reported = new WeakMap();
             $request->attributes->set(ApiRequestContext::REPORTED, $reported);
         }
         if (isset($reported[$exception])) {

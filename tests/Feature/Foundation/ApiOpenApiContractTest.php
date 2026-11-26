@@ -7,6 +7,8 @@ use Tests\Fixtures\ApiHttpFixtures;
 beforeEach(fn () => ApiHttpFixtures::register());
 
 it('matches representative real HTTP response shapes and status/error mappings to the shared contract', function (): void {
+    /** @var \Tests\TestCase $this */
+
     $path = base_path('specs/002-api-foundation/contracts/openapi.json');
     expect(is_file($path))->toBeTrue();
     $document = json_decode(file_get_contents($path), flags: JSON_THROW_ON_ERROR);
@@ -25,4 +27,3 @@ it('matches representative real HTTP response shapes and status/error mappings t
             ->and(array_keys(get_object_vars($body)))->toEqualCanonicalizing($document->components->schemas->ErrorResponse->required);
     }
 })->group('api-foundation');
-

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Tests\Fixtures\FoundationTestCheckout;
 
 it('allows the actual configured default bootstrap to reach a harmless autoload sentinel with safe settings', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $result = $checkout->run([$checkout->configuredBootstrap()], ['APP_ENV' => 'testing']);
         expect($result->getExitCode())->toBe(0);
@@ -17,7 +17,7 @@ it('allows the actual configured default bootstrap to reach a harmless autoload 
 })->group('testing-foundation');
 
 it('rejects unsafe settings in the actual configured default bootstrap before its autoload sentinel', function (string $key, string $value): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         // This executes the bootstrap selected by the actual phpunit.xml in
         // an owned scratch checkout, not the real Laravel/vendor bootstrap.
@@ -39,7 +39,7 @@ it('rejects unsafe settings in the actual configured default bootstrap before it
 ])->group('testing-foundation');
 
 it('runs the supported fast launcher with safe missing defaults and only reaches the fake local test runner', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/run-tests.php'))->toBeTrue();
         $result = $checkout->run(['tests/Support/run-tests.php', 'fast']);
@@ -52,7 +52,7 @@ it('runs the supported fast launcher with safe missing defaults and only reaches
 })->group('testing-foundation');
 
 it('blocks the fast launcher before autoload or test execution when the environment is unsafe', function (string $key, string $value): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/run-tests.php'))->toBeTrue();
         $result = $checkout->run(['tests/Support/run-tests.php', 'fast'], [$key => $value]);
@@ -72,7 +72,9 @@ it('blocks the fast launcher before autoload or test execution when the environm
 ])->group('testing-foundation');
 
 it('rejects unsafe dotenv and cache files without touching their contents or symlink targets', function (string $case): void {
-    $checkout = new FoundationTestCheckout;
+    /** @var 'nonempty dotenv'|'unexpected testing dotenv'|'cached config'|'symlink dotenv' $case */
+
+    $checkout = new FoundationTestCheckout();
     $canary = 'f03-synthetic-canary';
     try {
         $path = match ($case) {
@@ -105,7 +107,7 @@ it('rejects unsafe dotenv and cache files without touching their contents or sym
 })->with(['nonempty dotenv', 'unexpected testing dotenv', 'cached config', 'symlink dotenv'])->group('testing-foundation');
 
 it('rejects unsupported modes, suites, config overrides, arbitrary flags and escaping report paths before runner execution', function (array $arguments): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         expect(is_file($checkout->root.'/tests/Support/run-tests.php'))->toBeTrue();
         $result = $checkout->run(['tests/Support/run-tests.php', ...$arguments]);
@@ -141,7 +143,7 @@ it('boots the real fast Laravel test case with isolated effective config and no 
 
 
 it('lets the installed Pest CLI execute exactly one harmless scratch probe when the environment is safe', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $result = $checkout->runPestProbe(['APP_ENV' => 'testing']);
         expect($result->getExitCode())->toBe(0);
@@ -153,7 +155,7 @@ it('lets the installed Pest CLI execute exactly one harmless scratch probe when 
 })->group('testing-foundation');
 
 it('rejects inherited unsafe configuration via the installed direct Pest CLI before configured autoload and probe execution', function (string $key, string $value): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $result = $checkout->runPestProbe(['APP_ENV' => 'testing', $key => $value]);
         expect($result->getExitCode())->not->toBe(0);
@@ -170,7 +172,7 @@ it('rejects inherited unsafe configuration via the installed direct Pest CLI bef
 
 
 it('passes only an approved suite or group and a fresh report filename in a private owned report directory', function (): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $dir = $checkout->root.'/f03-reports-0123456789abcdef';
         expect(mkdir($dir, 0700))->toBeTrue();
@@ -189,7 +191,7 @@ it('passes only an approved suite or group and a fresh report filename in a priv
 })->group('testing-foundation');
 
 it('rejects unsafe report targets even when a private report directory exists', function (string $case): void {
-    $checkout = new FoundationTestCheckout;
+    $checkout = new FoundationTestCheckout();
     try {
         $dir = $checkout->root.'/f03-reports-0123456789abcdef';
         expect(mkdir($dir, 0700))->toBeTrue();

@@ -17,6 +17,9 @@ final class PostgreSqlFixturePlan
         return "local all postgres trust\nlocal all all scram-sha-256\nhost all postgres all reject\nhost all all all scram-sha-256\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     */
     public static function clusterSql(#[SensitiveParameter] array $credentials): string
     {
         OwnedServicePlan::passwords($credentials);
@@ -38,6 +41,9 @@ final class PostgreSqlFixturePlan
         return implode("\n", $sql)."\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     */
     public static function databaseSql(#[SensitiveParameter] array $credentials, string $slot): string
     {
         $target = self::target($credentials, $slot);
@@ -55,6 +61,10 @@ final class PostgreSqlFixturePlan
         ])."\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     * @return array{database: string, role: string, password: string, marker: string, ...}
+     */
     public static function target(#[SensitiveParameter] array $credentials, string $slot): array
     {
         OwnedServicePlan::token($credentials['token']);
@@ -84,6 +94,9 @@ FROM pg_hba_file_rules;
 SQL;
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     */
     public static function privilegeCheck(#[SensitiveParameter] array $credentials): string
     {
         // Verify actual restricted attributes, committed DB ownership and

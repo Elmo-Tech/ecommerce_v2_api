@@ -7,6 +7,7 @@ use Tests\Support\ci\OwnedServicePlan;
 use Tests\Support\ci\OwnedSetupFiles;
 use Tests\Support\IntegrationContext;
 
+/** @return array{job: array<array-key, mixed>, token: mixed, directory: mixed, temp: string} */
 function f03SetupContext(FoundationOwnedRunFixture $fixture): array
 {
     return [
@@ -16,7 +17,7 @@ function f03SetupContext(FoundationOwnedRunFixture $fixture): array
 }
 
 it('generates seven distinct protected credential values and keeps setup credentials outside runtime slots', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $credentials = OwnedServicePlan::credentials($fixture->record['token']);
         $passwords = OwnedServicePlan::passwords($credentials);
@@ -33,7 +34,7 @@ it('generates seven distinct protected credential values and keeps setup credent
 })->group('testing-foundation');
 
 it('constructs only pinned owned creation arguments with loopback dynamic ports and no secret value', function (string $service): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $args = OwnedServicePlan::createArguments(f03SetupContext($fixture), $service, 1001, 1001);
         $expectedPort = $service === 'postgres' ? 5432 : 6379;
@@ -49,7 +50,7 @@ it('constructs only pinned owned creation arguments with loopback dynamic ports 
 })->with(['postgres', 'redis'])->group('testing-foundation');
 
 it('rejects unsafe creation paths and unknown service types', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $context = f03SetupContext($fixture);
         expect(fn () => OwnedServicePlan::createArguments($context, 'external', 1001, 1001))->toThrow(RuntimeException::class);
@@ -78,7 +79,7 @@ it('generates a minimal Redis ACL with hashed credentials and exact independent 
 })->group('testing-foundation');
 
 it('creates files privately and captures a new exact ID before any start without overwriting prior captures', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $context = f03SetupContext($fixture);
         $record = $fixture->record;
@@ -100,7 +101,7 @@ it('creates files privately and captures a new exact ID before any start without
 })->group('testing-foundation');
 
 it('rejects foreign setup filenames and symlink targets', function (): void {
-    $fixture = new FoundationOwnedRunFixture;
+    $fixture = new FoundationOwnedRunFixture();
     try {
         $dir = $fixture->record['directory'];
         expect(fn () => OwnedSetupFiles::create($dir, '../foreign.json', 'synthetic'))->toThrow(RuntimeException::class);
@@ -115,7 +116,7 @@ it('rejects foreign setup filenames and symlink targets', function (): void {
 
 
 it('rejects startup and setup entrypoints outside the verified current job before any resource operation', function (string $script, array $args, array $env): void {
-    $checkout = new \Tests\Fixtures\FoundationTestCheckout;
+    $checkout = new \Tests\Fixtures\FoundationTestCheckout();
     try {
         $result = $checkout->run(['tests/Support/ci/'.$script, ...$args], $env);
         expect($result->getExitCode())->toBe(2);

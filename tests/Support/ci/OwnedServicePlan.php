@@ -11,6 +11,10 @@ use Tests\Support\OwnedTestRun;
 /** Fixed test-only resource plan; no daemon, service or filesystem I/O. */
 final class OwnedServicePlan
 {
+    /**
+     * @param array<array-key, mixed> $job
+     * @return array<string, mixed>
+     */
     public static function labels(array $job, string $token): array
     {
         self::token($token);
@@ -28,6 +32,9 @@ final class OwnedServicePlan
         }
     }
 
+    /**
+     * @return array{token: string, postgres_admin: string, redis_admin: string, postgres: array<string, array{database: string, role: string, password: string, marker: string}>, redis: array<string, array{role: string, password: string, prefix: string}>}
+     */
     public static function credentials(string $token): array
     {
         self::token($token);
@@ -54,6 +61,10 @@ final class OwnedServicePlan
         return $credentials;
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     * @return list<string>
+     */
     public static function passwords(#[SensitiveParameter] array $credentials): array
     {
         $values = [$credentials['postgres_admin'], $credentials['redis_admin']];
@@ -78,6 +89,9 @@ final class OwnedServicePlan
         return "bind 0.0.0.0\nport 6379\nprotected-mode yes\nsave \"\"\nappendonly no\ndaemonize no\nlogfile \"\"\naclfile /run/f03/users.acl\n";
     }
 
+    /**
+     * @param array<array-key, mixed> $credentials
+     */
     public static function redisAcl(#[SensitiveParameter] array $credentials): string
     {
         self::passwords($credentials);
@@ -102,15 +116,15 @@ final class OwnedServicePlan
 
     public static function imageRef(string $service): string
     {
-        $tag = match ($service) {
-            'postgres' => 'postgres:17.12-bookworm',
-            'redis' => 'redis:8.2.11-bookworm',
-            default => throw new RuntimeException('Unknown owned service.'),
-        };
-        return 'docker.io/library/'.$tag.'@'.OwnedTestRun::image($service)['manifest'];
+        return OwnedTestRun::imageRef($service);
     }
 
-    /** Arguments contain no credentials; only exact owned private mounts. */
+    /**
+     * Arguments contain no credentials; only exact owned private mounts.
+     *
+     * @param array<array-key, mixed> $context
+     * @return list<string>
+     */
     public static function createArguments(array $context, string $service, int $uid, int $gid): array
     {
         self::token($context['token']);
@@ -156,6 +170,11 @@ final class OwnedServicePlan
             self::imageRef($service), 'redis-server', '/run/f03/redis.conf'];
     }
 
+    /**
+     * @param array<array-key, mixed> $record
+     * @param array<array-key, mixed> $credentials
+     * @return array<string, mixed>
+     */
     public static function runtime(array $record, #[SensitiveParameter] array $credentials): array
     {
         self::passwords($credentials);

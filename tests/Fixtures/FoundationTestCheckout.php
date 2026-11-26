@@ -87,6 +87,10 @@ PHP);
         return is_file($this->root.'/pest-reached');
     }
 
+    /**
+     * @param list<string> $arguments
+     * @param array<string, string|false> $overrides
+     */
     public function run(array $arguments, array $overrides = []): Process
     {
         // Remove inherited process variables in the child; do not echo or
@@ -106,6 +110,8 @@ PHP);
      * Exercise the installed Pest CLI on a scratch config with exactly one
      * harmless Unit probe. No real application bootstrap or original test
      * discovery in the child. The fake configured autoload remains in place.
+     *
+     * @param array<string, string|false> $overrides
      */
     public function runPestProbe(array $overrides): Process
     {

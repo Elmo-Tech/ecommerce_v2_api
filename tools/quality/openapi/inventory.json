@@ -1,0 +1,6 @@
+{
+  "roots": [
+    "specs/002-api-foundation/contracts/openapi.json"
+  ],
+  "fragments": []
+}
