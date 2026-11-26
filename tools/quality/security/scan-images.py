@@ -80,7 +80,7 @@ def resolve_candidate(tag, scratch, env):
     return tag + "@" + digest
 
 
-def scan_all():
+def scan_all(compare=False):
     output = {"schemaVersion": 1, "task": "T032-T034", "status": "BLOCKED",
               "stage": "identity", "images": [], "candidateImages": [],
               "candidateApproval": "NOT_APPROVED"}
@@ -138,7 +138,7 @@ def scan_all():
             output["stage"] = "scan"
             # Use the same verified scanner/database for a fair comparison.
             # Only the two approved entries may determine the required gate.
-            for index, name in enumerate((*IMAGES, *CANDIDATES)):
+            for index, name in enumerate((*IMAGES, *(CANDIDATES if compare else ()))):
                 candidate = index >= len(IMAGES)
                 target = name
                 item = summary("BLOCKED", reason="CANDIDATE_RESOLUTION" if candidate else "SCANNER_FAILURE",
@@ -188,6 +188,9 @@ def scan_all():
 
 
 if __name__ == "__main__":
-    result = scan_all()
+    # Comparisons are explicit diagnostics only; normal CI scans approved pins.
+    if sys.argv[1:] not in ([], ["--compare"]):
+        sys.exit(2)
+    result = scan_all(compare=sys.argv[1:] == ["--compare"])
     print(json.dumps(result, sort_keys=True))
     sys.exit({"PASSED": 0, "FAILED": 1, "BLOCKED": 2}[result["status"]])
