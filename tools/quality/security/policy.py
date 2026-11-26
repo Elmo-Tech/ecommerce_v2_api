@@ -130,6 +130,11 @@ IMAGES = (
     "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
     "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
 )
+# Read-only comparison scope. These are not approved integration image pins.
+CANDIDATES = {
+    "docker.io/library/postgres:17.12-trixie": ("debian", "13"),
+    "docker.io/library/redis:8.2.11-alpine3.22": ("alpine", "3.22"),
+}
 TRIVY_VERSION = "0.76.2"
 TRIVY_ARCHIVE_SHA = "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"
 
@@ -186,12 +191,23 @@ def package_version(package, os_package):
 
 
 def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
-                db_before, db_after, now, exceptions=(), approved_exceptions=()):
+                db_before, db_after, now, exceptions=(), approved_exceptions=(),
+                candidate=False):
     """Validate the actual pinned scanner report, keeping all severities."""
     stage = "tool-identity"
     try:
-        require(target in IMAGES and type(exit_code) is int and exit_code == 0
+        require(type(candidate) is bool and type(exit_code) is int and exit_code == 0
                 and scanner_version == TRIVY_VERSION and archive_sha == TRIVY_ARCHIVE_SHA)
+        if candidate:
+            # Explicitly non-gating comparison of the two proposed official tags.
+            tag, separator, digest = target.partition("@")
+            require(tag in CANDIDATES and separator == "@"
+                    and re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
+                    and not exceptions and not approved_exceptions)
+            family, os_version = CANDIDATES[tag]
+        else:
+            require(target in IMAGES)
+            family, os_version = "debian", "12"
         stage = "database"
         freshness = fresh_database(db_before, now)
         require(freshness == fresh_database(db_after, now) and db_before == db_after)
@@ -207,8 +223,9 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
                 and report["ArtifactType"] == "container_image" and report["ArtifactName"] in names)
         stage = "platform"
         meta = report["Metadata"]
-        require(meta["OS"]["Family"] == "debian"
-                and str(meta["OS"]["Name"]).split(".")[0] == "12"
+        detected = str(meta["OS"]["Name"])
+        require(meta["OS"]["Family"] == family
+                and re.fullmatch(re.escape(os_version) + r"(?:\.[0-9]+)*", detected)
                 and meta["ImageConfig"]["architecture"] == "amd64"
                 and meta["ImageConfig"]["os"] == "linux")
         stage = "digest"
@@ -230,7 +247,7 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
             package_count += len(packages)
             require(package_count <= 100000)
             if result["Class"] == "os-pkgs":
-                require(result["Type"] == "debian")
+                require(result["Type"] == family)
                 os_packages += len(packages)
             stage = "finding-fields"
             vulnerabilities = result.get("Vulnerabilities", [])

@@ -349,3 +349,26 @@ class SecurityQualityPolicy(unittest.TestCase):
                 self.assertEqual(blocked["status"], "BLOCKED")
                 self.assertEqual(blocked["stage"], stage)
 
+    def test_candidate_reports_are_explicit_and_use_same_severity_rules(self):
+        policy = self.policy()
+        for tag, family, version in (
+            ("docker.io/library/postgres:17.12-trixie", "debian", "13.1"),
+            ("docker.io/library/redis:8.2.11-alpine3.22", "alpine", "3.22.2"),
+        ):
+            with self.subTest(tag=tag):
+                target = tag + "@sha256:" + "c" * 64
+                report = image()
+                report["ArtifactName"] = target
+                report["Metadata"]["RepoDigests"] = [tag.split(":")[0] + "@sha256:" + "c" * 64]
+                report["Metadata"]["OS"] = {"Family": family, "Name": version}
+                report["Results"][0]["Type"] = family
+                self.assertEqual(self.scan(policy, report, target=target)["status"], "BLOCKED")
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "PASSED")
+                report["Results"][0]["Vulnerabilities"] = [self.finding("HIGH")]
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "FAILED")
+                report["Metadata"]["OS"]["Name"] = "99"
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "BLOCKED")
+        for target in (IMAGES[0], "docker.io/library/redis:8.2.11-alpine3.22",
+                       "docker.io/library/redis:latest@sha256:" + "c" * 64):
+            self.assertEqual(self.scan(policy, image(), target=target, candidate=True)["status"], "BLOCKED")
+

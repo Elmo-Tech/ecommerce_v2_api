@@ -109,3 +109,15 @@ jobs:
             changed["jobs"]["check"]["steps"][-1]["with"][key] = value
             self.assertIn("NODE_PIN_OR_CACHE", policy_issues(changed, True))
 
+    def test_fast_guard_condition_cannot_be_removed_or_bypassed(self):
+        actual = parse((ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml").read_text())
+        self.assertEqual(POLICY.native_issues(actual), [])
+        for condition in (None, "false", "always()"):
+            changed = deepcopy(actual)
+            step = next(s for s in changed["jobs"]["bootstrap"]["steps"] if s.get("id") == "fast_all")
+            if condition is None:
+                del step["if"]
+            else:
+                step["if"] = condition
+            self.assertIn("FAST_GUARD", POLICY.native_issues(changed))
+

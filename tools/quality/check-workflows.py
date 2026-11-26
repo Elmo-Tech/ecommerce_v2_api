@@ -106,16 +106,18 @@ def native_issues(doc):
     if not (needs == "bootstrap" or isinstance(needs, list) and "bootstrap" in needs):
         issues.add("NATIVE_DEPENDENCY")
     prefix = "php -d zend.exception_ignore_args=1 tests/Support/ci/"
-    def guarded_steps(job, commands):
+    def guarded_steps(job, commands, condition=None):
         steps = job.get("steps", [])
         previous = -1
         for command in commands:
             matches = [(i, s) for i, s in enumerate(steps) if s.get("run") == prefix + command]
-            if len(matches) != 1 or matches[0][0] <= previous or "if" in matches[0][1]:
+            if (len(matches) != 1 or matches[0][0] <= previous
+                    or matches[0][1].get("if") != condition):
                 return False
             previous = matches[0][0]
         return True
-    if not guarded_steps(fast, ("run-report.php foundation", "run-report.php fast-all", "run-report.php architecture")):
+    fast_condition = "$" + "{{ !cancelled() && steps.fast_ready.outcome == 'success' }}"
+    if not guarded_steps(fast, ("run-report.php foundation", "run-report.php fast-all", "run-report.php architecture"), fast_condition):
         issues.add("FAST_GUARD")
     if not guarded_steps(native, ("start-owned.php", "setup-owned.php", "run-report.php integration")):
         issues.add("NATIVE_GUARD")

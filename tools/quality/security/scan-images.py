@@ -12,7 +12,7 @@ import sys
 import tarfile
 import tempfile
 
-from policy import (IMAGES, TRIVY_ARCHIVE_SHA, TRIVY_VERSION, fresh_database,
+from policy import (IMAGES, CANDIDATES, TRIVY_ARCHIVE_SHA, TRIVY_VERSION, fresh_database,
                     require, scan_result, summary)
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -59,9 +59,31 @@ def read_json(path, maximum):
     return path.read_text(encoding="utf-8")
 
 
+def resolve_candidate(tag, scratch, env):
+    """Resolve only fixed official tags to one immutable linux/amd64 manifest."""
+    require(tag in CANDIDATES)
+    result = run(["docker", "buildx", "imagetools", "inspect", "--raw", tag],
+                 scratch, env, 90, True)
+    require(result.returncode == 0 and 0 < len(result.stdout) <= 1024 * 1024)
+    index = json.loads(result.stdout)
+    require(index["schemaVersion"] == 2
+            and index["mediaType"] in ("application/vnd.oci.image.index.v1+json",
+                                       "application/vnd.docker.distribution.manifest.list.v2+json"))
+    manifests = [m for m in index["manifests"]
+                 if m.get("platform", {}).get("os") == "linux"
+                 and m.get("platform", {}).get("architecture") == "amd64"]
+    require(len(manifests) == 1 and manifests[0]["mediaType"] in (
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json"))
+    digest = manifests[0]["digest"]
+    require(re.fullmatch(r"sha256:[a-f0-9]{64}", digest))
+    return tag + "@" + digest
+
+
 def scan_all():
     output = {"schemaVersion": 1, "task": "T032-T034", "status": "BLOCKED",
-              "stage": "identity", "images": []}
+              "stage": "identity", "images": [], "candidateImages": [],
+              "candidateApproval": "NOT_APPROVED"}
     try:
         output.update(identity())
         require(json.loads((Path(__file__).parent / "exceptions.json").read_text()) == [])
@@ -114,9 +136,17 @@ def scan_all():
             db_hash = sha(database)
             output["databaseSha256"] = db_hash
             output["stage"] = "scan"
-            for index, target in enumerate(IMAGES):
-                item = summary("BLOCKED", reason="SCANNER_FAILURE", target=target)
+            # Use the same verified scanner/database for a fair comparison.
+            # Only the two approved entries may determine the required gate.
+            for index, name in enumerate((*IMAGES, *CANDIDATES)):
+                candidate = index >= len(IMAGES)
+                target = name
+                item = summary("BLOCKED", reason="CANDIDATE_RESOLUTION" if candidate else "SCANNER_FAILURE",
+                               target=name)
                 try:
+                    if candidate:
+                        target = resolve_candidate(name, scratch, env)
+                        item = summary("BLOCKED", reason="SCANNER_FAILURE", target=target)
                     fresh_database(before, datetime.now(timezone.utc))
                     report = scratch / ("image-" + str(index) + ".json")
                     command = base + common + [
@@ -132,12 +162,17 @@ def scan_all():
                     item = scan_result(target=target, raw=read_json(report, 16 * 1024 * 1024),
                                        exit_code=scanned.returncode, scanner_version=TRIVY_VERSION,
                                        archive_sha=TRIVY_ARCHIVE_SHA, db_before=before, db_after=after,
-                                       now=datetime.now(timezone.utc), exceptions=[], approved_exceptions=[])
+                                       now=datetime.now(timezone.utc), exceptions=[], approved_exceptions=[],
+                                       candidate=candidate)
                     item["target"] = target
                     item["nativeExit"] = scanned.returncode
                 except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
                     pass
-                output["images"].append(item)
+                if candidate:
+                    item.update(candidateOnly=True, requestedTag=name, approval="NOT_APPROVED")
+                    output["candidateImages"].append(item)
+                else:
+                    output["images"].append(item)
         require(not scratch.exists())
         output["ownedCleanup"] = True
         require(identity() == {key: output[key] for key in
