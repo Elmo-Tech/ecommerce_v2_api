@@ -150,7 +150,8 @@ def image_inventory(scratch, env, go, report):
         report["stage"]="image-export"
         archive=scratch/"image.tar"
         run(["docker","export","--output",str(archive),container],scratch,env,180)
-        require(0<archive.stat().st_size<=1500*MIB)
+        archive_bytes=archive.stat().st_size
+        require(0<archive_bytes<=1500*MIB)
         inventory=[]
         paths=set()
         elf_count=0
@@ -158,7 +159,7 @@ def image_inventory(scratch, env, go, report):
         total=0
         gosu=scratch/"gosu.bin"
         report["stage"]="image-export-inventory"
-        report["exportBytes"]=archive.stat().st_size
+        report["exportBytes"]=archive_bytes
         with tarfile.open(archive,"r:") as tar:
             for entry in tar:
                 if not entry.isfile():
@@ -179,12 +180,21 @@ def image_inventory(scratch, env, go, report):
                     elf_count+=1
                     report["elfCount"]=elf_count
                     total+=entry.size
-                    require(elf_count<=4000 and 4<entry.size<=128*MIB and total<=1500*MIB)
+                    # An individual genuine ELF may exceed 128 MiB. Bound by the
+                    # already verified flattened archive, never by unbounded extraction.
+                    report["lastElfBytes"]=entry.size
+                    report["totalElfBytes"]=total
+                    report["maxElfBytes"]=max(entry.size,report.get("maxElfBytes",0))
+                    require(elf_count<=4000 and 4<entry.size<=archive_bytes
+                            and 0<=entry.offset_data<=archive_bytes-entry.size
+                            and total<=archive_bytes)
                     temp=scratch/"elf.bin"
                     with temp.open("xb") as f:
                         f.write(prefix)
                         while chunk:=stream.read(MIB):
                             f.write(chunk)
+                    report["stage"]="image-elf-read-complete"
+                    require(temp.stat().st_size==entry.size)
                     report["stage"]="image-elf-build-metadata"
                     info=run([str(go),"version","-m",str(temp)],scratch,env,30,False)
                     if path=="usr/local/bin/gosu":
@@ -319,6 +329,7 @@ def main():
             out["source"]=scan(scanner,db,"source","./...",source,env)
             require(before=={name:sha(source/name) for name in BLOBS})
             require(out["source"]["databaseModified"]==out["binary"]["databaseModified"])
+            require(all(meta["aliases"].values()))
             out["comparison"]=[]
             for cve,ids in meta["aliases"].items():
                 b=max((out["binary"]["levels"].get(i,0) for i in ids),default=0)
