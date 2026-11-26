@@ -29,7 +29,7 @@ final class FoundationOwnedRunFixture
             'repository' => 'Elmo-Tech/ecommerce_v2_api',
             'run_id' => $runId,
             'run_attempt' => $attempt,
-            'job' => 'f0-03-integration',
+            'job' => 'native-integration',
             'runner_environment' => 'github-hosted',
             'runner_os' => 'Linux',
             'runner_arch' => 'X64',

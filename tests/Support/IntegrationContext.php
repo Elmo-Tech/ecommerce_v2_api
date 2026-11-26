@@ -25,7 +25,7 @@ final class IntegrationContext
         $required = [
             'GITHUB_ACTIONS' => 'true',
             'GITHUB_REPOSITORY' => 'Elmo-Tech/ecommerce_v2_api',
-            'GITHUB_JOB' => 'f0-03-integration',
+            'GITHUB_JOB' => 'native-integration',
             'RUNNER_ENVIRONMENT' => 'github-hosted',
             'RUNNER_OS' => 'Linux',
             'RUNNER_ARCH' => 'X64',

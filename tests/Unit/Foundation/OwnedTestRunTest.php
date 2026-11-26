@@ -32,6 +32,7 @@ dataset('f03 unsafe owned record', [
     'stale run id' => ['record', ['job', 'run_id'], '999999'],
     'stale attempt' => ['descriptor', ['job', 'run_attempt'], '2'],
     'wrong job' => ['descriptor', ['job', 'job'], 'unowned-job'],
+    'obsolete job' => ['job', ['job'], 'f0-03-integration'],
     'self-hosted runner' => ['job', ['runner_environment'], 'self-hosted'],
     'wrong runner architecture' => ['job', ['runner_arch'], 'ARM64'],
     'remote Docker daemon' => ['job', ['docker_endpoint'], 'tcp://f03-synthetic-canary.invalid:2375'],

@@ -128,7 +128,7 @@ final class OwnedTestRun
         if ($job['repository'] !== 'Elmo-Tech/ecommerce_v2_api'
             || !self::matches($job['run_id'], '/^[1-9][0-9]{0,19}$/D')
             || !self::matches($job['run_attempt'], '/^[1-9][0-9]{0,8}$/D')
-            || $job['job'] !== 'f0-03-integration'
+            || $job['job'] !== 'native-integration'
             || $job['runner_environment'] !== 'github-hosted'
             || $job['runner_os'] !== 'Linux'
             || $job['runner_arch'] !== 'X64'

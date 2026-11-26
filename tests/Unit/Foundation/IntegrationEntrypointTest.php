@@ -117,7 +117,7 @@ it('reads only an exact private runtime descriptor and rejects arbitrary filenam
 })->group('testing-foundation');
 
 it('validates integration job inputs independently from the descriptor before Docker access', function (string $case): void {
-    /** @var 'valid'|'wrong job'|'wrong token'|'foreign descriptor'|'conflicting source'|'ambient DB'|'remote docker' $case */
+    /** @var 'valid'|'wrong job'|'obsolete job'|'wrong token'|'foreign descriptor'|'conflicting source'|'ambient DB'|'remote docker' $case */
 
     $fixture = new FoundationOwnedRunFixture();
     try {
@@ -133,6 +133,7 @@ it('validates integration job inputs independently from the descriptor before Do
         match ($case) {
             'valid' => null,
             'wrong job' => $process['GITHUB_JOB'] = 'wrong',
+            'obsolete job' => $process['GITHUB_JOB'] = 'f0-03-integration',
             'wrong token' => $process['F03_RUN_TOKEN'] = 'fedcba9876543210',
             'foreign descriptor' => $process['F03_RUN_DESCRIPTOR'] = '/synthetic/runtime.json',
             'conflicting source' => $env['GITHUB_RUN_ID'] = '999999',
@@ -148,4 +149,4 @@ it('validates integration job inputs independently from the descriptor before Do
     } finally {
         $fixture->close();
     }
-})->with(['valid', 'wrong job', 'wrong token', 'foreign descriptor', 'conflicting source', 'ambient DB', 'remote docker'])->group('testing-foundation');
+})->with(['valid', 'wrong job', 'obsolete job', 'wrong token', 'foreign descriptor', 'conflicting source', 'ambient DB', 'remote docker'])->group('testing-foundation');
