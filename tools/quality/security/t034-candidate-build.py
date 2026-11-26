@@ -25,6 +25,9 @@ scanner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(scanner)
 ASSET, CHECKSUMS, CHECKSUM_SHA, RELEASE = (scanner.ASSET, scanner.CHECKSUMS, scanner.CHECKSUM_SHA, scanner.RELEASE)
 run, read_json = scanner.run, scanner.read_json
+NATIVE_SPEC = importlib.util.spec_from_file_location("f04_candidate_native", Path(__file__).with_name("t034-candidate-native.py"))
+native_compat = importlib.util.module_from_spec(NATIVE_SPEC)
+NATIVE_SPEC.loader.exec_module(native_compat)
 
 ROOT = Path(__file__).resolve().parents[3]
 RECIPES = Path(__file__).with_name("test-images")
@@ -471,6 +474,9 @@ def main():
                                     "InstalledVersion","VulnerabilityID"):
                                 result["missingSchemaField"]=exc.args[0]
                         out["scans"][service]=result
+                if set(out["scans"])==set(BASES) and all(item["status"]=="PASSED" for item in out["scans"].values()):
+                    out["stage"]="candidate-native"
+                    out["nativeCompatibility"]=native_compat.run_candidate_native(scratch,built,out)
             finally:
                 # Remove only exact refs created on this disposable runner.
                 clean=True
@@ -484,12 +490,13 @@ def main():
         out["ownedScratchCleanup"]=True
         out["trackedSourceUnchanged"]=True
         states=[out["scans"].get(service,{}).get("status","BLOCKED") for service in BASES]
-        out["status"]="BLOCKED" if "BLOCKED" in states else "FAILED" if "FAILED" in states else "CANDIDATES_SCAN_PASSED"
+        out["status"]="BLOCKED" if "BLOCKED" in states else "FAILED" if "FAILED" in states else (
+            "CANDIDATES_SCAN_AND_NATIVE_PASSED" if out.get("nativeCompatibility",{}).get("status")=="PASSED" else "BLOCKED")
         out["stage"]="complete"
     except (OSError,ValueError,TypeError,KeyError,AttributeError,subprocess.SubprocessError,tarfile.TarError) as exc:
         out["errorClass"]=type(exc).__name__
     print(json.dumps(out,sort_keys=True))
-    return {"CANDIDATES_SCAN_PASSED":0,"FAILED":1,"BLOCKED":2}[out["status"]]
+    return {"CANDIDATES_SCAN_AND_NATIVE_PASSED":0,"FAILED":1,"BLOCKED":2}[out["status"]]
 
 
 if __name__=="__main__":
