@@ -2,6 +2,7 @@
 import json
 import re
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 
 MAX_REPORT = 4 * 1024 * 1024
 MAX_FINDINGS = 10000
@@ -28,7 +29,7 @@ def read_report(raw):
     return value
 
 
-def token(value, pattern=r"[A-Za-z0-9@./_+:-]+", max_length=200):
+def token(value, pattern=r"[A-Za-z0-9@./_+:~-]+", max_length=200):
     require(isinstance(value, str) and 0 < len(value) <= max_length
             and re.fullmatch(pattern, value) is not None)
     return value
@@ -122,3 +123,129 @@ def audit_result(*, tool, raw, exit_code, lock_sha, expected_lock_sha,
         return summary("FAILED" if findings else "PASSED", findings)
     except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
         return summary("BLOCKED", reason="INVALID_OR_INCOMPLETE_AUDIT")
+
+
+# Only the two existing native integration images are in the MVP scan scope.
+IMAGES = (
+    "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
+    "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+)
+TRIVY_VERSION = "0.76.2"
+TRIVY_ARCHIVE_SHA = "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"
+
+
+def timestamp(value):
+    require(isinstance(value, str) and len(value) <= 40)
+    result = datetime.fromisoformat(value)
+    require(result.tzinfo is not None)
+    return result.astimezone(timezone.utc)
+
+
+def fresh_database(metadata, now):
+    require(isinstance(metadata, dict) and type(metadata.get("Version")) is int
+            and metadata["Version"] == 2 and now.tzinfo is not None)
+    updated = timestamp(metadata["UpdatedAt"])
+    next_update = timestamp(metadata["NextUpdate"])
+    downloaded = timestamp(metadata["DownloadedAt"])
+    require(timedelta(0) <= now - updated <= timedelta(hours=24)
+            and updated < next_update and next_update > now
+            and updated <= downloaded <= now)
+    return {"version": 2, "updatedAt": updated.isoformat(),
+            "nextUpdate": next_update.isoformat(), "downloadedAt": downloaded.isoformat()}
+
+
+def image_names(target):
+    # Trivy's remote image client trims the default Docker Hub namespace.
+    # Accept only the exact approved repository/digest and its known aliases.
+    repository, digest = target.split("@")
+    short = repository.removeprefix("docker.io/library/")
+    untagged = short.split(":")[0]
+    names = {target, short + "@" + digest,
+             "index.docker.io/library/" + short + "@" + digest}
+    digests = {prefix + untagged + "@" + digest
+               for prefix in ("", "library/", "docker.io/library/", "index.docker.io/library/")}
+    return names | digests, digests
+
+
+def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
+                db_before, db_after, now, exceptions=(), approved_exceptions=()):
+    """Validate the actual pinned scanner report, keeping all severities."""
+    try:
+        require(target in IMAGES and type(exit_code) is int and exit_code == 0
+                and scanner_version == TRIVY_VERSION and archive_sha == TRIVY_ARCHIVE_SHA)
+        freshness = fresh_database(db_before, now)
+        require(freshness == fresh_database(db_after, now) and db_before == db_after)
+        # The full native image JSON includes package inventory and metadata.
+        require(isinstance(raw, str) and 0 < len(raw.encode("utf-8")) <= 16 * 1024 * 1024)
+        report = json.loads(raw, object_pairs_hook=unique_pairs,
+                            parse_constant=lambda value: require(False))
+        names, digests = image_names(target)
+        require(isinstance(report, dict) and type(report.get("SchemaVersion")) is int
+                and report["SchemaVersion"] == 2 and report["Trivy"]["Version"] == scanner_version
+                and report["ArtifactType"] == "container_image" and report["ArtifactName"] in names)
+        meta = report["Metadata"]
+        require(meta["OS"]["Family"] == "debian"
+                and str(meta["OS"]["Name"]).split(".")[0] == "12"
+                and meta["ImageConfig"]["architecture"] == "amd64"
+                and meta["ImageConfig"]["os"] == "linux")
+        refs = meta["RepoDigests"]
+        require(isinstance(refs, list) and refs and all(ref in digests for ref in refs))
+        results = report["Results"]
+        require(isinstance(results, list) and results)
+        os_packages = 0
+        package_count = 0
+        findings = []
+        for result in results:
+            require(isinstance(result, dict) and result.get("Class") in ("os-pkgs", "lang-pkgs"))
+            packages = result["Packages"]
+            require(isinstance(packages, list) and packages)
+            inventory = {(token(pkg["Name"]), token(pkg["Version"])) for pkg in packages}
+            package_count += len(packages)
+            require(package_count <= 100000)
+            if result["Class"] == "os-pkgs":
+                require(result["Type"] == "debian")
+                os_packages += len(packages)
+            vulnerabilities = result.get("Vulnerabilities", [])
+            require(isinstance(vulnerabilities, list))
+            for row in vulnerabilities:
+                severity = row["Severity"]
+                require(severity in ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"))
+                name = token(row["PkgName"])
+                installed = token(row["InstalledVersion"])
+                require((name, installed) in inventory)
+                fixed = row.get("FixedVersion", "")
+                # Native fixed versions can be a comma-separated list.
+                require(isinstance(fixed, str) and len(fixed) <= 400)
+                if fixed:
+                    token(fixed, r"[A-Za-z0-9.+:~_, -]+", max_length=400)
+                findings.append({"id": token(row["VulnerabilityID"], r"[A-Za-z0-9._-]+"),
+                                 "package": name, "installedVersion": installed,
+                                 "fixedVersion": fixed, "severity": severity})
+                require(len(findings) <= MAX_FINDINGS)
+        require(os_packages > 0)
+        findings.sort(key=lambda f: (f["id"], f["package"], f["installedVersion"], f["severity"]))
+        # No blanket ignores; lower-risk approvals only acknowledge an exact
+        # retained finding. Actual execution has no approved entries at present.
+        require(isinstance(exceptions, (list, tuple)) and isinstance(approved_exceptions, (list, tuple)))
+        seen = set()
+        for entry in exceptions:
+            require(isinstance(entry, dict) and entry in approved_exceptions
+                    and set(entry) == {"image", "id", "package", "installedVersion", "owner",
+                                       "reviewer", "mitigation", "followUp", "approval", "expiresAt"}
+                    and entry["image"] == target and timestamp(entry["expiresAt"]) > now)
+            for field in ("owner", "reviewer", "mitigation", "followUp", "approval"):
+                require(isinstance(entry[field], str) and 0 < len(entry[field].strip()) <= 1000)
+            require(entry["owner"].strip() != entry["reviewer"].strip())
+            key = (entry["id"], entry["package"], entry["installedVersion"])
+            require(key not in seen and all(isinstance(v, str) and "*" not in v for v in key))
+            matching = [f for f in findings if (f["id"], f["package"], f["installedVersion"]) == key]
+            require(matching and all(f["severity"] in ("LOW", "MEDIUM") for f in matching))
+            seen.add(key)
+        counts = dict(Counter(f["severity"] for f in findings))
+        return summary("FAILED" if any(counts.get(s, 0) for s in ("HIGH", "CRITICAL", "UNKNOWN")) else "PASSED",
+                       findings, exceptionCount=len(seen), severityCounts=counts,
+                       target=target, osPackageCount=os_packages, packageCount=package_count,
+                       database=freshness)
+    except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
+        return summary("BLOCKED", reason="INVALID_OR_INCOMPLETE_SCAN")
+

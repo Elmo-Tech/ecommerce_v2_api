@@ -108,6 +108,12 @@ try {
     assert.ok(major > 10 || (major === 10 && (minor > 9 || (minor === 9 && patch >= 2))));
     assert.equal(command('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund', '--no-progress'], scratch, 120000).status, 0);
     assert.equal(sha(join(scratch, 'package-lock.json')), lockHash);
+    // Reuse the locked install rather than acquiring a second npm graph.
+    const audit = command('python3', ['-B', join(repo, 'tools/quality/security/audit.py'), 'npm', scratch], scratch, 180000);
+    assert.ok([0, 1, 2].includes(audit.status));
+    summary.npmAudit = JSON.parse(audit.stdout);
+    assert.equal(audit.status, 0);
+    assert.equal(summary.npmAudit.status, 'PASSED');
     const cli = join(scratch, 'node_modules/@redocly/cli/bin/cli.js');
     assert.equal(JSON.parse(readFileSync(join(scratch, 'node_modules/@redocly/cli/package.json'), 'utf8')).version, '2.83.0');
     // GitHub-hosted Ubuntu disables unprivileged user namespaces.
