@@ -33,6 +33,7 @@ MIB = 1024 * 1024
 GO_SHA = "9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"
 GOSU_COMMIT = "29b939aa5bd4dc588af765b8248f6e39150d2565"
 GOSU_TREE = "5c69cec164871648ddb14c59192c831b3884ae65"
+GOSU_BUILD_VERSION = "v1.20.0+f04.1"
 BLOBS = {
     "go.mod": "6abe2ddfa1e3de4ab334463463c7c7c14cb1668f",
     "go.sum": "d8a55165cb0ba195d60a21789c187c0708e94e52",
@@ -143,9 +144,16 @@ def gosu_build(scratch, env, context, record):
     record["sourceTree"] = GOSU_TREE
     record["sourceBlobs"] = BLOBS
     record["stage"] = "gosu-locked-modules"
-    # The only source modification is the separate build's module metadata.
+    # Exact reviewed source bytes were verified above. The only local changes
+    # are pinned module metadata and a version-only linker stamp. A locally
+    # built (devel) root module otherwise has no detectable version in Trivy.
     (source/"go.mod").write_text(NEW_MOD, encoding="utf-8")
     (source/"go.sum").write_text(NEW_SUM, encoding="utf-8")
+    version_file=source/"version.go"
+    require(version_file.read_bytes()==b'package main\n\nconst Version = "1.20"\n')
+    version_file.write_bytes(b'package main\n\nvar Version = "1.20"\n')
+    record["versionMetadataPatchSha256"]=sha(version_file)
+    record["gosuBuildVersion"]=GOSU_BUILD_VERSION
     hashes = {name:sha(source/name) for name in BLOBS}
     expected = {line.split()[0]+"@"+line.split()[1]:line.split()[2] for line in NEW_SUM.splitlines()}
     for version in ("github.com/moby/sys/user@v0.4.1","golang.org/x/sys@v0.44.0"):
@@ -160,8 +168,17 @@ def gosu_build(scratch, env, context, record):
             == {"github.com/tianon/gosu","github.com/moby/sys/user v0.4.1","golang.org/x/sys v0.44.0"})
     record["stage"] = "gosu-compile"
     binary=context/"gosu"
+    # Retain ELF .symtab for Trivy 0.76.2's actual version-symbol fallback:
+    # -trimpath hides the ldflags metadata and -s would strip .symtab.
     command([str(go),"build","-trimpath","-buildvcs=false","-mod=readonly",
-             "-ldflags=-s -w -buildid=","-o",str(binary),"."],source,goenv,300)
+             "-ldflags=-w -buildid= -X main.Version="+GOSU_BUILD_VERSION,
+             "-o",str(binary),"."],source,goenv,300)
+    record["stage"]="gosu-version-symbol"
+    nm=command([str(go),"tool","nm",str(binary)],source,goenv,30,True).stdout
+    require(sum(line.split()[-1:]==["main.Version.str"] for line in nm.splitlines())==1
+            and sum(line.split()[-1:]==["main.Version"] for line in nm.splitlines())==1)
+    record["versionSymbolPresent"]=True
+    record["stage"]="gosu-build-metadata"
     info = command([str(go),"version","-m",str(binary)],source,goenv,30,True).stdout
     require(re.search(r": go1\.26\.11$",info.splitlines()[0])
             and "\tpath\tgithub.com/tianon/gosu" in info
@@ -283,18 +300,24 @@ def setup_scanner(scratch, env, output):
     return base, common, before, meta, database, db_hash
 
 
-def validate_local(target, image, service, raw, exit_code, before, after, now):
+def validate_local(target, image, service, raw, exit_code, before, after, now, progress):
     # Same complete inventory/finding logic as the required remote parser;
     # local candidates deliberately have no registry manifest or approval.
+    progress["stage"]="native-exit-database"
+    progress["nativeExit"]=exit_code
     require(type(exit_code) is int and exit_code==0 and before==after)
     freshness=fresh_database(before,now)
     require(freshness==fresh_database(after,now))
     require(isinstance(raw,str) and 0<len(raw.encode("utf-8"))<=16*MIB)
+    progress["stage"]="native-json"
+    progress["rawReportSha256"]=hashlib.sha256(raw.encode("utf-8")).hexdigest()
     report=json.loads(raw,object_pairs_hook=unique_pairs,parse_constant=lambda value:require(False))
+    progress["stage"]="report-identity"
     names={target,"docker.io/library/"+target,"index.docker.io/library/"+target}
     require(type(report.get("SchemaVersion")) is int and report["SchemaVersion"]==2
             and report["Trivy"]["Version"]==TRIVY_VERSION and report["ArtifactType"]=="container_image"
             and report["ArtifactName"] in names)
+    progress["stage"]="platform-local-image-identity"
     family,os_version="alpine",BASES[service][2]
     meta=report["Metadata"]
     require(meta["OS"]["Family"]==family
@@ -303,17 +326,25 @@ def validate_local(target, image, service, raw, exit_code, before, after, now):
             and meta["ImageID"]==image["Id"] and meta["DiffIDs"]==image["RootFS"]["Layers"]
             and isinstance(meta["RepoTags"],list) and meta["RepoTags"]
             and all(tag in names for tag in meta["RepoTags"]) and not meta.get("RepoDigests"))
-    stage = "results"
+    progress["stage"] = "results"
     results = report["Results"]
     require(isinstance(results, list) and results)
     os_packages = 0
     package_count = 0
     findings = []
     for result in results:
-        stage = "package-inventory"
+        progress["stage"] = "package-inventory"
         require(isinstance(result, dict) and result.get("Class") in ("os-pkgs", "lang-pkgs"))
         packages = result["Packages"]
         require(isinstance(packages, list) and packages)
+        # Do not synthesize a version or drop any unknown package. Report
+        # only safe bounded counters and the presence/absence of required
+        # metadata before the original strict version validator.
+        missing_name=sum(isinstance(pkg,dict) and not pkg.get("Name") for pkg in packages)
+        missing_version=sum(isinstance(pkg,dict) and not pkg.get("Version") for pkg in packages)
+        progress["inventoryObservation"]={"class":result["Class"],"packageCount":len(packages),
+                                           "missingNameCount":missing_name,"missingVersionCount":missing_version}
+        require(not missing_name and not missing_version)
         inventory = {(token(pkg["Name"]), package_version(pkg, result["Class"] == "os-pkgs"))
                      for pkg in packages}
         package_count += len(packages)
@@ -321,18 +352,18 @@ def validate_local(target, image, service, raw, exit_code, before, after, now):
         if result["Class"] == "os-pkgs":
             require(result["Type"] == family)
             os_packages += len(packages)
-        stage = "finding-fields"
+        progress["stage"] = "finding-fields"
         vulnerabilities = result.get("Vulnerabilities", [])
         require(isinstance(vulnerabilities, list))
         for row in vulnerabilities:
-            stage = "finding-fields"
+            progress["stage"] = "finding-fields"
             severity = row["Severity"]
             require(severity in ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"))
             name = token(row["PkgName"])
             installed = token(row["InstalledVersion"])
-            stage = "finding-inventory"
+            progress["stage"] = "finding-inventory"
             require((name, installed) in inventory)
-            stage = "finding-fields"
+            progress["stage"] = "finding-fields"
             fixed = row.get("FixedVersion", "")
             # Native fixed versions can be a comma-separated list.
             require(isinstance(fixed, str) and len(fixed) <= 400)
@@ -342,18 +373,21 @@ def validate_local(target, image, service, raw, exit_code, before, after, now):
                              "package": name, "installedVersion": installed,
                              "fixedVersion": fixed, "severity": severity})
             require(len(findings) <= MAX_FINDINGS)
-    stage = "os-coverage"
+    progress["stage"] = "os-coverage"
     require(os_packages > 0)
     findings.sort(key=lambda f: (f["id"], f["package"], f["installedVersion"], f["severity"]))
 
     # Require evidence of the patched versions, even if the scanner reports no
     # findings. A missing language/OS inventory cannot count as green.
+    progress["stage"]="patched-inventory"
     installed=set()
     for item in results:
         for pkg in item["Packages"]:
             installed.add((pkg["Name"],package_version(pkg,item["Class"]=="os-pkgs")))
     if service=="postgres":
-        require(any(name=="stdlib" and version in ("1.26.11","v1.26.11","go1.26.11")
+        require({version for name,version in installed if name=="github.com/tianon/gosu"}
+                =={GOSU_BUILD_VERSION}
+                and any(name=="stdlib" and version in ("1.26.11","v1.26.11","go1.26.11")
                     for name,version in installed)
                 and any(name=="golang.org/x/sys" and version in ("0.44.0","v0.44.0")
                         for name,version in installed)
@@ -362,6 +396,7 @@ def validate_local(target, image, service, raw, exit_code, before, after, now):
     else:
         for name in ("libcrypto3","libssl3"):
             require({version for pkg,version in installed if pkg==name}=={"3.5.9-r2"})
+    progress["stage"]="complete"
     counts=dict(Counter(f["severity"] for f in findings))
     return summary("FAILED" if any(counts.get(s,0) for s in ("HIGH","CRITICAL","UNKNOWN")) else "PASSED",
                    findings,exceptionCount=0,severityCounts=counts,
@@ -411,6 +446,7 @@ def main():
                     for service,(tag,image) in built.items():
                         out["stage"]=service+"-scan"
                         result={"status":"BLOCKED","candidateOnly":True,"approval":"NOT_APPROVED"}
+                        progress={"stage":"scan-native"}
                         try:
                             fresh_database(before,datetime.now(timezone.utc))
                             native=scratch/(service+"-scan.json")
@@ -423,12 +459,22 @@ def main():
                             after=json.loads(read_json(meta,64*1024))
                             require(sha(database)==db_hash)
                             result=validate_local(tag,image,service,read_json(native,16*MIB),
-                                                  scanned.returncode,before,after,datetime.now(timezone.utc))
+                                                  scanned.returncode,before,after,datetime.now(timezone.utc),progress)
+                            progress["stage"]="post-scan-image-identity"
                             now_image=docker_inspect(tag,scratch,env)
                             require(now_image["Id"]==image["Id"] and now_image["RootFS"]==image["RootFS"])
+                            result["rawReportSha256"]=progress["rawReportSha256"]
                         except (OSError,ValueError,TypeError,KeyError,AttributeError,subprocess.SubprocessError) as exc:
                             result={"status":"BLOCKED","errorClass":type(exc).__name__,
-                                    "candidateOnly":True,"approval":"NOT_APPROVED"}
+                                    "candidateOnly":True,"approval":"NOT_APPROVED",**progress}
+                            # Fixed schema field names only; never emit arbitrary
+                            # error strings or raw report data.
+                            if isinstance(exc,KeyError) and exc.args and exc.args[0] in (
+                                    "Version","Name","Packages","Results","Type","Class","Metadata",
+                                    "OS","Family","ImageConfig","architecture","os","ImageID","DiffIDs",
+                                    "RepoTags","Trivy","ArtifactType","ArtifactName","Severity","PkgName",
+                                    "InstalledVersion","VulnerabilityID"):
+                                result["missingSchemaField"]=exc.args[0]
                         out["scans"][service]=result
             finally:
                 # Remove only exact refs created on this disposable runner.
