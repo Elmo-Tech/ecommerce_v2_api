@@ -296,3 +296,56 @@ class SecurityQualityPolicy(unittest.TestCase):
             self.assertNotEqual(self.scan(policy, candidate, exceptions=[entry],
                                           approved_exceptions=[deepcopy(entry)])["status"], "PASSED")
 
+    def test_native_debian_version_fields_match_full_finding_version(self):
+        policy = self.policy()
+        candidate = image()
+        result = candidate["Results"][0]
+        result["Packages"] = [
+            {"Name": "synthetic-lib", "Epoch": 1, "Version": "1.0~rc1",
+             "Release": "2+deb12u1"},
+        ]
+        result["Vulnerabilities"] = [{
+            "VulnerabilityID": "CVE-2026-999998", "PkgName": "synthetic-lib",
+            "InstalledVersion": "1:1.0~rc1-2+deb12u1", "Severity": "MEDIUM",
+            "FixedVersion": "1:1.0-2+deb12u2", "Title": CANARY,
+        }]
+        observed = self.scan(policy, candidate)
+        self.assertEqual(observed["status"], "PASSED")
+        self.assertEqual(observed["findingCount"], 1)
+        self.assertEqual(observed["findings"][0]["installedVersion"],
+                         "1:1.0~rc1-2+deb12u1")
+        # Neither a partial version nor a different epoch/release may match.
+        for wrong in ("1.0~rc1", "2:1.0~rc1-2+deb12u1", "1:1.0~rc1-3+deb12u1"):
+            with self.subTest(wrong=wrong):
+                result["Vulnerabilities"][0]["InstalledVersion"] = wrong
+                blocked = self.scan(policy, candidate)
+                self.assertEqual(blocked["status"], "BLOCKED")
+                self.assertEqual(blocked["stage"], "finding-inventory")
+        result["Packages"][0]["Epoch"] = True
+        blocked = self.scan(policy, candidate)
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked["stage"], "package-inventory")
+
+    def test_scan_blocker_stage_is_fixed_and_never_raw_report(self):
+        policy = self.policy()
+        cases = [
+            ("tool-identity", image(), {"exit_code": 2}),
+            ("database", image(), {"db_before": None}),
+            ("json", CANARY, {}),
+        ]
+        for stage, change in (
+            ("report-identity", lambda d: d.update(ArtifactName=CANARY)),
+            ("platform", lambda d: d["Metadata"]["ImageConfig"].update(architecture=CANARY)),
+            ("digest", lambda d: d["Metadata"].update(RepoDigests=[CANARY])),
+            ("results", lambda d: d.update(Results=[])),
+            ("package-inventory", lambda d: d["Results"][0].update(Packages=[])),
+        ):
+            candidate = image()
+            change(candidate)
+            cases.append((stage, candidate, {}))
+        for stage, report, options in cases:
+            with self.subTest(stage=stage):
+                blocked = self.scan(policy, report, **options)
+                self.assertEqual(blocked["status"], "BLOCKED")
+                self.assertEqual(blocked["stage"], stage)
+

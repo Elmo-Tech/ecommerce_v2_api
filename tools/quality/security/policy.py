@@ -167,52 +167,83 @@ def image_names(target):
     return names | digests, digests
 
 
+def package_version(package, os_package):
+    # Trivy v0.76.2's Debian detector uses scan/utils.FormatVersion:
+    # the inventory stores Epoch, Version and Release separately, but the
+    # vulnerability record uses the canonical complete binary version.
+    version = token(package["Version"])
+    if not os_package:
+        return version
+    epoch = package.get("Epoch", 0)
+    release = package.get("Release", "")
+    require(type(epoch) is int and 0 <= epoch <= 2147483647
+            and isinstance(release, str))
+    if release:
+        version += "-" + token(release)
+    if epoch:
+        version = str(epoch) + ":" + version
+    return token(version)
+
+
 def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
                 db_before, db_after, now, exceptions=(), approved_exceptions=()):
     """Validate the actual pinned scanner report, keeping all severities."""
+    stage = "tool-identity"
     try:
         require(target in IMAGES and type(exit_code) is int and exit_code == 0
                 and scanner_version == TRIVY_VERSION and archive_sha == TRIVY_ARCHIVE_SHA)
+        stage = "database"
         freshness = fresh_database(db_before, now)
         require(freshness == fresh_database(db_after, now) and db_before == db_after)
+        stage = "json"
         # The full native image JSON includes package inventory and metadata.
         require(isinstance(raw, str) and 0 < len(raw.encode("utf-8")) <= 16 * 1024 * 1024)
         report = json.loads(raw, object_pairs_hook=unique_pairs,
                             parse_constant=lambda value: require(False))
+        stage = "report-identity"
         names, digests = image_names(target)
         require(isinstance(report, dict) and type(report.get("SchemaVersion")) is int
                 and report["SchemaVersion"] == 2 and report["Trivy"]["Version"] == scanner_version
                 and report["ArtifactType"] == "container_image" and report["ArtifactName"] in names)
+        stage = "platform"
         meta = report["Metadata"]
         require(meta["OS"]["Family"] == "debian"
                 and str(meta["OS"]["Name"]).split(".")[0] == "12"
                 and meta["ImageConfig"]["architecture"] == "amd64"
                 and meta["ImageConfig"]["os"] == "linux")
+        stage = "digest"
         refs = meta["RepoDigests"]
         require(isinstance(refs, list) and refs and all(ref in digests for ref in refs))
+        stage = "results"
         results = report["Results"]
         require(isinstance(results, list) and results)
         os_packages = 0
         package_count = 0
         findings = []
         for result in results:
+            stage = "package-inventory"
             require(isinstance(result, dict) and result.get("Class") in ("os-pkgs", "lang-pkgs"))
             packages = result["Packages"]
             require(isinstance(packages, list) and packages)
-            inventory = {(token(pkg["Name"]), token(pkg["Version"])) for pkg in packages}
+            inventory = {(token(pkg["Name"]), package_version(pkg, result["Class"] == "os-pkgs"))
+                         for pkg in packages}
             package_count += len(packages)
             require(package_count <= 100000)
             if result["Class"] == "os-pkgs":
                 require(result["Type"] == "debian")
                 os_packages += len(packages)
+            stage = "finding-fields"
             vulnerabilities = result.get("Vulnerabilities", [])
             require(isinstance(vulnerabilities, list))
             for row in vulnerabilities:
+                stage = "finding-fields"
                 severity = row["Severity"]
                 require(severity in ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"))
                 name = token(row["PkgName"])
                 installed = token(row["InstalledVersion"])
+                stage = "finding-inventory"
                 require((name, installed) in inventory)
+                stage = "finding-fields"
                 fixed = row.get("FixedVersion", "")
                 # Native fixed versions can be a comma-separated list.
                 require(isinstance(fixed, str) and len(fixed) <= 400)
@@ -222,8 +253,10 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
                                  "package": name, "installedVersion": installed,
                                  "fixedVersion": fixed, "severity": severity})
                 require(len(findings) <= MAX_FINDINGS)
+        stage = "os-coverage"
         require(os_packages > 0)
         findings.sort(key=lambda f: (f["id"], f["package"], f["installedVersion"], f["severity"]))
+        stage = "exceptions"
         # No blanket ignores; lower-risk approvals only acknowledge an exact
         # retained finding. Actual execution has no approved entries at present.
         require(isinstance(exceptions, (list, tuple)) and isinstance(approved_exceptions, (list, tuple)))
@@ -247,5 +280,5 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
                        target=target, osPackageCount=os_packages, packageCount=package_count,
                        database=freshness)
     except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
-        return summary("BLOCKED", reason="INVALID_OR_INCOMPLETE_SCAN")
+        return summary("BLOCKED", reason="INVALID_OR_INCOMPLETE_SCAN", stage=stage)
 
