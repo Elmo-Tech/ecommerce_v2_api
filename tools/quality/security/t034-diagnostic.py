@@ -137,13 +137,17 @@ def image_inventory(scratch, env, go, report):
                 and any(x.split("@")[-1]==IMAGE.split("@")[-1] for x in record[0]["RepoDigests"]))
         report["imageId"]=record[0]["Id"]
         name="f04-gosu-"+os.environ["GITHUB_RUN_ID"]+"-"+os.environ["GITHUB_RUN_ATTEMPT"]
+        report["stage"]="image-container-create"
         container=run(["docker","create","--name",name,"--network","none","--read-only",
                        "--cap-drop","ALL","--security-opt","no-new-privileges",
                        "--entrypoint","/bin/false",IMAGE],scratch,env).stdout.strip()
+        report["stage"]="image-container-id"
         require(re.fullmatch(r"[0-9a-f]{64}",container))
+        report["stage"]="image-container-stopped"
         state=json.loads(run(["docker","container","inspect",container],scratch,env).stdout)[0]
         require(state["Id"]==container and state["Image"]==IMAGE_ID
                 and state["State"]["Status"]=="created" and state["State"]["Running"] is False)
+        report["stage"]="image-export"
         archive=scratch/"image.tar"
         run(["docker","export","--output",str(archive),container],scratch,env,180)
         require(0<archive.stat().st_size<=1500*MIB)
@@ -153,11 +157,15 @@ def image_inventory(scratch, env, go, report):
         regular_count=0
         total=0
         gosu=scratch/"gosu.bin"
+        report["stage"]="image-export-inventory"
+        report["exportBytes"]=archive.stat().st_size
         with tarfile.open(archive,"r:") as tar:
             for entry in tar:
                 if not entry.isfile():
                     continue
                 regular_count+=1
+                report["regularFileCount"]=regular_count
+                report["stage"]="image-export-regular-entry"
                 require(regular_count<=100000)
                 path=entry.name.removeprefix("./")
                 require(not path.startswith("/") and ".." not in Path(path).parts
@@ -167,7 +175,9 @@ def image_inventory(scratch, env, go, report):
                     prefix=stream.read(4)
                     if prefix!=b"\x7fELF":
                         continue
+                    report["stage"]="image-export-elf-entry"
                     elf_count+=1
+                    report["elfCount"]=elf_count
                     total+=entry.size
                     require(elf_count<=4000 and 4<entry.size<=128*MIB and total<=1500*MIB)
                     temp=scratch/"elf.bin"
@@ -175,25 +185,37 @@ def image_inventory(scratch, env, go, report):
                         f.write(prefix)
                         while chunk:=stream.read(MIB):
                             f.write(chunk)
+                    report["stage"]="image-elf-build-metadata"
                     info=run([str(go),"version","-m",str(temp)],scratch,env,30,False)
+                    if path=="usr/local/bin/gosu":
+                        report["gosuObservedSha256"]=sha(temp)
+                        report["gosuBuildMetadataExitCode"]=info.returncode
                     if re.search(r": go1\.\d+",info.stdout):
                         require(info.returncode==0 and re.fullmatch(r"[A-Za-z0-9_./+-]+",path))
                         digest=sha(temp)
                         inventory.append({"path":path,"sha256":digest})
                         if path=="usr/local/bin/gosu":
+                            report["stage"]="image-gosu-release-identity"
                             require(digest==GOSU_SHA)
-                            require("go1.24.6" in info.stdout and "\tdep\tgolang.org/x/sys\tv0.1.0\t" in info.stdout
-                                    and "\tdep\tgithub.com/moby/sys/user\tv0.4.1\t" in info.stdout
-                                    and "\tbuild\tCGO_ENABLED=0" in info.stdout)
+                            report["stage"]="image-gosu-build-metadata"
+                            checks={"goVersion": "go1.24.6" in info.stdout,
+                                    "xsys": "\tdep\tgolang.org/x/sys\tv0.1.0\t" in info.stdout,
+                                    "mobyUser": "\tdep\tgithub.com/moby/sys/user\tv0.4.1\t" in info.stdout,
+                                    "cgoDisabled": "\tbuild\tCGO_ENABLED=0" in info.stdout}
+                            report["gosuBuildChecks"]=checks
+                            require(all(checks.values()))
                             temp.rename(gosu)
                             report["gosuBuildInfo"]=[line.strip() for line in info.stdout.splitlines()[1:]
                                                       if line.startswith(("\tpath\t","\tmod\t","\tdep\t","\tbuild\tCGO_ENABLED=",
                                                                           "\tbuild\tGOOS=","\tbuild\tGOARCH="))]
                     elif path=="usr/local/bin/gosu":
+                        report["stage"]="image-gosu-unrecognized-build-metadata"
                         require(False)
                     if temp.exists():
                         temp.unlink()
+        report["stage"]="image-gosu-inventory-complete"
         require(gosu.is_file() and sha(gosu)==GOSU_SHA)
+        report["stage"]="image-container-remained-stopped"
         state=json.loads(run(["docker","container","inspect",container],scratch,env).stdout)[0]
         require(state["State"]["Status"]=="created" and state["State"]["Running"] is False)
         report.update(elfCount=elf_count,regularFileCount=regular_count,goBinaries=inventory,
