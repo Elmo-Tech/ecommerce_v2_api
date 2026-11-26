@@ -137,7 +137,7 @@ jobs:
           export COMPOSER_CACHE_DIR="$candidate/cache"
           export HOME="$candidate"
           unset COMPOSER_AUTH COMPOSER_NO_AUDIT
-          composer update symfony/http-kernel:8.1.12 symfony/mailer:8.1.12 symfony/routing:8.1.12 --minimal-changes --no-install --no-scripts --no-plugins --no-interaction --no-progress
+          composer update symfony/http-kernel:8.1.12 symfony/mailer:8.1.12 symfony/routing:8.1.12 symfony/http-foundation:8.1.12 --minimal-changes --no-install --no-scripts --no-plugins --no-interaction --no-progress
           composer validate --strict --no-check-publish
           composer check-platform-reqs --lock
           composer audit --locked --no-interaction
@@ -145,7 +145,7 @@ jobs:
           import json
           before=json.load(open('original.lock'))
           after=json.load(open('composer.lock'))
-          expected={'symfony/http-kernel','symfony/mailer','symfony/routing'}
+          expected={'symfony/http-kernel','symfony/mailer','symfony/routing','symfony/http-foundation'}
           def packages(d):
               return {p['name']:p for p in d['packages']+d['packages-dev']}
           a,b=packages(before),packages(after)
@@ -153,7 +153,7 @@ jobs:
           assert {name for name in a if a[name]!=b[name]}==expected
           assert all(b[name]['version']=='v8.1.12' for name in expected)
           assert {k:v for k,v in before.items() if k not in ('packages','packages-dev')}=={k:v for k,v in after.items() if k not in ('packages','packages-dev')}
-          print('Verified exact three-package patch proposal; no other locked records changed.')
+          print('Verified exact four-package patch proposal; no other locked records changed.')
           PY
 
       - name: Upload only the reviewed-scope candidate lock
@@ -886,6 +886,8 @@ jobs:
       - name: Run integrated offline Redocly lint and bundle controls
         if: ${{ always() && steps.scratch.outcome == 'success' && steps.node.outcome == 'success' }}
         shell: bash
+        env:
+          F04_RUNNER_ENVIRONMENT: ${{ runner.environment }}
         run: |
           set -euo pipefail
           umask 077

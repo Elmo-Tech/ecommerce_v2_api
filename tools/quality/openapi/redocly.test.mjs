@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preflightCheckout, preflightContracts } from './validate.mjs';
@@ -110,15 +110,36 @@ try {
     assert.equal(sha(join(scratch, 'package-lock.json')), lockHash);
     const cli = join(scratch, 'node_modules/@redocly/cli/bin/cli.js');
     assert.equal(JSON.parse(readFileSync(join(scratch, 'node_modules/@redocly/cli/package.json'), 'utf8')).version, '2.83.0');
-    // Standard Linux network namespace; no sudo or elevated host privileges.
-    // If the runner cannot provide isolation, the lane is blocked, not green.
-    const offline = ['--user', '--map-root-user', '--net', '--'];
-    if (command('unshare', [...offline, 'true']).status !== 0) {
+    // GitHub-hosted Ubuntu disables unprivileged user namespaces.
+    // Elevate only the fixed namespace setup, then drop UID/GID, all groups
+    // and capabilities before the locked CLI starts; no privileged Node.
+    assert.equal(process.env.F04_RUNNER_ENVIRONMENT, 'github-hosted');
+    const uid = process.getuid();
+    const gid = process.getgid();
+    assert.ok(uid > 0 && gid > 0);
+    const hostNamespace = readlinkSync('/proc/self/ns/net');
+    const offline = ['-n', '--', '/usr/bin/unshare', '--net', '--',
+        '/usr/bin/setpriv', '--reuid=' + uid, '--regid=' + gid, '--clear-groups',
+        '--no-new-privs', '--bounding-set=-all', '--inh-caps=-all', '--ambient-caps=-all',
+        '--', '/usr/bin/env', '-i', ...Object.entries(env).map(([k, v]) => k + '=' + v), process.execPath];
+    const offlineRun = (args) => command('/usr/bin/sudo', [...offline, ...args]);
+    const probe = offlineRun(['-e', "const os=require('node:os'),fs=require('node:fs');console.log(JSON.stringify({uid:process.getuid(),gid:process.getgid(),namespace:fs.readlinkSync('/proc/self/ns/net'),interfaces:Object.keys(os.networkInterfaces()),status:fs.readFileSync('/proc/self/status','utf8').split('\\n').filter(s=>/^(CapEff|CapPrm|CapBnd|NoNewPrivs):/.test(s))}))"]);
+    if (probe.status !== 0) {
         summary.blockedReason = 'NETWORK_NAMESPACE_UNAVAILABLE';
         throw new Error('Offline namespace unavailable');
     }
-    summary.networkIsolation = 'linux-user-netns';
-    const cliRun = (args) => command('unshare', [...offline, process.execPath,
+    const observed = JSON.parse(probe.stdout);
+    assert.equal(observed.uid, uid);
+    assert.equal(observed.gid, gid);
+    assert.notEqual(observed.namespace, hostNamespace);
+    assert.ok(observed.interfaces.every((name) => name === 'lo'));
+    for (const key of ['CapEff', 'CapPrm', 'CapBnd']) {
+        assert.ok(observed.status.some((line) => new RegExp('^' + key + ':\\s+0+$').test(line)));
+    }
+    assert.ok(observed.status.some((line) => /^NoNewPrivs:\s+1$/.test(line)));
+    summary.networkIsolation = 'linux-netns-unprivileged-child';
+    summary.offlineProbePassed = true;
+    const cliRun = (args) => offlineRun([
         '--permission', '--allow-fs-read=' + scratch, '--allow-fs-read=' + scratch + '/*',
         '--allow-fs-write=' + scratch, '--allow-fs-write=' + scratch + '/*', cli, ...args,
     ]);
