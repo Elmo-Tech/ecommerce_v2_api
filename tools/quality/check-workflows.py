@@ -51,11 +51,12 @@ def policy_issues(doc, primary):
         issues.add("REUSABLE_SPEC_KIT")
     if doc.get("permissions") != READ_ONLY:
         issues.add("PERMISSIONS")
-    for job in jobs.values():
+    for job_id, job in jobs.items():
         if not isinstance(job, dict):
             issues.add("WORKFLOW_SHAPE")
             continue
-        if job.get("permissions", READ_ONLY) != READ_ONLY:
+        allowed = {**READ_ONLY, "packages": "read"} if primary and job_id in ("image-scan", "native-integration") else READ_ONLY
+        if job.get("permissions", READ_ONLY) != allowed:
             issues.add("PERMISSIONS")
         if job.get("continue-on-error", "false") != "false":
             issues.add("CONTINUE_ON_ERROR")

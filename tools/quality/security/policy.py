@@ -127,9 +127,13 @@ def audit_result(*, tool, raw, exit_code, lock_sha, expected_lock_sha,
 
 # Only the two existing native integration images are in the MVP scan scope.
 IMAGES = (
-    "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
-    "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed",
 )
+IMAGE_METADATA = {
+    IMAGES[0]: ("alpine", "3.23", "sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7"),
+    IMAGES[1]: ("alpine", "3.22", "sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a"),
+}
 # Read-only comparison scope. These are not approved integration image pins.
 CANDIDATES = {
     "docker.io/library/postgres:17.12-trixie": ("debian", "13"),
@@ -165,6 +169,8 @@ def image_names(target):
     # Trivy's remote image client trims the default Docker Hub namespace.
     # Accept only the exact approved repository/digest and its known aliases.
     repository, digest = target.split("@")
+    if target in IMAGE_METADATA:
+        return {target}, {target}
     short = repository.removeprefix("docker.io/library/")
     untagged = short.split(":")[0]
     names = {target, short + "@" + digest,
@@ -209,7 +215,7 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
             family, os_version = CANDIDATES[tag]
         else:
             require(target in IMAGES)
-            family, os_version = "debian", "12"
+            family, os_version, expected_id = IMAGE_METADATA[target]
         stage = "database"
         freshness = fresh_database(db_before, now)
         require(freshness == fresh_database(db_after, now) and db_before == db_after)
@@ -233,6 +239,8 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
         stage = "digest"
         refs = meta["RepoDigests"]
         require(isinstance(refs, list) and refs and all(ref in digests for ref in refs))
+        if not candidate:
+            require(meta["ImageID"] == expected_id)
         stage = "results"
         results = report["Results"]
         require(isinstance(results, list) and results)
@@ -297,7 +305,7 @@ def scan_result(*, target, raw, exit_code, scanner_version, archive_sha,
         return summary("FAILED" if any(counts.get(s, 0) for s in ("HIGH", "CRITICAL", "UNKNOWN")) else "PASSED",
                        findings, exceptionCount=len(seen), severityCounts=counts,
                        target=target, osPackageCount=os_packages, packageCount=package_count,
-                       database=freshness)
+                       database=freshness, **({"imageId": expected_id} if not candidate else {}))
     except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
         return summary("BLOCKED", reason="INVALID_OR_INCOMPLETE_SCAN", stage=stage)
 

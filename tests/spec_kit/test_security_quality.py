@@ -11,8 +11,8 @@ HELPER = ROOT / "tools/quality/security/policy.py"
 LOCK = "a" * 64
 ARCHIVE = "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"
 IMAGES = (
-    "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
-    "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed",
 )
 NOW = datetime(2026, 11, 26, 10, 0, tzinfo=timezone.utc)
 CANARY = "synthetic-private-message"
@@ -44,18 +44,20 @@ def db(updated=None, next_update=None):
 
 
 def image(target=IMAGES[0]):
-    repo = target.split(":17.12" if "postgres:" in target else ":8.2.11")[0]
-    digest = target.split("@")[1]
+    repo, digest = target.split("@")
+    version = "3.23" if target == IMAGES[0] else "3.22"
+    image_id = "sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7" if target == IMAGES[0] else "sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a"
     return {
         "SchemaVersion": 2, "Trivy": {"Version": "0.76.2"},
         "ArtifactName": target, "ArtifactType": "container_image",
         "Metadata": {
-            "OS": {"Family": "debian", "Name": "12"},
+            "OS": {"Family": "alpine", "Name": version},
+            "ImageID": image_id,
             "RepoDigests": [repo + "@" + digest],
             "ImageConfig": {"architecture": "amd64", "os": "linux"},
         },
         "Results": [{
-            "Target": target + " (debian 12)", "Class": "os-pkgs", "Type": "debian",
+            "Target": target + " (alpine " + version + ")", "Class": "os-pkgs", "Type": "alpine",
             "Packages": [{"Name": "synthetic-lib", "Version": "1.0"}],
             "Vulnerabilities": [],
         }],
@@ -185,7 +187,11 @@ class SecurityQualityPolicy(unittest.TestCase):
         for name, change in (
             ("wrong-platform", lambda d: d["Metadata"]["ImageConfig"].update(architecture="arm64")),
             ("wrong-source", lambda d: d.update(ArtifactName="synthetic.invalid/other@sha256:" + "b" * 64)),
-            ("wrong-digest", lambda d: d["Metadata"].update(RepoDigests=["docker.io/library/postgres@sha256:" + "b" * 64])),
+            ("wrong-digest", lambda d: d["Metadata"].update(RepoDigests=["ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:" + "b" * 64])),
+            ("wrong-registry", lambda d: d["Metadata"].update(RepoDigests=["docker.io/library/postgres@" + IMAGES[0].split("@")[1]])),
+            ("wrong-config", lambda d: d["Metadata"].update(ImageID="sha256:" + "b" * 64)),
+            ("missing-config", lambda d: d["Metadata"].pop("ImageID")),
+            ("wrong-os", lambda d: d["Metadata"]["OS"].update(Name="3.22")),
             ("missing-os", lambda d: d["Metadata"].pop("OS")),
             ("missing-packages", lambda d: d["Results"][0].pop("Packages")),
             ("empty-results", lambda d: d.update(Results=[])),

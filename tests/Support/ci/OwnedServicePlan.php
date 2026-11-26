@@ -116,12 +116,13 @@ final class OwnedServicePlan
 
     public static function imageRef(string $service): string
     {
-        $tag = match ($service) {
-            'postgres' => 'postgres:17.12-bookworm',
-            'redis' => 'redis:8.2.11-bookworm',
+        $repository = match ($service) {
+            'postgres' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres',
+            'redis' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-redis',
             default => throw new RuntimeException('Unknown owned service.'),
         };
-        return 'docker.io/library/'.$tag.'@'.OwnedTestRun::image($service)['manifest'];
+
+        return $repository.'@'.OwnedTestRun::image($service)['manifest'];
     }
 
     /**

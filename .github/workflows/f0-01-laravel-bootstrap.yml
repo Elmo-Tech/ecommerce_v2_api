@@ -707,6 +707,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      packages: read
     steps:
       - name: Checkout exact integrated candidate
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -726,6 +727,8 @@ jobs:
 
       - name: Run actual pinned Trivy and publish safe result only
         shell: bash
+        env:
+          F04_GHCR_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           umask 077
@@ -974,6 +977,9 @@ jobs:
     if: ${{ (github.event_name == 'pull_request' && github.base_ref == 'development') && needs.classify.result == 'success' && fromJSON(needs.classify.outputs.classification).lanes['native-integration'].required && needs.bootstrap.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
     env:
       APP_ENV: testing
       APP_DEBUG: "false"
@@ -1013,6 +1019,8 @@ jobs:
 
       - name: Validate actual hosted local Docker and immutable approved images
         shell: bash
+        env:
+          F04_GHCR_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$RUNNER_ENVIRONMENT" = github-hosted
@@ -1031,13 +1039,34 @@ jobs:
           test -S /var/run/docker.sock
           test "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" = linux/amd64
           echo "Source checkout: $(git rev-parse HEAD)"
+          umask 077
+          registry_config="$(mktemp -d "$RUNNER_TEMP/f04-ghcr-read-XXXXXXXXXXXX")"
+          cleanup_registry() {
+            local status=$?
+            trap - EXIT
+            docker --config "$registry_config" logout ghcr.io >/dev/null 2>&1 || status=1
+            if [ -f "$registry_config/config.json" ] && [ ! -L "$registry_config/config.json" ]; then
+              rm -- "$registry_config/config.json" || status=1
+            fi
+            rmdir -- "$registry_config" || status=1
+            exit "$status"
+          }
+          trap cleanup_registry EXIT
+          test -n "$F04_GHCR_READ_TOKEN"
+          printf '%s\n' "$F04_GHCR_READ_TOKEN" | docker --config "$registry_config" login ghcr.io --username "$GITHUB_ACTOR" --password-stdin >/dev/null
+          unset F04_GHCR_READ_TOKEN
           for image in \
-            docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03 \
-            docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87; do
-            docker --host unix:///var/run/docker.sock pull --platform linux/amd64 "$image"
+            ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec \
+            ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed; do
+            docker --config "$registry_config" --host unix:///var/run/docker.sock pull --platform linux/amd64 "$image"
             test "$(docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
-            digest="${image##*@}"
-            docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -F "@$digest" >/dev/null
+            case "$image" in
+              ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec) expected_id=sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7 ;;
+              ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed) expected_id=sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a ;;
+              *) exit 2 ;;
+            esac
+            test "$(docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Id}}')" = "$expected_id"
+            docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fx "$image" >/dev/null
             docker --host unix:///var/run/docker.sock image inspect "$image" --format 'Image ID={{.Id}} platform={{.Os}}/{{.Architecture}} RepoDigests={{json .RepoDigests}}'
           done
 

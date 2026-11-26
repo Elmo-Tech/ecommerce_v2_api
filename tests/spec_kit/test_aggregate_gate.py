@@ -133,18 +133,18 @@ class AggregateQuality(unittest.TestCase):
                   "downloadedAt": (now - timedelta(minutes=1)).isoformat(),
                   "nextUpdate": (now + timedelta(hours=1)).isoformat()}
             images = []
-            for target in (
-                "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
-                "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+            for target, image_id in (
+                ("ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec", "sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7"),
+                ("ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed", "sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a"),
             ):
-                images.append({"target": target, "status": "PASSED", "nativeExit": 0, "exceptionCount": 0,
+                images.append({"target": target, "imageId": image_id, "status": "PASSED", "nativeExit": 0, "exceptionCount": 0,
                                "packageCount": 10, "osPackageCount": 10, "findings": [], "findingCount": 0,
                                "severityCounts": {}, "database": db})
             self.put(directory / "scan.summary.json", {**common, "stage": "complete", "task": "T032-T034",
                      "scannerVersion": "0.76.2", "archiveSha256": "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf",
                      "checksumFileSha256": "802e4ac1418ed967cd3c4b901f4f71ca00b7363ede67778665a22d9f13f58c83",
                      "databaseSha256": "a" * 64, "ownedCleanup": True, "trackedSourceUnchanged": True,
-                     "candidateImages": [], "images": images})
+                     "registryAuthCleanup": True, "candidateImages": [], "images": images})
         elif lane == "spec-kit":
             cases = ["test_fixture.Case.test_%03d" % i for i in range(70)]
             self.put(directory / "spec-kit.summary.json", {**common, "testCount": len(cases),

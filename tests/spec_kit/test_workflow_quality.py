@@ -54,6 +54,7 @@ jobs:
             ("PRIVILEGED_TRIGGER", lambda d: d["on"].update(pull_request_target="")),
             ("PERMISSIONS", lambda d: d.update(permissions={"contents": "write"})),
             ("PERMISSIONS", lambda d: d["jobs"]["check"].update(permissions={"contents": "write"})),
+            ("PERMISSIONS", lambda d: d["jobs"]["check"].update(permissions={"contents": "read", "packages": "read"})),
             ("CHECKOUT_CREDENTIALS", lambda d: d["jobs"]["check"]["steps"][0]["with"].pop("persist-credentials")),
             ("CONTINUE_ON_ERROR", lambda d: d["jobs"]["check"]["steps"][0].update({"continue-on-error": "true"})),
             ("SECRETS", lambda d: d["jobs"]["check"].update(secrets="inherit")),
@@ -73,6 +74,11 @@ jobs:
         actual = parse(path.read_text())
         self.assertEqual(policy_issues(actual, True), [])
         self.assertEqual(POLICY.aggregate_issues(actual), [])
+        for job_id in ("image-scan", "native-integration"):
+            for permissions in ({"contents": "read"}, {"contents": "read", "packages": "write"}):
+                changed = deepcopy(actual)
+                changed["jobs"][job_id]["permissions"] = permissions
+                self.assertIn("PERMISSIONS", policy_issues(changed, True))
 
     def test_actual_spec_kit_workflow(self):
         path = ROOT / ".github/workflows/fnd-01-spec-kit-review.yml"

@@ -88,6 +88,8 @@ def scan_all(compare=False):
               "candidateApproval": "NOT_APPROVED"}
     try:
         output.update(identity())
+        credential = os.environ.pop("F04_GHCR_READ_TOKEN", "")
+        require(0 < len(credential) <= 1024 and "\n" not in credential)
         require(json.loads((Path(__file__).parent / "exceptions.json").read_text()) == [])
         output["stage"] = "scanner-acquisition"
         with tempfile.TemporaryDirectory(prefix="f04-trivy-") as directory:
@@ -137,6 +139,16 @@ def scan_all(compare=False):
             require(database.is_file() and not database.is_symlink() and database.stat().st_size > 0)
             db_hash = sha(database)
             output["databaseSha256"] = db_hash
+            output["stage"] = "registry-auth"
+            config_dir = scratch / "docker-config"
+            config_dir.mkdir(mode=0o700, exist_ok=True)
+            actor = os.environ["GITHUB_ACTOR"]
+            require(re.fullmatch(r"[A-Za-z0-9_.\[\]-]{1,100}", actor))
+            login = subprocess.run(["docker", "login", "ghcr.io", "--username", actor, "--password-stdin"],
+                                   input=credential.encode() + b"\n", cwd=scratch, env=env,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60, check=False)
+            del credential
+            require(login.returncode == 0)
             output["stage"] = "scan"
             # Use the same verified scanner/database for a fair comparison.
             # Only the two approved entries may determine the required gate.
@@ -175,7 +187,9 @@ def scan_all(compare=False):
                     output["candidateImages"].append(item)
                 else:
                     output["images"].append(item)
+            require(run(["docker", "logout", "ghcr.io"], scratch, env, 30).returncode == 0)
         require(not scratch.exists())
+        output["registryAuthCleanup"] = True
         output["ownedCleanup"] = True
         require(identity() == {key: output[key] for key in
                                ("sourceSha", "baseSha", "checkoutSha", "runId", "runAttempt")})

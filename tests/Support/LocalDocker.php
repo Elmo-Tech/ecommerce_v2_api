@@ -402,8 +402,7 @@ final class LocalDocker
             \Tests\Support\ci\OwnedServicePlan::imageRef($service),
         ])[0], 4);
         if ($image[0] !== $pin['image_id'] || $image[1] !== 'linux' || $image[2] !== 'amd64'
-            || !is_array($image[3]) || (!in_array($service.'@'.$pin['manifest'], $image[3], true)
-                && !in_array('docker.io/library/'.$service.'@'.$pin['manifest'], $image[3], true))) {
+            || !is_array($image[3]) || !in_array(\Tests\Support\ci\OwnedServicePlan::imageRef($service), $image[3], true)) {
             self::reject();
         }
     }
@@ -503,21 +502,14 @@ final class LocalDocker
             self::reject();
         }
         [$actualId, $imageId, $imageRef, $labels, $ports, $bindings, $privileged, $network, $mounts, $running] = $container;
-        $tag = $service === 'postgres' ? 'postgres:17.12-bookworm' : 'redis:8.2.11-bookworm';
-        $expectedRef = 'docker.io/library/'.$tag.'@'.$pin['manifest'];
+        $expectedRef = \Tests\Support\ci\OwnedServicePlan::imageRef($service);
         if ($actualId !== $id || $imageId !== $pin['image_id'] || $imageRef !== $expectedRef
             || $image[0] !== $imageId || $image[1] !== 'linux' || $image[2] !== 'amd64' || !is_array($image[3])
             || $privileged !== false || !in_array($network, ['default', 'bridge'], true)
             || !is_bool($running) || (!$running && !$cleanup) || !is_array($labels) || !is_array($mounts)) {
             self::reject();
         }
-        $validDigest = false;
-        foreach ($image[3] as $digest) {
-            if (in_array($digest, [$service.'@'.$pin['manifest'], 'docker.io/library/'.$service.'@'.$pin['manifest']], true)) {
-                $validDigest = true;
-            }
-        }
-        if (!$validDigest) {
+        if (!in_array($expectedRef, $image[3], true)) {
             self::reject();
         }
         $portKey = $service === 'postgres' ? '5432/tcp' : '6379/tcp';

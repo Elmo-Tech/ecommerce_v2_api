@@ -13,9 +13,9 @@ it('normalizes only exact pinned loopback-bound container observations and rejec
         $record = $fixture->record['containers']['postgres'];
         $id = $record['id'];
         $directory = $fixture->record['directory'];
-        $image = [$record['image_id'], 'linux', 'amd64', ['postgres@'.$record['manifest']]];
+        $image = [$record['image_id'], 'linux', 'amd64', ['ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@'.$record['manifest']]];
         $container = [
-            $id, $record['image_id'], 'docker.io/library/postgres:17.12-bookworm@'.$record['manifest'],
+            $id, $record['image_id'], 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@'.$record['manifest'],
             $record['labels'],
             ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => (string) $record['port']]]],
             ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => '']]],
@@ -26,7 +26,8 @@ it('normalizes only exact pinned loopback-bound container observations and rejec
         match ($case) {
             'valid' => null,
             'wrong image' => $image[0] = 'sha256:'.str_repeat('e', 64),
-            'wrong digest' => $image[3] = ['postgres@sha256:'.str_repeat('e', 64)],
+            'wrong digest' => $image[3] = ['ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:'.str_repeat('e', 64)],
+            'wrong repository' => $image[3] = ['docker.io/library/postgres@'.$record['manifest']],
             'wrong architecture' => $image[2] = 'arm64',
             'wrong reference' => $container[2] = 'postgres:latest',
             'public port' => $container[4]['5432/tcp'][0]['HostIp'] = '0.0.0.0',
@@ -46,7 +47,7 @@ it('normalizes only exact pinned loopback-bound container observations and rejec
     } finally {
         $fixture->close();
     }
-})->with(['valid', 'wrong image', 'wrong digest', 'wrong architecture', 'wrong reference', 'public port', 'multiple bindings', 'privileged', 'host network', 'shared named volume', 'docker socket mount', 'writable config mount', 'stopped'])->group('testing-foundation');
+})->with(['valid', 'wrong image', 'wrong digest', 'wrong repository', 'wrong architecture', 'wrong reference', 'public port', 'multiple bindings', 'privileged', 'host network', 'shared named volume', 'docker socket mount', 'writable config mount', 'stopped'])->group('testing-foundation');
 
 
 it('permits a stopped owned container with no active mapping only for cleanup observation', function (): void {
@@ -55,9 +56,9 @@ it('permits a stopped owned container with no active mapping only for cleanup ob
         $record = $fixture->record['containers']['postgres'];
         $id = $record['id'];
         $directory = $fixture->record['directory'];
-        $image = [$record['image_id'], 'linux', 'amd64', ['postgres@'.$record['manifest']]];
+        $image = [$record['image_id'], 'linux', 'amd64', ['ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@'.$record['manifest']]];
         $container = [
-            $id, $record['image_id'], 'docker.io/library/postgres:17.12-bookworm@'.$record['manifest'],
+            $id, $record['image_id'], 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@'.$record['manifest'],
             $record['labels'], [],
             ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => '']]],
             false, 'bridge',

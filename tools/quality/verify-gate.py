@@ -58,9 +58,11 @@ AUDIT_PINS = {
     "npm": ("tools/quality/openapi/package-lock.json", "a987d3b6bef34c77a4d1acc7bdbdeb163e82f3a87aef0dfa15abd004765466a0"),
 }
 IMAGES = (
-    "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
-    "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@sha256:3f9531ee43e9099389008518aab5b3a967a127ef573138c952645848d259f3ec",
+    "ghcr.io/elmo-tech/ecommerce-v2-ci-redis@sha256:0b642fe44cd4a510d07ee35c48f803b0fd51dbdfc1920fe6027d35a4c269beed",
 )
+IMAGE_CONFIG_IDS = ("sha256:3185a9b85c3c84d67acfef7ee6e583ffbd92e87d45de676f181a7a26c026bef7",
+                    "sha256:e6cdb4e394c6058305c6c73d4a09e97554aa28edb875212e33f32c597e09a94a")
 PREFLIGHT_CASES = """fixture-control components-only-root valid-local-pointer valid-escaped-pointer valid-local-fragment valid-recursive-pointer valid-cross-file-cycle empty-root-registry missing-tracked-root extra-tracked-root renamed-tracked-root duplicate-root symlink-root untracked-fragment symlink-fragment wrong-oas-version malformed-json duplicate-json-key escaped-duplicate-json-key malformed-root-shape missing-info non-string-ref absolute-ref network-path-ref remote-ref file-scheme-ref encoded-path-ref backslash-ref escaping-traversal-ref unregistered-tracked-ref unresolved-pointer unresolved-anchor unsupported-id-rebasing unsupported-dynamic-ref unsupported-schema-dialect file-size-bound depth-bound document-count-bound""".split()
 REDOCLY_CASES = """canonical-lint local-ref-lint structural-negative unresolved-ref-negative canonical-bundle-revalidate local-bundle-revalidate missing-bundle-negative malformed-bundle-negative integration-review-policy""".split()
 
@@ -314,11 +316,12 @@ def scan_report(report, identity):
             and report["archiveSha256"] == "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"
             and report["checksumFileSha256"] == "802e4ac1418ed967cd3c4b901f4f71ca00b7363ede67778665a22d9f13f58c83"
             and HEX.fullmatch(report["databaseSha256"]) and report["ownedCleanup"] is True
-            and report["trackedSourceUnchanged"] is True and report["candidateImages"] == [])
+            and report["trackedSourceUnchanged"] is True and report["registryAuthCleanup"] is True
+            and report["candidateImages"] == [])
     require(isinstance(report["images"], list) and len(report["images"]) == len(IMAGES))
     databases = []
-    for item, target in zip(report["images"], IMAGES):
-        require(item["target"] == target and item["status"] == "PASSED"
+    for item, target, image_id in zip(report["images"], IMAGES, IMAGE_CONFIG_IDS):
+        require(item["target"] == target and item["imageId"] == image_id and item["status"] == "PASSED"
                 and count(item["nativeExit"]) == 0 and count(item["exceptionCount"]) == 0
                 and count(item["packageCount"], 1) >= count(item["osPackageCount"], 1)
                 and isinstance(item["findings"], list) and len(item["findings"]) == count(item["findingCount"]))
