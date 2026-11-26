@@ -3,9 +3,10 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { preflightCheckout, preflightContracts } from './validate.mjs';
 
 const tools = dirname(fileURLToPath(import.meta.url));
 const repo = realpathSync(join(tools, '../../..'));
@@ -79,7 +80,20 @@ try {
     assert.equal(currentBlob, baseBlob);
     summary.contractBlob = currentBlob;
     summary.canonicalUnchanged = true;
-    copyFileSync(join(repo, contract), join(scratch, 'canonical.json'));
+    // Run preflight on the exact tracked bytes and stage only approved inputs.
+    const checked = preflightCheckout(repo);
+    assert.deepEqual(checked.roots, [contract]);
+    summary.checkedRoots = checked.roots;
+    summary.checkedFiles = checked.files;
+    for (const [path, raw] of checked.inputs) {
+        // Any change to the current graph is review-required for this MVP lane.
+        assert.equal(git(['rev-parse', summary.baseSha + ':' + path]),
+            git(['rev-parse', 'HEAD:' + path]));
+        const staged = join(scratch, path);
+        mkdirSync(dirname(staged), { recursive: true });
+        writeFileSync(staged, raw, { flag: 'wx' });
+    }
+    const canonicalPath = join(scratch, contract);
     for (const name of ['package.json', 'package-lock.json']) {
         copyFileSync(join(tools, name), join(scratch, name));
     }
@@ -96,7 +110,15 @@ try {
     assert.equal(sha(join(scratch, 'package-lock.json')), lockHash);
     const cli = join(scratch, 'node_modules/@redocly/cli/bin/cli.js');
     assert.equal(JSON.parse(readFileSync(join(scratch, 'node_modules/@redocly/cli/package.json'), 'utf8')).version, '2.83.0');
-    const cliRun = (args) => command(process.execPath, [
+    // Standard Linux network namespace; no sudo or elevated host privileges.
+    // If the runner cannot provide isolation, the lane is blocked, not green.
+    const offline = ['--user', '--map-root-user', '--net', '--'];
+    if (command('unshare', [...offline, 'true']).status !== 0) {
+        summary.blockedReason = 'NETWORK_NAMESPACE_UNAVAILABLE';
+        throw new Error('Offline namespace unavailable');
+    }
+    summary.networkIsolation = 'linux-user-netns';
+    const cliRun = (args) => command('unshare', [...offline, process.execPath,
         '--permission', '--allow-fs-read=' + scratch, '--allow-fs-read=' + scratch + '/*',
         '--allow-fs-write=' + scratch, '--allow-fs-write=' + scratch + '/*', cli, ...args,
     ]);
@@ -106,13 +128,15 @@ try {
     summary.redocly = '2.83.0';
     // Structural/ref errors are mandatory. Use the built-in spec ruleset;
     // no fake production paths, skip rules or unused-component removal.
-    writeFileSync(join(scratch, 'redocly.yaml'), 'extends:\n  - spec\nrules:\n  struct: error\n  no-unresolved-refs: error\n');
+    copyFileSync(join(tools, 'redocly.yaml'), join(scratch, 'redocly.yaml'));
+    assert.equal(readFileSync(join(scratch, 'redocly.yaml'), 'utf8'),
+        'extends:\n  - spec\nrules:\n  struct: error\n  no-unresolved-refs: error\n');
     const lint = (name) => cliRun(['lint', name, '--config', 'redocly.yaml', '--format=json']);
     json('bad-shape.json', fixture({ type: 17 }));
     json('missing-ref.json', fixture({ $ref: '#/components/schemas/Missing' }));
     json('local-ref.json', fixture({ $ref: './types.json#/$defs/Value' }));
     json('types.json', { $defs: { Value: { type: 'integer' } } });
-    control('canonical-lint', () => assert.equal(lint('canonical.json').status, 0));
+    control('canonical-lint', () => assert.equal(lint(contract).status, 0));
     control('local-ref-lint', () => assert.equal(lint('local-ref.json').status, 0));
     control('structural-negative', () => {
         const result = lint('bad-shape.json');
@@ -124,17 +148,40 @@ try {
         assert.equal(result.status, 1);
         assert.match(result.stdout + result.stderr, /"ruleId"\s*:\s*"no-unresolved-refs"/);
     });
+    function checkedBundle(name, root) {
+        const path = join(scratch, name);
+        const stat = lstatSync(path);
+        assert.ok(stat.isFile() && stat.nlink === 1 && stat.size > 0 && stat.size <= 1024 * 1024);
+        assert.equal(realpathSync(path), path);
+        const raw = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path));
+        // A bundle must stand alone: no reference to another file, local or remote.
+        preflightContracts({
+            inventory: { roots: [root], fragments: [] },
+            tracked: [{ path: root, mode: '100644' }],
+            readTracked: () => raw,
+        });
+        return JSON.parse(raw);
+    }
     control('canonical-bundle-revalidate', () => {
-        assert.equal(cliRun(['bundle', 'canonical.json', '--config', 'redocly.yaml', '--output', 'bundle.json', '--ext', 'json']).status, 0);
-        assert.deepEqual(JSON.parse(readFileSync(join(scratch, 'bundle.json'), 'utf8')),
-            JSON.parse(readFileSync(join(scratch, 'canonical.json'), 'utf8')));
+        assert.equal(cliRun(['bundle', contract, '--config', 'redocly.yaml', '--output', 'bundle.json', '--ext', 'json']).status, 0);
+        assert.deepEqual(checkedBundle('bundle.json', contract),
+            JSON.parse(readFileSync(canonicalPath, 'utf8')));
         assert.equal(lint('bundle.json').status, 0);
+        summary.canonicalBundleEquivalent = true;
     });
     control('local-bundle-revalidate', () => {
         assert.equal(cliRun(['bundle', 'local-ref.json', '--config', 'redocly.yaml', '--output', 'local-bundle.json', '--ext', 'json']).status, 0);
-        const bundled = JSON.parse(readFileSync(join(scratch, 'local-bundle.json'), 'utf8'));
+        const bundled = checkedBundle('local-bundle.json', 'specs/001-synthetic/contracts/openapi.json');
         assert.equal(bundled.openapi, '3.1.0');
         assert.equal(lint('local-bundle.json').status, 0);
+    });
+
+    control('missing-bundle-negative', () => {
+        assert.throws(() => checkedBundle('missing-bundle.json', contract), { code: 'ENOENT' });
+    });
+    control('malformed-bundle-negative', () => {
+        writeFileSync(join(scratch, 'malformed-bundle.json'), '{"openapi":');
+        assert.throws(() => checkedBundle('malformed-bundle.json', contract), { code: 'JSON_INVALID' });
     });
 
     // One conservative compatibility policy, not a compatibility engine.
@@ -153,7 +200,7 @@ try {
     }
     control('integration-review-policy', () => {
         assert.equal(typeof reviewRequired, 'function');
-        const original = readFileSync(join(scratch, 'canonical.json'), 'utf8');
+        const original = readFileSync(canonicalPath, 'utf8');
         assert.equal(reviewRequired(original, original), false);
         const changes = [
             { required: ['id'] }, { type: 'integer' }, { properties: { amount: { type: 'number' } } },
