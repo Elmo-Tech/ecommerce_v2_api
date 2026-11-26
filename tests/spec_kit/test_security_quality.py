@@ -372,3 +372,28 @@ class SecurityQualityPolicy(unittest.TestCase):
                        "docker.io/library/redis:latest@sha256:" + "c" * 64):
             self.assertEqual(self.scan(policy, image(), target=target, candidate=True)["status"], "BLOCKED")
 
+    def test_postgres_alpine_candidates_remain_read_only_and_exact_os(self):
+        policy = self.policy()
+        for minor in ("3.24", "3.23"):
+            with self.subTest(minor=minor):
+                tag = "docker.io/library/postgres:17.12-alpine" + minor
+                target = tag + "@sha256:" + "d" * 64
+                report = image()
+                report["ArtifactName"] = target
+                report["Metadata"]["RepoDigests"] = [
+                    "postgres@sha256:" + "d" * 64,
+                ]
+                report["Metadata"]["OS"] = {"Family": "alpine", "Name": minor + ".1"}
+                report["Results"][0]["Type"] = "alpine"
+                self.assertEqual(self.scan(policy, report, target=target)["status"], "BLOCKED")
+                observed = self.scan(policy, report, target=target, candidate=True)
+                self.assertEqual(observed["status"], "PASSED")
+                report["Results"][0]["Vulnerabilities"] = [self.finding("HIGH")]
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "FAILED")
+                report["Results"][0]["Vulnerabilities"] = []
+                report["Metadata"]["OS"]["Name"] = "3.22.1"
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "BLOCKED")
+                report["Metadata"]["OS"]["Name"] = minor + ".1"
+                report["Metadata"]["RepoDigests"] = ["postgres@sha256:" + "e" * 64]
+                self.assertEqual(self.scan(policy, report, target=target, candidate=True)["status"], "BLOCKED")
+

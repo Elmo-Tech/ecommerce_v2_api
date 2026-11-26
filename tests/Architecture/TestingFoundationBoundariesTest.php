@@ -57,6 +57,8 @@ it('keeps narrow relevant workflow triggers, guarded required commands and no pr
     expect($workflow)->toContain('start-owned.php', 'setup-owned.php', 'cleanup-owned.php', 'always()', 'cleanup-reports.php', 'integration-safe.xml');
     expect($workflow)->not->toContain('continue-on-error: true', 'integration-raw.xml');
     expect($workflow)->toContain('retention-days: 7');
+    // The three fast selections must retain the pre-bootstrap environment guard.
+    expect(substr_count($workflow, "if: \${{ !cancelled() && steps.fast_ready.outcome == 'success' }}"))->toBeGreaterThanOrEqual(3);
 })->group('testing-foundation');
 
 it('rejects unapproved runtime or development packages, Composer plugins and quality pins', function (): void {

@@ -133,6 +133,8 @@ IMAGES = (
 # Read-only comparison scope. These are not approved integration image pins.
 CANDIDATES = {
     "docker.io/library/postgres:17.12-trixie": ("debian", "13"),
+    "docker.io/library/postgres:17.12-alpine3.24": ("alpine", "3.24"),
+    "docker.io/library/postgres:17.12-alpine3.23": ("alpine", "3.23"),
     "docker.io/library/redis:8.2.11-alpine3.22": ("alpine", "3.22"),
 }
 TRIVY_VERSION = "0.76.2"
