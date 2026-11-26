@@ -4,7 +4,7 @@ These are owned scratch fixtures, not evidence of hosted artifact transport.
 All candidates are real local Git histories; the final verifier must recompute
 selection, use actual job conclusions, and independently inspect evidence.
 """
-from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -18,10 +18,10 @@ LANES = fixtures.LANES
 SELECTIONS = {"bootstrap": ("foundation", "fast-all", "architecture"),
               "native-integration": ("integration",)}
 TOOLS = {"docs": {"git": "2.56.1"}, "format": {"pint": "1.32.3"},
-         "analysis": {"phpstan": "2.2.4", "larastan": "3.9.12"},
-         "contracts": {"redocly": "2.31.4"}, "dependency-audit": {"composer": "2.9.0", "npm": "11.0.0"},
+         "analysis": {"phpstan": "2.3.7", "larastan": "3.15.0"},
+         "contracts": {"redocly": "2.83.0", "node": "24.22.3"}, "dependency-audit": {"composer": "2.11.3", "npm": "11.0.0"},
          "image-scan": {"trivy": "0.76.2"}, "bootstrap": {"php": "8.4.1"},
-         "native-integration": {"php": "8.4.1"}, "spec-kit": {"python": "3.12.0"}}
+         "native-integration": {"php": "8.4.1"}, "spec-kit": {"python": "3.12.0", "pyyaml": "6.0.2"}}
 CANARY = "F04_TEST_ONLY_CREDENTIAL_CANARY"
 
 
@@ -29,7 +29,6 @@ class AggregateQuality(unittest.TestCase):
     # Reuse the existing actual-Git fixture without inheriting its test cases.
     git = fixtures.GateQuality.git
     write = fixtures.GateQuality.write
-    history = fixtures.GateQuality.history
     ledger = fixtures.GateQuality.ledger
     helper = fixtures.GateQuality.helper
 
@@ -43,22 +42,114 @@ class AggregateQuality(unittest.TestCase):
         prefix = {"bootstrap": "f03-fast", "native-integration": "f03-integration"}.get(lane, "f04-" + lane)
         return root / (prefix + "-" + identity["runId"] + "-" + str(identity["runAttempt"]))
 
+    def history(self, change):
+        # Actual locked source blobs, not invented package provenance.
+        extra = {name: (fixtures.ROOT / name).read_text(encoding="utf-8") for name in (
+            "composer.lock", "tools/quality/openapi/package-lock.json", "tools/quality/openapi/preflight.test.mjs")}
+        return fixtures.GateQuality.history(self, change, extra_base=extra)
+
     def native(self, directory, selection, identity):
-        counts = {"tests": 1, "assertions": 2, "failures": 0, "errors": 0,
-                  "skipped": 0, "duration": 0.01}
+        minimum = {"foundation": 31, "fast-all": 98, "architecture": 5, "integration": 34}[selection]
+        counts = {"tests": minimum, "assertions": 2 * minimum, "failures": 0, "errors": 0,
+                  "skipped": 0, "duration": 0.01 * minimum}
         self.put(directory / (selection + ".summary.json"), {
             "selection": selection, "status": "PASSED", "exit_code": 0,
             "runner_started": True, "tests_executed": True, "selection_verified": True,
             "runner_exit": 0, "source_sha": identity["sourceSha"], "base_sha": identity["baseSha"],
             "checkout_sha": identity["checkoutSha"], "run_id": identity["runId"],
             "run_attempt": str(identity["runAttempt"]), "php": "8.4.1",
-            "duration_seconds": 0.02, "counts": counts})
+            "duration_seconds": 0.02 * minimum, "counts": counts})
+        cases = []
+        for i in range(minimum):
+            if selection == "integration":
+                klass = "Tests.Integration." + ("PostgreSqlIsolationTest" if i < 26 else "RedisIsolationTest")
+            elif selection == "architecture":
+                klass = "Tests.Architecture.FixtureCase"
+            else:
+                klass = "Tests.Unit.FixtureCase"
+            cases.append('<testcase name="testFixture' + str(i) + '" classname="' + klass
+                         + '" assertions="2" time="0.010000"/>')
         (directory / (selection + "-safe.xml")).write_text(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<testsuites><testsuite name="' + selection + '" tests="1" assertions="2" failures="0" '
-            'errors="0" skipped="0" time="0.010000"><testcase name="testFixture" '
-            'classname="FixtureCase" assertions="2" time="0.010000"/></testsuite></testsuites>\n',
+            '<testsuites><testsuite name="' + selection + '" tests="' + str(minimum) + '" assertions="'
+            + str(2 * minimum) + '" failures="0" errors="0" skipped="0" time="'
+            + format(counts["duration"], ".6f") + '">' + "".join(cases) + '</testsuite></testsuites>\n',
             encoding="utf-8")
+
+    def lane_payload(self, lane, directory, repo, identity):
+        # Synthetic structured controls model the reviewed producer schemas;
+        # none claim the actual tools ran. Job conclusions are synthetic too.
+        common = {key: identity[key] for key in ("sourceSha", "baseSha", "checkoutSha", "runId")}
+        common.update(runAttempt=str(identity["runAttempt"]), schemaVersion=1, status="PASSED")
+
+        def audit(tool):
+            path = "composer.lock" if tool == "composer" else "tools/quality/openapi/package-lock.json"
+            raw = (repo / path).read_bytes()
+            lock = json.loads(raw)
+            installed = len(lock["packages"]) + len(lock["packages-dev"]) if tool == "composer" else len(lock["packages"]) - 1
+            return {"status": "PASSED", "findingCount": 0, "findings": [], "tool": tool,
+                    "version": TOOLS["dependency-audit"][tool], "lockSha256": hashlib.sha256(raw).hexdigest(),
+                    "installedCount": installed, "nativeExit": 0, "ownedCleanup": True}
+
+        if lane in ("format", "analysis"):
+            paths = sorted(path for path in self.git(repo, "ls-files").splitlines() if path == "artisan" or path.endswith(".php"))
+            report = {**common, "stage": "complete", "toolExit": 0, "selectedCount": len(paths),
+                      "inventorySha256": hashlib.sha256(json.dumps(paths, separators=(",", ":")).encode()).hexdigest(),
+                      "selectedPaths": paths, "findingCount": 0, "trackedSourceUnchanged": True,
+                      "durationSeconds": 0.01}
+            if lane == "format":
+                report.update(task="T016", pint="1.32.3", newStrictTypesPaths=[], findingPaths=[])
+            else:
+                report.update(task="T019-launcher", level=6, phpstan="2.3.7", larastan="3.15.0",
+                              launcher="tools/quality/run.php analyse", resultValidation="VERIFIED",
+                              findings=[], ownedChildCleanupVerified=True)
+            self.put(directory / (lane + "-diagnostic.json"), report)
+        elif lane == "contracts":
+            preflight = """fixture-control components-only-root valid-local-pointer valid-escaped-pointer valid-local-fragment valid-recursive-pointer valid-cross-file-cycle empty-root-registry missing-tracked-root extra-tracked-root renamed-tracked-root duplicate-root symlink-root untracked-fragment symlink-fragment wrong-oas-version malformed-json duplicate-json-key escaped-duplicate-json-key malformed-root-shape missing-info non-string-ref absolute-ref network-path-ref remote-ref file-scheme-ref encoded-path-ref backslash-ref escaping-traversal-ref unregistered-tracked-ref unresolved-pointer unresolved-anchor unsupported-id-rebasing unsupported-dynamic-ref unsupported-schema-dialect file-size-bound depth-bound document-count-bound""".split()
+            redocly = """canonical-lint local-ref-lint structural-negative unresolved-ref-negative canonical-bundle-revalidate local-bundle-revalidate missing-bundle-negative malformed-bundle-negative integration-review-policy""".split()
+            self.put(directory / "preflight.summary.json", {**common, "stage": "complete", "task": "T020",
+                     "suite": "T020-preflight", "node": "24.22.3", "implementationPresent": True,
+                     "trackedSourceUnchanged": True, "toolExit": 0, "total": len(preflight),
+                     "passed": len(preflight), "failed": 0, "networkAttempts": 0, "deniedReads": 0,
+                     "permittedReads": 1, "testSha256": hashlib.sha256((repo / "tools/quality/openapi/preflight.test.mjs").read_bytes()).hexdigest(),
+                     "results": [{"id": case, "status": "PASSED"} for case in preflight]})
+            current = self.git(repo, "rev-parse", "HEAD:" + fixtures.CONTRACT)
+            previous = self.git(repo, "rev-parse", identity["baseSha"] + ":" + fixtures.CONTRACT)
+            npm = audit("npm")
+            self.put(directory / "redocly.summary.json", {**common, "suite": "T021-redocly",
+                     "node": "v24.22.3", "redocly": "2.83.0", "networkIsolation": "linux-netns-unprivileged-child",
+                     "offlineProbePassed": True, "integrationPresent": True, "ownedCleanup": True,
+                     "canonicalBundleEquivalent": True, "lockSha256": npm["lockSha256"],
+                     "contractBlob": current, "canonicalUnchanged": current == previous,
+                     "checkedRoots": [fixtures.CONTRACT], "checkedFiles": [fixtures.CONTRACT],
+                     "npm": npm["version"], "npmAudit": npm,
+                     "results": [{"id": case, "status": "PASSED"} for case in redocly]})
+        elif lane == "dependency-audit":
+            for tool in ("composer", "npm"):
+                self.put(directory / (tool + "-audit.summary.json"), audit(tool))
+        elif lane == "image-scan":
+            now = datetime.now(timezone.utc)
+            db = {"version": 2, "updatedAt": (now - timedelta(hours=1)).isoformat(),
+                  "downloadedAt": (now - timedelta(minutes=1)).isoformat(),
+                  "nextUpdate": (now + timedelta(hours=1)).isoformat()}
+            images = []
+            for target in (
+                "docker.io/library/postgres:17.12-bookworm@sha256:c7a16500f728a9c09731e772f228ee7a29615585e8019772f05b620522f62d03",
+                "docker.io/library/redis:8.2.11-bookworm@sha256:0e125214188816ac08e22435c7a5f58c61b8cbd3251d62e380d14fdf7659cd87",
+            ):
+                images.append({"target": target, "status": "PASSED", "nativeExit": 0, "exceptionCount": 0,
+                               "packageCount": 10, "osPackageCount": 10, "findings": [], "findingCount": 0,
+                               "severityCounts": {}, "database": db})
+            self.put(directory / "scan.summary.json", {**common, "stage": "complete", "task": "T032-T034",
+                     "scannerVersion": "0.76.2", "archiveSha256": "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf",
+                     "checksumFileSha256": "802e4ac1418ed967cd3c4b901f4f71ca00b7363ede67778665a22d9f13f58c83",
+                     "databaseSha256": "a" * 64, "ownedCleanup": True, "trackedSourceUnchanged": True,
+                     "candidateImages": [], "images": images})
+        elif lane == "spec-kit":
+            cases = ["test_fixture.Case.test_%03d" % i for i in range(70)]
+            self.put(directory / "spec-kit.summary.json", {**common, "testCount": len(cases),
+                     "failedCount": 0, "errorCount": 0, "skippedCount": 0, "cases": cases,
+                     "python": "3.12.0", "pyyaml": "6.0.2", "trackedSourceUnchanged": True, "shellSyntaxPassed": True})
 
     def rehash(self, directory):
         path = directory / "lane.summary.json"
@@ -86,6 +177,7 @@ class AggregateQuality(unittest.TestCase):
             directory.mkdir(mode=0o700)
             if lane == "docs":
                 self.put(directory / "docs.summary.json", checker.check_docs(repo, identity))
+            self.lane_payload(lane, directory, repo, identity)
             for selection in SELECTIONS.get(lane, ()):
                 self.native(directory, selection, identity)
             summary = {key: value for key, value in identity.items() if key != "baseRef"}
@@ -111,7 +203,7 @@ class AggregateQuality(unittest.TestCase):
             (fixtures.GUIDE, "# Reading guide\n\nMore examples.\n"),
             (fixtures.CONTRACT, '{"openapi":"3.1.0","info":{"title":"Changed","version":"1"},"paths":{}}\n'),
             (fixtures.PHP, "<?php\n// Changed\n"),
-            ("composer.lock", '{"fixture":2}\n'),
+            (".github/workflows/example.yml", "name: Updated\n"),
             ("README.md", "# Unknown\n"),
         ):
             with self.subTest(path=path):
@@ -126,7 +218,7 @@ class AggregateQuality(unittest.TestCase):
     def test_t037_failed_skipped_cancelled_or_missing_required_job(self):
         for status in ("failure", "skipped", "cancelled", "blocked", "unknown", None):
             with self.subTest(status=status):
-                candidate = self.candidate("composer.lock", '{"fixture":3}\n')
+                candidate = self.candidate(".github/workflows/example.yml", "name: Updated\n")
                 if status is None:
                     candidate[3].pop("image-scan")
                 else:
@@ -241,7 +333,7 @@ class AggregateQuality(unittest.TestCase):
         for variant in ("malformed-xml", "doctype", "counts", "failure", "duplicate-case",
                         "foreign", "unverified", "missing-summary", "leak"):
             with self.subTest(variant=variant):
-                c = self.candidate("composer.lock", '{"fixture":4}\n')
+                c = self.candidate(".github/workflows/example.yml", "name: Updated\n")
                 directory = self.artifact(c[4], "native-integration", c[1])
                 xml = directory / "integration-safe.xml"
                 report = directory / "integration.summary.json"
@@ -251,7 +343,7 @@ class AggregateQuality(unittest.TestCase):
                     xml.write_text('<!DOCTYPE testsuites [<!ENTITY x "unsafe">]>' + xml.read_text().split("?>", 1)[1])
                 elif variant == "counts":
                     value = self.get(report)
-                    value["counts"]["tests"] = 2
+                    value["counts"]["tests"] += 1
                     self.put(report, value)
                 elif variant == "failure":
                     value = self.get(report)
@@ -286,3 +378,25 @@ class AggregateQuality(unittest.TestCase):
         for state in ("cancelled", "missing"):
             with self.subTest(state=state):
                 self.rejected(c, gate_state=state)
+
+    def test_t038_every_required_tool_has_nonempty_specific_evidence(self):
+        for lane, name in (
+            ("format", "format-diagnostic.json"), ("analysis", "analysis-diagnostic.json"),
+            ("contracts", "redocly.summary.json"), ("dependency-audit", "npm-audit.summary.json"),
+            ("image-scan", "scan.summary.json"), ("spec-kit", "spec-kit.summary.json"),
+        ):
+            with self.subTest(lane=lane):
+                c = self.candidate(".github/workflows/example.yml", "name: Updated\n")
+                self.assertEqual(self.verify(c)["status"], "PASSED")
+                directory = self.artifact(c[4], lane, c[1])
+                payload = directory / name
+                original = payload.read_bytes()
+                payload.unlink()
+                self.rehash(directory)
+                self.rejected(c)
+                payload.write_bytes(original)
+                self.rehash(directory)
+                self.assertEqual(self.verify(c)["status"], "PASSED")
+                self.put(payload, {"status": "PASSED"})
+                self.rehash(directory)
+                self.rejected(c)

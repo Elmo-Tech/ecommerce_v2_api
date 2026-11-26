@@ -41,7 +41,7 @@ class GateQuality(unittest.TestCase):
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(content, encoding="utf-8")
 
-    def history(self, change):
+    def history(self, change, extra_base=None):
         owned = tempfile.TemporaryDirectory(prefix="f04-git-fixture-")
         self.addCleanup(owned.cleanup)
         repo = Path(owned.name) / "repo"
@@ -59,6 +59,7 @@ class GateQuality(unittest.TestCase):
             ".specify/scripts/bash/example.sh": "#!/bin/sh\n",
             ".github/workflows/example.yml": "name: Fixture\n",
             LEDGER: self.ledger(0),
+            **(extra_base or {}),
         }.items():
             self.write(repo, path, content)
         self.git(repo, "add", "--all")
