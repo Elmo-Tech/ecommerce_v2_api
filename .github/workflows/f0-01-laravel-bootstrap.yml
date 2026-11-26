@@ -824,6 +824,10 @@ jobs:
           sys.exit(0 if summary['status']=='PASSED' else 1 if summary['status']=='FAILED' else 2)
           PY
 
+      - name: Preflight the real tracked contract before Redocly
+        shell: bash
+        run: node tools/quality/openapi/validate.mjs
+
       - name: Run locked Redocly positive and negative controls
         if: ${{ always() && steps.scratch.outcome == 'success' && steps.node.outcome == 'success' }}
         shell: bash
