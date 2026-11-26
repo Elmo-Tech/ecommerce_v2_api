@@ -34,7 +34,7 @@ GO_SHA = "9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"
 GOSU_COMMIT = "29b939aa5bd4dc588af765b8248f6e39150d2565"
 GOSU_TREE = "5c69cec164871648ddb14c59192c831b3884ae65"
 BLOBS = {
-    "go.mod": "6abe2ddfa1e3de4ab334463463c7c14cb1668f",
+    "go.mod": "6abe2ddfa1e3de4ab334463463c7c7c14cb1668f",
     "go.sum": "d8a55165cb0ba195d60a21789c187c0708e94e52",
     "main.go": "7eb3d47a9baaa8c51167fff34fe79e81999ccc6b",
     "setup-user.go": "87afcd1748da9efa4af5128452ac8fbec245a7ce",
@@ -46,7 +46,10 @@ BASES = {
     "redis": ("docker.io/library/redis:8.2.11-alpine3.22@sha256:a18fce2f705d9782ccf6968f8dd94fa04566ff97e10a8d322ad72645243e4c0c",
               "sha256:b1ea8d6d7e78d187c53360013ee871f29bf9c0403f301b3fbcdcca2b10f852fa", "3.22"),
 }
-APK_NAMES = ("libcrypto3-3.5.9-r2.apk", "libssl3-3.5.9-r2.apk")
+APK_SHA256 = {
+    "libcrypto3-3.5.9-r2.apk": "931ac2f8cd696a47221b6317f650eb5e0ed5bf8f04d34ae7b9573027801d3544",
+    "libssl3-3.5.9-r2.apk": "678f241a05f34858762790eac31599def62e3963702d13c62b0aa4720681fea1",
+}
 NEW_MOD = """module github.com/tianon/gosu
 
 go 1.25.0
@@ -104,17 +107,26 @@ def gosu_build(scratch, env, context, record):
     source = scratch/"gosu-source"
     source.mkdir(mode=0o700)
     api = "https://api.github.com/repos/tianon/gosu/git/"
-    record["stage"] = "gosu-commit-tree"
+    record["stage"] = "gosu-source-pin-shape"
+    require(len(BLOBS)==5 and all(re.fullmatch(r"[a-f0-9]{40}",v) for v in BLOBS.values())
+            and re.fullmatch(r"[a-f0-9]{40}",GOSU_COMMIT) and re.fullmatch(r"[a-f0-9]{40}",GOSU_TREE))
+    record["stage"] = "gosu-commit-fetch"
     meta = scratch/"source-meta.json"
     fetch(api+"commits/"+GOSU_COMMIT, meta, MIB, scratch, env)
+    record["stage"] = "gosu-commit-identity"
     obj = json.loads(meta.read_text())
     require(obj["sha"] == GOSU_COMMIT and obj["tree"]["sha"] == GOSU_TREE)
     meta.unlink()
+    record["stage"] = "gosu-tree-fetch"
     fetch(api+"trees/"+GOSU_TREE+"?recursive=1", meta, MIB, scratch, env)
+    record["stage"] = "gosu-tree-identity"
     tree = json.loads(meta.read_text())
     require(tree["sha"] == GOSU_TREE and tree["truncated"] is False)
     found = {item["path"]:item["sha"] for item in tree["tree"]
              if item["type"] == "blob" and (item["path"].endswith(".go") or item["path"] in ("go.mod","go.sum"))}
+    record["stage"] = "gosu-tree-inventory"
+    record["sourceBlobCount"]=len(found)
+    record["sourceBlobMatches"]={name:found.get(name)==expected for name,expected in BLOBS.items()}
     require(found == BLOBS)
     record["stage"] = "gosu-verified-blobs"
     for name, expected in BLOBS.items():
@@ -164,10 +176,11 @@ def gosu_build(scratch, env, context, record):
 
 def redis_packages(scratch, env, context, record):
     record["stage"] = "redis-apk-acquisition"
-    for name in APK_NAMES:
+    for name, expected in APK_SHA256.items():
         fetch("https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/"+name,
               context/name, 16*MIB, scratch, env)
-    record["apkSha256"] = {name:sha(context/name) for name in APK_NAMES}
+        require(sha(context/name)==expected)
+    record["apkSha256"] = dict(APK_SHA256)
     # Signatures and exact versions are enforced inside the offline build
     # using Alpine's existing trusted keyring. No --allow-untrusted.
 
