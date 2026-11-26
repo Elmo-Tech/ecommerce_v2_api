@@ -3,7 +3,6 @@
 Temporary, isolated hosted PR #9 diagnostic. Actual local image IDs and layer
 digests are verified instead of fabricating remote registry digests.
 """
-import base64
 from collections import Counter
 from datetime import datetime, timezone
 import hashlib
@@ -29,6 +28,7 @@ run, read_json = scanner.run, scanner.read_json
 
 ROOT = Path(__file__).resolve().parents[3]
 RECIPES = Path(__file__).with_name("test-images")
+GOSU_SNAPSHOT = RECIPES / "gosu-source"
 MIB = 1024 * 1024
 GO_SHA = "9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"
 GOSU_COMMIT = "29b939aa5bd4dc588af765b8248f6e39150d2565"
@@ -41,6 +41,7 @@ BLOBS = {
     "setup-user.go": "87afcd1748da9efa4af5128452ac8fbec245a7ce",
     "version.go": "e591d6ca15329c67350c2ba3ccda1b67871b5afa",
 }
+GOSU_LICENSE_BLOB = "d645695673349e3947e8e5ae42332d0ac3164cd7"
 BASES = {
     "postgres": ("docker.io/library/postgres:17.12-alpine3.23@sha256:833be86fa9cbc2e12ca52ecf8afa306a3f20f6f57772037caeae65075aeb4616",
                  "sha256:b4912da07fcf17d4d7db60cec9a436301114a961784299ea0e77c6b5797d8acd", "3.23"),
@@ -89,6 +90,38 @@ def fetch(url, target, maximum, scratch, env):
 
 
 def gosu_build(scratch, env, context, record):
+    source = scratch/"gosu-source"
+    source.mkdir(mode=0o700)
+    # The exact upstream commit/tree and complete build-file inventory were
+    # reviewed before staging the snapshot. Recheck all raw Git blob hashes
+    # on every build. No mutable network source or upstream script execution.
+    record["stage"] = "gosu-source-pin-shape"
+    require(len(BLOBS)==5 and all(re.fullmatch(r"[a-f0-9]{40}",v) for v in BLOBS.values())
+            and re.fullmatch(r"[a-f0-9]{40}",GOSU_COMMIT)
+            and re.fullmatch(r"[a-f0-9]{40}",GOSU_TREE)
+            and re.fullmatch(r"[a-f0-9]{40}",GOSU_LICENSE_BLOB))
+    record["stage"] = "gosu-snapshot-inventory"
+    expected_blobs=dict(BLOBS,LICENSE=GOSU_LICENSE_BLOB)
+    require(GOSU_SNAPSHOT.is_dir() and not GOSU_SNAPSHOT.is_symlink()
+            and GOSU_SNAPSHOT.resolve()==GOSU_SNAPSHOT.absolute()
+            and {entry.name for entry in GOSU_SNAPSHOT.iterdir()}==set(expected_blobs))
+    record["sourceBlobCount"]=len(BLOBS)
+    record["sourceBlobMatches"]={}
+    record["stage"] = "gosu-snapshot-verified-blobs"
+    for name, expected in expected_blobs.items():
+        path=GOSU_SNAPSHOT/name
+        require(path.is_file() and not path.is_symlink() and 0<path.stat().st_size<=MIB)
+        raw=path.read_bytes()
+        verified=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()==expected
+        record["sourceBlobMatches"][name]=verified
+        require(verified)
+        with (source/name).open("xb") as file:
+            file.write(raw)
+    record["sourceCommit"] = GOSU_COMMIT
+    record["sourceTree"] = GOSU_TREE
+    record["sourceBlobs"] = BLOBS
+    record["sourceLicenseBlob"] = GOSU_LICENSE_BLOB
+    record["sourceSnapshotVerified"] = True
     record["stage"] = "gosu-sdk"
     sdk = scratch / "go.tar.gz"
     fetch("https://go.dev/dl/go1.26.11.linux-amd64.tar.gz", sdk, 100*MIB, scratch, env)
@@ -105,44 +138,6 @@ def gosu_build(scratch, env, context, record):
     require(command([str(go), "version"], scratch, goenv, 30, True).stdout.strip()
             == "go version go1.26.11 linux/amd64")
     record["goSdkSha256"] = GO_SHA
-    source = scratch/"gosu-source"
-    source.mkdir(mode=0o700)
-    api = "https://api.github.com/repos/tianon/gosu/git/"
-    record["stage"] = "gosu-source-pin-shape"
-    require(len(BLOBS)==5 and all(re.fullmatch(r"[a-f0-9]{40}",v) for v in BLOBS.values())
-            and re.fullmatch(r"[a-f0-9]{40}",GOSU_COMMIT) and re.fullmatch(r"[a-f0-9]{40}",GOSU_TREE))
-    record["stage"] = "gosu-commit-fetch"
-    meta = scratch/"source-meta.json"
-    fetch(api+"commits/"+GOSU_COMMIT, meta, MIB, scratch, env)
-    record["stage"] = "gosu-commit-identity"
-    obj = json.loads(meta.read_text())
-    require(obj["sha"] == GOSU_COMMIT and obj["tree"]["sha"] == GOSU_TREE)
-    meta.unlink()
-    record["stage"] = "gosu-tree-fetch"
-    fetch(api+"trees/"+GOSU_TREE+"?recursive=1", meta, MIB, scratch, env)
-    record["stage"] = "gosu-tree-identity"
-    tree = json.loads(meta.read_text())
-    require(tree["sha"] == GOSU_TREE and tree["truncated"] is False)
-    found = {item["path"]:item["sha"] for item in tree["tree"]
-             if item["type"] == "blob" and (item["path"].endswith(".go") or item["path"] in ("go.mod","go.sum"))}
-    record["stage"] = "gosu-tree-inventory"
-    record["sourceBlobCount"]=len(found)
-    record["sourceBlobMatches"]={name:found.get(name)==expected for name,expected in BLOBS.items()}
-    require(found == BLOBS)
-    record["stage"] = "gosu-verified-blobs"
-    for name, expected in BLOBS.items():
-        meta.unlink()
-        fetch(api+"blobs/"+expected, meta, 2*MIB, scratch, env)
-        item = json.loads(meta.read_text())
-        require(item["sha"] == expected and item["encoding"] == "base64")
-        raw = base64.b64decode("".join(item["content"].split()), validate=True)
-        require(0 < len(raw) <= MIB and len(raw) == item["size"]
-                and hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest() == expected)
-        with (source/name).open("xb") as file:
-            file.write(raw)
-    record["sourceCommit"] = GOSU_COMMIT
-    record["sourceTree"] = GOSU_TREE
-    record["sourceBlobs"] = BLOBS
     record["stage"] = "gosu-locked-modules"
     # Exact reviewed source bytes were verified above. The only local changes
     # are pinned module metadata and a version-only linker stamp. A locally
@@ -154,7 +149,7 @@ def gosu_build(scratch, env, context, record):
     version_file.write_bytes(b'package main\n\nvar Version = "1.20"\n')
     record["versionMetadataPatchSha256"]=sha(version_file)
     record["gosuBuildVersion"]=GOSU_BUILD_VERSION
-    hashes = {name:sha(source/name) for name in BLOBS}
+    hashes = {name:sha(source/name) for name in expected_blobs}
     expected = {line.split()[0]+"@"+line.split()[1]:line.split()[2] for line in NEW_SUM.splitlines()}
     for version in ("github.com/moby/sys/user@v0.4.1","golang.org/x/sys@v0.44.0"):
         result = json.loads(command([str(go),"mod","download","-json",version],
@@ -185,7 +180,7 @@ def gosu_build(scratch, env, context, record):
             and "\tdep\tgithub.com/moby/sys/user\tv0.4.1\t" in info
             and "\tdep\tgolang.org/x/sys\tv0.44.0\t" in info
             and all("\tbuild\t"+setting in info for setting in ("CGO_ENABLED=0","GOOS=linux","GOARCH=amd64"))
-            and hashes == {name:sha(source/name) for name in BLOBS})
+            and hashes == {name:sha(source/name) for name in expected_blobs})
     record.update(gosuSha256=sha(binary),moduleLockSha256=hashes["go.sum"],
                   moduleGraph=["github.com/moby/sys/user@v0.4.1","golang.org/x/sys@v0.44.0"],
                   goVersion="1.26.11",gosuBuildVerified=True)
