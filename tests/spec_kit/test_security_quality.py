@@ -225,3 +225,74 @@ class SecurityQualityPolicy(unittest.TestCase):
         self.assertEqual(result["findingCount"], 2)
         self.assertEqual({f["severity"] for f in result["findings"]}, {"MEDIUM", "LOW"})
         self.assertEqual({f["fixedVersion"] for f in result["findings"]}, {"1.1", ""})
+
+    def severity_policy(self):
+        policy = self.policy()
+        self.assertTrue(callable(getattr(policy, "scan_result", None)), "MISSING_SCAN_POLICY")
+        return policy
+
+    def finding(self, severity="MEDIUM"):
+        return {"VulnerabilityID": "CVE-2026-999998", "PkgName": "synthetic-lib",
+                "InstalledVersion": "1.0", "FixedVersion": "1.1",
+                "Severity": severity, "Title": CANARY}
+
+    def exception(self):
+        return {
+            "image": IMAGES[0], "id": "CVE-2026-999998",
+            "package": "synthetic-lib", "installedVersion": "1.0",
+            "owner": "fixture-owner", "reviewer": "fixture-independent-reviewer",
+            "mitigation": "Synthetic scoped mitigation", "followUp": "Synthetic follow-up",
+            "approval": "synthetic-review-001", "expiresAt": (NOW + timedelta(days=7)).isoformat(),
+        }
+
+    def test_t029_high_and_critical_block_even_unfixed(self):
+        policy = self.severity_policy()
+        for severity in ("HIGH", "CRITICAL"):
+            for fixed in ("1.1", ""):
+                with self.subTest(severity=severity, fixed=bool(fixed)):
+                    candidate = image()
+                    finding = self.finding(severity)
+                    finding["FixedVersion"] = fixed
+                    candidate["Results"][0]["Vulnerabilities"] = [finding]
+                    result = self.scan(policy, candidate)
+                    self.assertEqual(result["status"], "FAILED")
+                    self.assertEqual(result["findingCount"], 1)
+                    self.assertEqual(result["findings"][0]["fixedVersion"], fixed)
+
+    def test_t029_reviewed_lower_risk_exception_never_hides_finding(self):
+        policy = self.severity_policy()
+        candidate = image()
+        candidate["Results"][0]["Vulnerabilities"] = [self.finding()]
+        entry = self.exception()
+        result = self.scan(policy, candidate, exceptions=[entry],
+                           approved_exceptions=[deepcopy(entry)])
+        self.assertEqual(result["status"], "PASSED")
+        self.assertEqual(result["findingCount"], 1)
+        self.assertEqual(result["exceptionCount"], 1)
+        self.assertEqual(result["findings"][0]["severity"], "MEDIUM")
+        self.assertEqual(self.scan(policy, candidate)["exceptionCount"], 0)
+
+    def test_t029_rejects_invalid_or_unapproved_exceptions(self):
+        policy = self.severity_policy()
+        candidate = image()
+        candidate["Results"][0]["Vulnerabilities"] = [self.finding()]
+        entry = self.exception()
+        self.assertEqual(self.scan(policy, candidate, exceptions=[entry])["status"], "BLOCKED")
+        changes = [
+            ("expired", {"expiresAt": NOW.isoformat()}),
+            ("wrong-image", {"image": IMAGES[1]}),
+            ("wildcard-id", {"id": "*"}),
+            ("wrong-package", {"package": "other-lib"}),
+            ("wrong-version", {"installedVersion": "2.0"}),
+            ("same-reviewer", {"reviewer": entry["owner"]}),
+        ] + [(key, {key: ""}) for key in ("owner", "reviewer", "mitigation", "followUp", "approval")]
+        for case, change in changes:
+            with self.subTest(case=case):
+                invalid = {**entry, **change}
+                self.assertEqual(self.scan(policy, candidate, exceptions=[invalid],
+                                           approved_exceptions=[deepcopy(invalid)])["status"], "BLOCKED")
+        for severity in ("HIGH", "CRITICAL"):
+            candidate["Results"][0]["Vulnerabilities"] = [self.finding(severity)]
+            self.assertNotEqual(self.scan(policy, candidate, exceptions=[entry],
+                                          approved_exceptions=[deepcopy(entry)])["status"], "PASSED")
+
