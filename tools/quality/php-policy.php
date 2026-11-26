@@ -17,7 +17,7 @@ final class PhpQualityPolicy
 
     public const ANALYSIS = "includes:\n    - vendor/larastan/larastan/extension.neon\n\nparameters:\n    level: 6\n    tmpDir: %env.F04_QUALITY_CACHE%\n";
 
-    private const LOCK_HASH = '4f86a8d3e61aeddae531a177d901a0aa6632713116d9f959537102282079473e';
+    private const LOCK_HASH = '9028f6191bf4f725c84890c28a0113c62b5ba0d9fc548559b8b33341ed4520f5';
 
     private const PINS = [
         'laravel/pint' => '1.32.3',

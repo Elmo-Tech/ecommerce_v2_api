@@ -117,66 +117,7 @@ jobs:
         run: composer install --no-scripts --no-plugins --no-interaction --prefer-dist --no-progress
 
       - name: Audit pinned dependency versions
-        id: security_audit
         run: composer audit --locked --no-interaction
-
-      # Temporary isolated proposal; never changes the checked-out lock or audit outcome.
-      - name: Propose exact Symfony security patch after a failed audit
-        id: patch_proposal
-        if: ${{ failure() && steps.security_audit.outcome == 'failure' && github.event_name == 'pull_request' && github.base_ref == 'development' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          candidate="$(mktemp -d "$RUNNER_TEMP/f04-symfony-XXXXXXXXXXXX")"
-          printf 'F04_PATCH_DIR=%s\n' "$candidate" >> "$GITHUB_ENV"
-          cp composer.json composer.lock "$candidate/"
-          cp composer.lock "$candidate/original.lock"
-          cd "$candidate"
-          export COMPOSER_HOME="$candidate/composer-home"
-          export COMPOSER_CACHE_DIR="$candidate/cache"
-          export HOME="$candidate"
-          unset COMPOSER_AUTH COMPOSER_NO_AUDIT
-          composer update symfony/http-kernel:8.1.12 symfony/mailer:8.1.12 symfony/routing:8.1.12 symfony/http-foundation:8.1.12 --minimal-changes --no-install --no-scripts --no-plugins --no-interaction --no-progress
-          composer validate --strict --no-check-publish
-          composer check-platform-reqs --lock
-          composer audit --locked --no-interaction
-          python3 - <<'PY'
-          import json
-          before=json.load(open('original.lock'))
-          after=json.load(open('composer.lock'))
-          expected={'symfony/http-kernel','symfony/mailer','symfony/routing','symfony/http-foundation'}
-          def packages(d):
-              return {p['name']:p for p in d['packages']+d['packages-dev']}
-          a,b=packages(before),packages(after)
-          assert a.keys()==b.keys()
-          assert {name for name in a if a[name]!=b[name]}==expected
-          assert all(b[name]['version']=='v8.1.12' for name in expected)
-          assert {k:v for k,v in before.items() if k not in ('packages','packages-dev')}=={k:v for k,v in after.items() if k not in ('packages','packages-dev')}
-          print('Verified exact four-package patch proposal; no other locked records changed.')
-          PY
-
-      - name: Upload only the reviewed-scope candidate lock
-        if: ${{ !cancelled() && steps.patch_proposal.outcome == 'success' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: f04-symfony-patch-proposal-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.F04_PATCH_DIR }}/composer.lock
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Remove temporary Symfony patch proposal directory
-        if: ${{ always() && env.F04_PATCH_DIR != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ "$(dirname "$F04_PATCH_DIR")" == "$RUNNER_TEMP" ]]
-          [[ "$(basename "$F04_PATCH_DIR")" =~ ^f04-symfony-[A-Za-z0-9]{12}$ ]]
-          test -d "$F04_PATCH_DIR" && test ! -L "$F04_PATCH_DIR"
-          test "$(stat -c %u "$F04_PATCH_DIR")" = "$(id -u)"
-          rm -rf -- "$F04_PATCH_DIR"
-          test ! -e "$F04_PATCH_DIR"
-          git diff --exit-code -- composer.json composer.lock
 
       - name: Establish safe fast environment before framework bootstrap
         shell: bash
@@ -240,7 +181,7 @@ jobs:
           python3 - <<'PY'
           import json, pathlib, hashlib
           lock_path = pathlib.Path('composer.lock')
-          assert hashlib.sha256(lock_path.read_bytes()).hexdigest() == '4f86a8d3e61aeddae531a177d901a0aa6632713116d9f959537102282079473e'
+          assert hashlib.sha256(lock_path.read_bytes()).hexdigest() == '9028f6191bf4f725c84890c28a0113c62b5ba0d9fc548559b8b33341ed4520f5'
           lock = json.loads(lock_path.read_text())
           installed = json.loads(pathlib.Path('vendor/composer/installed.json').read_text())
           expected = {p['name']: p for p in lock['packages'] + lock['packages-dev']}
