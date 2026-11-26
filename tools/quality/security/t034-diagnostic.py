@@ -242,22 +242,72 @@ def image_inventory(scratch, env, go, report):
         report["dockerCleanupVerified"]=bool(cleanup)
         require(cleanup)
 
-def sources(scratch,env,go):
+def sources(scratch,env,go,report):
+    """Fetch the reviewed Git object, never checkout or execute source."""
     dest=scratch/"source"
     dest.mkdir(mode=0o700)
+    upstream=scratch/"source-git"
+    upstream.mkdir(mode=0o700)
+    report["stage"]="source-git-fetch"
+    run(["git","init","--bare","--quiet"],upstream,env,30)
+    git=["git","-c","protocol.file.allow=never","-c","protocol.ext.allow=never",
+         "-c","core.hooksPath=/dev/null"]
+    run(git+["fetch","--depth=1","--no-tags","--no-recurse-submodules",
+             "https://github.com/tianon/gosu.git",SOURCE],upstream,env,90)
+    report["stage"]="source-git-identity"
+    require(run(git+["rev-parse","FETCH_HEAD^{commit}"],upstream,env,30).stdout.strip()==SOURCE)
+    tree=run(git+["ls-tree","-r",SOURCE],upstream,env,30).stdout
+    found={}
+    for line in tree.splitlines():
+        m=re.fullmatch(r"(100644|100755) blob ([a-f0-9]{40})\t(.+)",line)
+        if m and (m[3].endswith(".go") or m[3] in ("go.mod","go.sum")):
+            require(m[3] not in found)
+            found[m[3]]=m[2]
+    report["sourceBlobCount"]=len(found)
+    require(found==BLOBS)
+    report["stage"]="source-git-blobs"
     for name,expected in BLOBS.items():
-        path=dest/name
-        fetch("https://raw.githubusercontent.com/tianon/gosu/"+SOURCE+"/"+name,path,MIB,scratch,env)
-        data=path.read_bytes()
-        require(hashlib.sha1(b"blob "+str(len(data)).encode()+b"\0"+data).hexdigest()==expected)
+        data=subprocess.check_output(git+["cat-file","blob",expected],cwd=upstream,env=env,
+                                     stderr=subprocess.DEVNULL,timeout=30)
+        require(0<len(data)<=MIB and hashlib.sha1(b"blob "+str(len(data)).encode()+b"\0"+data).hexdigest()==expected)
+        with (dest/name).open("xb") as f:
+            f.write(data)
     before={name:sha(dest/name) for name in BLOBS}
-    run([str(go),"mod","download"],dest,env,180)
+    report["sourceBlobsVerified"]=True
+    report["stage"]="source-module-download"
+    # Existing reviewed checksums are the authority for both modules, including
+    # go.mod checksums. Do not rewrite or regenerate the source lock.
+    versions=("github.com/moby/sys/user@v0.4.1","golang.org/x/sys@v0.1.0")
+    expected={row.split()[0]+"@"+row.split()[1]:row.split()[2]
+              for row in (dest/"go.sum").read_text().splitlines()}
+    require(len(expected)==4)
+    for version in versions:
+        result=run([str(go),"mod","download","-json",version],dest,env,180,False)
+        report["moduleDownloadExitCode"]=result.returncode
+        require(result.returncode==0)
+        item=json.loads(result.stdout)
+        require(not item.get("Error") and item["Path"]+"@"+item["Version"]==version
+                and item["Sum"]==expected[version]
+                and item["GoModSum"]==expected[version+"/go.mod"])
+    report["stage"]="source-module-verification"
+    require(before=={name:sha(dest/name) for name in BLOBS})
+    run([str(go),"mod","verify"],dest,env,60)
+    report["sourceModulesVerified"]=True
+    # All downloads above are explicit and checksum-verified. No module
+    # retrieval is allowed during source analysis.
+    env["GOPROXY"]="off"
+    report["stage"]="source-package-inventory"
+    run([str(go),"list","-deps","./..."],dest,env,90)
     require(before=={name:sha(dest/name) for name in BLOBS})
     return dest,before
 
-def scan(scanner,db,mode,target,cwd,env):
+def scan(scanner,db,mode,target,cwd,env,report):
+    report["stage"]=mode+"-scanner-execution"
     result=run([str(scanner),"-json","-mode="+mode,"-scan=symbol","-db",db.as_uri(),str(target)],
-               cwd,env,300)
+               cwd,env,300,False)
+    report[mode+"ScannerExitCode"]=result.returncode
+    require(result.returncode==0)
+    report["stage"]=mode+"-stream-validation"
     decoder=json.JSONDecoder()
     raw=result.stdout
     pos=0
@@ -273,12 +323,18 @@ def scan(scanner,db,mode,target,cwd,env):
         pos=end
     require(messages and "config" in messages[0])
     cfg=messages[0]["config"]
+    report["stage"]=mode+"-configuration-validation"
+    report[mode+"Config"]={key:cfg.get(key) for key in
+                         ("protocol_version","scanner_name","scanner_version","scan_mode","scan_level","go_version","db_last_modified")}
     require(cfg["protocol_version"]=="v1.0.0" and cfg["scan_mode"]==mode and cfg["scan_level"]=="symbol"
             and cfg["scanner_version"].split("-")[0]=="v1.1.4")
+    report["stage"]=mode+"-sbom-validation"
     sboms=[x["SBOM"] for x in messages if "SBOM" in x]
+    report[mode+"SbomCount"]=len(sboms)
     require(len(sboms)==1 and sboms[0]["go_version"]=="go1.24.6")
     modules={m["path"]:m.get("version","") for m in sboms[0]["modules"]}
     require(modules.get("golang.org/x/sys")=="v0.1.0" and modules.get("github.com/moby/sys/user")=="v0.4.1")
+    report["stage"]=mode+"-finding-validation"
     levels={}
     symbols={}
     for obj in messages:
@@ -321,14 +377,18 @@ def main():
             out["database"]=meta
             out["stage"]="image-inventory"
             binary=image_inventory(scratch,env,go,out)
-            out["stage"]="source"
-            source,before=sources(scratch,env,go)
+            # Keep verified binary evidence even if source acquisition or
+            # source-mode analysis is incomplete.
             out["stage"]="binary-analysis"
-            out["binary"]=scan(scanner,db,"binary",binary,scratch,env)
+            out["binary"]=scan(scanner,db,"binary",binary,scratch,env,out)
+            out["stage"]="source"
+            source,before=sources(scratch,env,go,out)
             out["stage"]="source-analysis"
-            out["source"]=scan(scanner,db,"source","./...",source,env)
+            out["source"]=scan(scanner,db,"source","./...",source,env,out)
             require(before=={name:sha(source/name) for name in BLOBS})
-            require(out["source"]["databaseModified"]==out["binary"]["databaseModified"])
+            out["stage"]="comparison-database-identity"
+            require(out["source"]["databaseModified"]==out["binary"]["databaseModified"]
+                    ==meta["modified"])
             require(all(meta["aliases"].values()))
             out["comparison"]=[]
             for cve,ids in meta["aliases"].items():
