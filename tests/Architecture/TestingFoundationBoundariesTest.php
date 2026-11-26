@@ -48,8 +48,10 @@ it('keeps narrow relevant workflow triggers, guarded required commands and no pr
     $root = dirname(__DIR__, 2);
     $workflow = file_get_contents($root.'/.github/workflows/f0-01-laravel-bootstrap.yml');
     expect($workflow)->toContain('tests/**', 'app/**', 'bootstrap/**', 'config/**', 'composer.lock', 'contents: read');
+    expect(preg_match('/^  pull_request:\\n(?:(?!^  \\S).*[\\n])*/m', $workflow, $prTrigger))->toBe(1);
+    expect($prTrigger[0])->toContain('development')->not->toContain('paths:', 'paths-ignore:');
     expect($workflow)->not->toContain('pull_request_target:', 'docker system prune', 'migrate:fresh', 'db:wipe', 'FLUSHALL', 'FLUSHDB');
-    expect($workflow)->toContain('phpunit.integration.xml', 'run-report.php foundation', 'run-report.php fast-all', 'run-report.php architecture', 'run-report.php integration', 'needs: bootstrap');
+    expect($workflow)->toContain('phpunit.integration.xml', 'run-report.php foundation', 'run-report.php fast-all', 'run-report.php architecture', 'run-report.php integration', 'needs: [classify, bootstrap]', 'F0-04 / Quality Gate', 'verify-gate.py', 'digest-mismatch: error');
     $reportRunner = file_get_contents($root.'/tests/Support/ci/run-report.php');
     expect($reportRunner)->toContain("'/tests/Support/run-tests.php'", "'foundation' => ['fast', '--group=foundation']", "'fast-all' => ['fast']", "'architecture' => ['fast', '--suite=Architecture']", "'integration' => ['integration']");
     $launcher = file_get_contents($root.'/tests/Support/run-tests.php');

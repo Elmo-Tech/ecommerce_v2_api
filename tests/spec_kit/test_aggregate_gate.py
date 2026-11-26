@@ -437,3 +437,42 @@ class AggregateQuality(unittest.TestCase):
         link.unlink()
         helper.cleanup_downloads(c[4], c[1])
         self.assertFalse(c[4].exists())
+
+    def test_archive_inventory_is_checked_before_extraction(self):
+        import zipfile
+        import stat
+        io = self.helper("artifact-io.py", "MISSING_ARTIFACT_IO")
+        for variant in ("valid", "traversal", "duplicate", "symlink", "extra", "oversize"):
+            with self.subTest(variant=variant):
+                c = self.candidate()
+                target = self.artifact(c[4], "docs", c[1])
+                payloads = {file.name: file.read_bytes() for file in target.iterdir()}
+                shutil.rmtree(target)
+                folder = c[4] / ("archive-" + target.name)
+                folder.mkdir(mode=0o700)
+                with zipfile.ZipFile(folder / "artifact.zip", "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for name, data in payloads.items():
+                        if variant == "symlink" and name == "docs.summary.json":
+                            member = zipfile.ZipInfo(name)
+                            member.create_system = 3
+                            member.external_attr = (stat.S_IFLNK | 0o777) << 16
+                            archive.writestr(member, data)
+                        elif variant == "oversize" and name == "docs.summary.json":
+                            archive.writestr(name, b"x" * (16 * 1024 * 1024 + 1))
+                        else:
+                            archive.writestr(name, data)
+                    if variant == "traversal":
+                        archive.writestr("../outside.json", b"{}")
+                    elif variant == "duplicate":
+                        archive.writestr("docs.summary.json", b"{}")
+                    elif variant == "extra":
+                        archive.writestr("other.json", b"{}")
+                if variant == "valid":
+                    io.extract_downloads(c[4], c[1])
+                    self.assertEqual(self.verify(c)["status"], "PASSED")
+                    self.assertFalse(folder.exists())
+                else:
+                    with self.assertRaises(ValueError):
+                        io.extract_downloads(c[4], c[1])
+                    self.assertFalse(target.exists())
+                    self.assertFalse((c[4] / "outside.json").exists())

@@ -41,13 +41,15 @@ def identity():
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     pr = event["pull_request"]
     source, base = pr["head"]["sha"], pr["base"]["sha"]
-    require(event["number"] == 9 and pr["base"]["ref"] == "development"
-            and base == "24ce00231dec35a089bb70c081b257f9b5d234e7")
+    require(type(event["number"]) is int and event["number"] > 0
+            and pr["base"]["ref"] == "development" and pr["base"]["repo"]["full_name"] == "Elmo-Tech/ecommerce_v2_api"
+            and os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+            and os.environ.get("GITHUB_REF") == "refs/pull/" + str(event["number"]) + "/merge")
     git = lambda *args: subprocess.check_output(["git", *args], cwd=ROOT, text=True,
                                                  stderr=subprocess.DEVNULL, timeout=30)
     checkout = git("rev-parse", "HEAD").strip()
     parents = re.findall(r"^parent ([a-f0-9]{40})$", git("cat-file", "-p", "HEAD").split("\n\n", 1)[0], re.M)
-    require(parents == [base, source] and all(re.fullmatch(r"[a-f0-9]{40}", v)
+    require(checkout == os.environ.get("GITHUB_SHA") and parents == [base, source] and all(re.fullmatch(r"[a-f0-9]{40}", v)
             for v in (source, base, checkout)))
     require(not git("status", "--porcelain", "--untracked-files=no"))
     return dict(sourceSha=source, baseSha=base, checkoutSha=checkout,

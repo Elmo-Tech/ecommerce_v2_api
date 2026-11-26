@@ -64,31 +64,35 @@ function fixture(schema) {
 try {
     assert.equal(process.version, 'v24.22.3');
     const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-    assert.equal(event.number, 9);
+    assert.ok(Number.isSafeInteger(event.number) && event.number > 0);
+    assert.equal(process.env.GITHUB_EVENT_NAME, 'pull_request');
+    assert.equal(process.env.GITHUB_REPOSITORY, 'Elmo-Tech/ecommerce_v2_api');
+    assert.equal(event.pull_request.base.repo.full_name, process.env.GITHUB_REPOSITORY);
+    assert.equal(process.env.GITHUB_REF, 'refs/pull/' + event.number + '/merge');
     assert.equal(event.pull_request.base.ref, 'development');
     summary.sourceSha = event.pull_request.head.sha;
     summary.baseSha = event.pull_request.base.sha;
     summary.checkoutSha = git(['rev-parse', 'HEAD']);
-    assert.equal(summary.baseSha, '24ce00231dec35a089bb70c081b257f9b5d234e7');
+    assert.equal(summary.checkoutSha, process.env.GITHUB_SHA);
+    assert.ok([summary.sourceSha, summary.baseSha, summary.checkoutSha].every((sha) => /^[a-f0-9]{40}$/.test(sha)));
     assert.deepEqual(git(['rev-list', '--parents', '-n', '1', 'HEAD']).split(' '),
         [summary.checkoutSha, summary.baseSha, summary.sourceSha]);
     assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '');
-    // At this stage only the previously reviewed, unchanged real contract may
-    // enter the CLI. All other inputs are local synthetic fixtures.
+    // Validate the exact integrated tracked contract. A changed canonical
+    // blob still requires human review; validation is not compatibility approval.
     const baseBlob = git(['rev-parse', summary.baseSha + ':' + contract]);
     const currentBlob = git(['rev-parse', 'HEAD:' + contract]);
-    assert.equal(currentBlob, baseBlob);
     summary.contractBlob = currentBlob;
-    summary.canonicalUnchanged = true;
+    summary.canonicalUnchanged = currentBlob === baseBlob;
     // Run preflight on the exact tracked bytes and stage only approved inputs.
     const checked = preflightCheckout(repo);
     assert.deepEqual(checked.roots, [contract]);
     summary.checkedRoots = checked.roots;
     summary.checkedFiles = checked.files;
     for (const [path, raw] of checked.inputs) {
-        // Any change to the current graph is review-required for this MVP lane.
-        assert.equal(git(['rev-parse', summary.baseSha + ':' + path]),
-            git(['rev-parse', 'HEAD:' + path]));
+        // Only the reviewed single-root graph is in scope; changed bytes
+        // undergo the same offline validation and human review.
+        assert.equal(path, contract);
         const staged = join(scratch, path);
         mkdirSync(dirname(staged), { recursive: true });
         writeFileSync(staged, raw, { flag: 'wx' });

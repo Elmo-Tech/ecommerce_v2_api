@@ -70,7 +70,9 @@ jobs:
 
     def test_actual_development_workflow(self):
         path = ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml"
-        self.assertEqual(policy_issues(parse(path.read_text()), True), [])
+        actual = parse(path.read_text())
+        self.assertEqual(policy_issues(actual, True), [])
+        self.assertEqual(POLICY.aggregate_issues(actual), [])
 
     def test_actual_spec_kit_workflow(self):
         path = ROOT / ".github/workflows/fnd-01-spec-kit-review.yml"
@@ -80,10 +82,10 @@ jobs:
         actual = parse((ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml").read_text())
         self.assertEqual(POLICY.native_issues(actual), [])
         for job_id, step_id, field, value, expected in (
-            ("f0-03-integration", "owned_start", "run", "echo skip", "NATIVE_GUARD"),
-            ("f0-03-integration", "owned_setup", "if", "false", "NATIVE_GUARD"),
-            ("f0-03-integration", "owned_cleanup", "run", "echo skip", "NATIVE_CLEANUP"),
-            ("f0-03-integration", "integration_upload", "with", {"path": "integration-raw.xml"}, "NATIVE_REPORTS"),
+            ("native-integration", "owned_start", "run", "echo skip", "NATIVE_GUARD"),
+            ("native-integration", "owned_setup", "if", "false", "NATIVE_GUARD"),
+            ("native-integration", "owned_cleanup", "run", "echo skip", "NATIVE_CLEANUP"),
+            ("native-integration", "integration_upload", "with", {"path": "integration-raw.xml"}, "NATIVE_REPORTS"),
             ("bootstrap", "fast_report_cleanup", "run", "echo skip", "REPORT_CLEANUP"),
         ):
             with self.subTest(step=step_id):
@@ -92,7 +94,7 @@ jobs:
                 step[field] = value
                 self.assertIn(expected, POLICY.native_issues(candidate))
         candidate = deepcopy(actual)
-        candidate["jobs"]["f0-03-integration"]["needs"] = "unrelated"
+        candidate["jobs"]["native-integration"]["needs"] = "unrelated"
         self.assertIn("NATIVE_DEPENDENCY", POLICY.native_issues(candidate))
 
     def test_exact_gate_condition_and_node_toolchain(self):
@@ -121,3 +123,19 @@ jobs:
                 step["if"] = condition
             self.assertIn("FAST_GUARD", POLICY.native_issues(changed))
 
+
+    def test_production_aggregate_rejects_missing_or_unsafe_transport(self):
+        actual = parse((ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml").read_text())
+        self.assertEqual(POLICY.aggregate_issues(actual), [])
+        for field, value in (("digest-mismatch", "warn"), ("skip-decompress", "false"),
+                             ("github-token", "forbidden"), ("pattern", "*")):
+            changed = deepcopy(actual)
+            step = next(s for s in changed["jobs"]["gate"]["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
+            step["with"][field] = value
+            self.assertIn("ARTIFACT_DOWNLOAD", POLICY.aggregate_issues(changed))
+        changed = deepcopy(actual)
+        changed["jobs"]["gate"]["needs"].remove("image-scan")
+        self.assertIn("AGGREGATE_NEEDS", POLICY.aggregate_issues(changed))
+        changed = deepcopy(actual)
+        changed["jobs"]["docs"]["if"] = "always()"
+        self.assertIn("LANE_SELECTION", POLICY.aggregate_issues(changed))

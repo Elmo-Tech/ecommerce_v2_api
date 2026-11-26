@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import time
+import zipfile
 
 _spec = importlib.util.spec_from_file_location("f04_gate_io", Path(__file__).with_name("verify-gate.py"))
 gate = importlib.util.module_from_spec(_spec)
@@ -105,28 +106,95 @@ def owned_path(path, parent, prefix):
     return gate.directory(path, private=True)
 
 
+
+MAX_ARCHIVE = gate.MAX_TOTAL + 1024 * 1024
+
+
+def archive_file(folder):
+    gate.directory(folder)
+    files = list(folder.iterdir())
+    gate.require(len(files) == 1)
+    item = files[0]
+    gate.require(re.fullmatch(r"[A-Za-z0-9_.-]{1,200}", item.name)
+                 and item.name not in (".", ".."))
+    info = item.lstat()
+    gate.require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1
+                 and info.st_uid == os.geteuid() and info.st_mode & 0o022 == 0
+                 and 0 < info.st_size <= MAX_ARCHIVE and item.resolve() == item)
+    return item
+
+
+def extract_archive(folder, target, lane):
+    archive = archive_file(folder)
+    expected = {"lane.summary.json", *gate.PAYLOADS[lane]}
+    gate.require(not target.exists() and not target.is_symlink())
+    with zipfile.ZipFile(archive, "r") as zipped:
+        entries = zipped.infolist()
+        gate.require(len(entries) == len(expected) and
+                     {item.filename for item in entries} == expected)
+        total = 0
+        for item in entries:
+            kind = stat.S_IFMT(item.external_attr >> 16)
+            limit = gate.MAX_SUMMARY if item.filename == "lane.summary.json" else gate.MAX_FILE
+            gate.require(item.orig_filename == item.filename and not item.is_dir()
+                         and kind in (0, stat.S_IFREG) and not (item.flag_bits & 1)
+                         and item.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
+                         and 0 < item.file_size <= limit)
+            total += item.file_size
+            gate.require(total <= gate.MAX_TOTAL)
+        # Validate the entire archive inventory before creating any extracted file.
+        target.mkdir(mode=0o700)
+        for item in entries:
+            with zipped.open(item, "r") as source:
+                payload = source.read(item.file_size + 1)
+            gate.require(len(payload) == item.file_size)
+            fd = os.open(target / item.filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(payload)
+    archive.unlink()
+    folder.rmdir()
+    gate.require(not folder.exists())
+
+
+def extract_downloads(root, identity):
+    root = gate.directory(Path(root).absolute(), private=True)
+    allowed = {"archive-" + gate.artifact_name(lane, identity): lane for lane in gate.LANES}
+    folders = list(root.iterdir())
+    gate.require(len(folders) <= len(allowed) and all(folder.name in allowed for folder in folders))
+    for folder in folders:
+        lane = allowed[folder.name]
+        extract_archive(folder, root / gate.artifact_name(lane, identity), lane)
+
+
 def cleanup_downloads(root, identity):
     # Validate the entire inventory before deleting anything. On an unsafe
     # extraction, refuse cleanup and leave the job failed on its ephemeral runner.
     root = gate.directory(Path(root).absolute(), private=True)
     allowed = {gate.artifact_name(lane, identity): {"lane.summary.json", *gate.PAYLOADS[lane]}
                for lane in gate.LANES}
+    raw_names = {"archive-" + name for name in allowed}
     entries = list(root.iterdir())
-    gate.require(len(entries) <= len(allowed) and all(item.name in allowed for item in entries))
+    gate.require(len(entries) <= 2 * len(allowed) and all(item.name in allowed or item.name in raw_names for item in entries))
     plan = []
     total = 0
     for folder in entries:
         gate.directory(folder)
         files = list(folder.iterdir())
-        gate.require(len(files) <= len(allowed[folder.name])
-                     and all(item.name in allowed[folder.name] for item in files))
+        if folder.name in raw_names:
+            gate.require(len(files) <= 1)
+            if files:
+                archive_file(folder)
+        else:
+            gate.require(len(files) <= len(allowed[folder.name])
+                         and all(item.name in allowed[folder.name] for item in files))
         for item in files:
             info = item.lstat()
+            limit = MAX_ARCHIVE if folder.name in raw_names else gate.MAX_FILE
             gate.require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1
                          and info.st_uid == os.geteuid() and item.resolve() == item
-                         and info.st_mode & 0o022 == 0 and 0 <= info.st_size <= gate.MAX_FILE)
+                         and info.st_mode & 0o022 == 0 and 0 <= info.st_size <= limit)
             total += info.st_size
-            gate.require(total <= len(gate.LANES) * gate.MAX_TOTAL)
+            gate.require(total <= 2 * len(gate.LANES) * MAX_ARCHIVE)
             plan.append((item, info))
     for item, before in plan:
         after = item.lstat()
@@ -165,6 +233,8 @@ def main():
         elif len(args) == 3 and args[0] == "cleanup-lane" and args[1] in ("docs", "dependency-audit", "spec-kit"):
             _, lane, path = args
             cleanup_lane(owned_path(path, parent, PREFIXES[lane]), lane)
+        elif len(args) == 2 and args[0] == "extract-downloads":
+            extract_downloads(owned_path(args[1], parent, "f04-gate"), identity)
         elif len(args) == 2 and args[0] == "cleanup-downloads":
             cleanup_downloads(owned_path(args[1], parent, "f04-gate"), identity)
         else:
@@ -172,7 +242,7 @@ def main():
         print("F0-04 artifact boundary verified.")
         return 0
     except (OSError, ValueError, KeyError, TypeError, AttributeError, OverflowError,
-            RecursionError, subprocess.SubprocessError, gate.ET.ParseError):
+            RecursionError, subprocess.SubprocessError, gate.ET.ParseError, zipfile.BadZipFile):
         print("F0-04 artifact boundary rejected or incomplete.", file=sys.stderr)
         return 2
 

@@ -44,7 +44,8 @@ def policy_issues(doc, primary):
             issues.add("DEVELOPMENT_TRIGGER")
         gates = [job for job in jobs.values()
                  if isinstance(job, dict) and job.get("name") == "F0-04 / Quality Gate"]
-        if len(gates) != 1 or gates[0].get("if") not in ("always()", "${{ always() }}"):
+        if len(gates) != 1 or gates[0].get("if") not in ("always()", "${{ always() }}",
+                "${{ always() && github.event_name == 'pull_request' && github.base_ref == 'development' }}"):
             issues.add("FINAL_GATE")
     elif "workflow_call" not in triggers:
         issues.add("REUSABLE_SPEC_KIT")
@@ -128,7 +129,7 @@ def native_issues(doc):
             or cleanup[0].get("if") != ("$" + "{{ always() && steps.run_identity.outcome == 'success' }}")
             or cleanup[0].get("run", "").splitlines() != ["set -euo pipefail", cleanup_command, cleanup_command]):
         issues.add("NATIVE_CLEANUP")
-    expected = ("integration-safe.xml", "integration.summary.json")
+    expected = ("integration-safe.xml", "integration.summary.json", "lane.summary.json")
     uploads = [s for s in steps if s.get("id") == "integration_upload"]
     if len(uploads) != 1:
         issues.add("NATIVE_REPORTS")
@@ -147,6 +148,70 @@ def native_issues(doc):
     return sorted(issues)
 
 
+
+def aggregate_issues(doc):
+    """Exact production lane wiring, not a relaxed generic fixture check."""
+    jobs = doc.get("jobs", {})
+    lanes = ("docs", "format", "analysis", "contracts", "dependency-audit",
+             "image-scan", "bootstrap", "native-integration", "spec-kit")
+    issues = set()
+    if set(jobs) != {"classify", "gate", *lanes}:
+        return ["AGGREGATE_JOBS"]
+    gate = jobs["gate"]
+    if set(gate.get("needs", [])) != {"classify", *lanes} or len(gate.get("needs", [])) != 10:
+        issues.add("AGGREGATE_NEEDS")
+    if gate.get("if") != ("${{ always() && github.event_name == 'pull_request' && github.base_ref == 'development' }}"):
+        issues.add("AGGREGATE_CONDITION")
+    steps = gate.get("steps", [])
+    downloads = [step for step in steps if step.get("uses", "").startswith("actions/download-artifact@")]
+    expected_names = []
+    for lane in lanes:
+        prefix = {"bootstrap": "f03-fast", "native-integration": "f03-integration"}.get(lane, "f04-" + lane)
+        name = prefix + "-" + "${{ github.run_id }}-${{ github.run_attempt }}"
+        expected_names.append(name)
+        matched = [step for step in downloads if step.get("with", {}).get("name") == name]
+        expected_if = ("${{ always() && steps.gate_dir.outcome == 'success' && needs.classify.result == 'success'"
+                       " && fromJSON(needs.classify.outputs.classification).lanes['" + lane + "'].required"
+                       " && needs['" + lane + "'].result == 'success' }}")
+        if len(matched) != 1 or matched[0].get("with") != {
+                "name": name, "path": "${{ env.F04_GATE_DIR }}/archive-" + name,
+                "digest-mismatch": "error", "skip-decompress": "true", "merge-multiple": "false"} or matched[0].get("if") != expected_if:
+            issues.add("ARTIFACT_DOWNLOAD")
+        job = jobs[lane]
+        needs = job.get("needs")
+        if lane == "native-integration":
+            if needs != ["classify", "bootstrap"]:
+                issues.add("LANE_DEPENDENCY")
+        elif needs != "classify":
+            issues.add("LANE_DEPENDENCY")
+        if ("fromJSON(needs.classify.outputs.classification).lanes['" + lane + "'].required") not in job.get("if", ""):
+            issues.add("LANE_SELECTION")
+        if lane != "spec-kit":
+            uploads = [step for step in job.get("steps", []) if step.get("with", {}).get("name") == name
+                       and "lane.summary.json" in step.get("with", {}).get("path", "")]
+            seals = [step for step in job.get("steps", []) if step.get("run", "").startswith(
+                     "python3 -B tools/quality/artifact-io.py seal " + lane + " ")]
+            if len(uploads) != 1 or len(seals) != 1:
+                issues.add("LANE_EVIDENCE")
+    if len(downloads) != len(lanes):
+        issues.add("ARTIFACT_DOWNLOAD")
+    commands = [
+        'python3 -B tools/quality/artifact-io.py extract-downloads "$F04_GATE_DIR"',
+        'python3 -B tools/quality/verify-gate.py "$F04_GATE_DIR"',
+        'python3 -B tools/quality/artifact-io.py cleanup-downloads "$F04_GATE_DIR"',
+    ]
+    indices = []
+    for command in commands:
+        matches = [(i, step) for i, step in enumerate(steps) if step.get("run") == command]
+        if len(matches) != 1 or matches[0][1].get("if") != "${{ always() && steps.gate_dir.outcome == 'success' }}":
+            issues.add("AGGREGATE_VERIFY")
+        else:
+            indices.append(matches[0][0])
+    if len(indices) != 3 or indices != sorted(indices):
+        issues.add("AGGREGATE_VERIFY")
+    return sorted(issues)
+
+
 def main():
     paths = (
         (".github/workflows/f0-01-laravel-bootstrap.yml", True),
@@ -158,7 +223,7 @@ def main():
             doc = parse((ROOT / name).read_text())
             results[name] = policy_issues(doc, primary)
             if primary:
-                results[name] = sorted(set(results[name] + native_issues(doc)))
+                results[name] = sorted(set(results[name] + native_issues(doc) + aggregate_issues(doc)))
         except (OSError, ValueError, TypeError, AttributeError, yaml.YAMLError):
             results[name] = ["WORKFLOW_SHAPE"]
     print(json.dumps(results, sort_keys=True))

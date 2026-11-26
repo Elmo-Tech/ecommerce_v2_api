@@ -16,7 +16,7 @@ try {
     if ($directory === null) {
         throw new RuntimeException('Owned report directory missing.');
     }
-    $allowed = [];
+    $allowed = ['lane.summary.json'];
     foreach (['foundation', 'fast-all', 'architecture', 'integration'] as $selection) {
         foreach (['-raw.xml', '-safe.xml', '-safe-next.xml', '.summary.json', '.summary.next.json', '.stdout', '.stderr'] as $suffix) {
             $allowed[] = $selection.$suffix;
