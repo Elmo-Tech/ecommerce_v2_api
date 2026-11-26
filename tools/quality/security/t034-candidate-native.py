@@ -63,7 +63,8 @@ def candidate_env(scratch,report):
     require(env["GITHUB_ACTIONS"]=="true" and env["GITHUB_REPOSITORY"]=="Elmo-Tech/ecommerce_v2_api"
             and env["GITHUB_JOB"]=="candidate-build" and env["RUNNER_ENVIRONMENT"]=="github-hosted"
             and env["RUNNER_OS"]=="Linux" and env["RUNNER_ARCH"]=="X64"
-            and env["GITHUB_EVENT_NAME"]=="pull_request"
+            and env["GITHUB_EVENT_NAME"]=="push" and report["baseSha"] is None
+            and report["sourceSha"]==report["checkoutSha"]
             and env["GITHUB_SHA"]==report["checkoutSha"] and env["GITHUB_RUN_ID"]==report["runId"]
             and env["GITHUB_RUN_ATTEMPT"]==report["runAttempt"]
             and re.fullmatch(r"[1-9][0-9]{0,19}",env["GITHUB_RUN_ID"])

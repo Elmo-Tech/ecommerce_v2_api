@@ -1,7 +1,7 @@
-"""T034 candidate build/scan only: no registry publication or required-pin changes.
+"""One-off T034 build/scan/native proof and internal GHCR publication.
 
-Temporary, isolated hosted PR #9 diagnostic. Actual local image IDs and layer
-digests are verified instead of fabricating remote registry digests.
+Only the exact authorized feature-branch push may publish; no PR write token,
+no public visibility change, and no required-pin changes in this step.
 """
 from collections import Counter
 from datetime import datetime, timezone
@@ -16,6 +16,9 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.error
+import urllib.request
+import time
 
 from policy import (TRIVY_VERSION, TRIVY_ARCHIVE_SHA, MAX_FINDINGS, fresh_database,
                     require, token, package_version, unique_pairs, summary)
@@ -33,6 +36,19 @@ ROOT = Path(__file__).resolve().parents[3]
 RECIPES = Path(__file__).with_name("test-images")
 GOSU_SNAPSHOT = RECIPES / "gosu-source"
 MIB = 1024 * 1024
+PUBLISH_PARENT = "4d362a3d32b6e05168597f838664bb9579ca5a30"
+PUBLISH_BRANCH = "refs/heads/feature/f0-04-code-quality-ci"
+LICENSE_BLOBS = {
+    "go-LICENSE": "2a7cf70da6e498df9c11ab6a5eaa2ddd7af34da4",
+    "go-PATENTS": "733099041f84fa1e58611ab2e11af51c1f26d1d2",
+    "redis-LICENSE.txt": "4657905cf699d1d5ac96a07d0969bc79e27c4eec",
+    "openssl-LICENSE.txt": "49cc83d2ee29d13453188217f0e4edd70c7f842f"
+}
+PACKAGE_NAMES = {
+    "postgres": "ecommerce-v2-ci-postgres",
+    "redis": "ecommerce-v2-ci-redis",
+}
+
 GO_SHA = "9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"
 GOSU_COMMIT = "29b939aa5bd4dc588af765b8248f6e39150d2565"
 GOSU_TREE = "5c69cec164871648ddb14c59192c831b3884ae65"
@@ -229,6 +245,8 @@ def build_image(service, context, scratch, env, report, owned):
     record["stage"]="offline-image-build"
     iid = scratch/(service+".iid")
     result = command(["docker","build","--no-cache","--network=none","--platform=linux/amd64",
+                      "--label","org.opencontainers.image.source=https://github.com/Elmo-Tech/ecommerce_v2_api",
+                      "--label","org.opencontainers.image.revision="+report["sourceSha"],
                       "--iidfile",str(iid),"-t",tag,str(context)],scratch,
                      dict(env,DOCKER_BUILDKIT="1"),300,False,False)
     record["buildExitCode"] = result.returncode
@@ -240,7 +258,8 @@ def build_image(service, context, scratch, env, report, owned):
     require(re.fullmatch(r"sha256:[a-f0-9]{64}",image["Id"])
             and iid.read_text().strip()==image["Id"] and image["Id"]!=base_id
             and image["Os"]=="linux" and image["Architecture"]=="amd64"
-            and layers[:-1]==base["RootFS"]["Layers"] and len(layers)==len(base["RootFS"]["Layers"])+1
+            and layers[:len(base["RootFS"]["Layers"])]==base["RootFS"]["Layers"]
+            and len(layers)==len(base["RootFS"]["Layers"])+(2 if service=="postgres" else 1)
             and all(re.fullmatch(r"sha256:[a-f0-9]{64}",d) for d in layers))
     # No service startup or entrypoint/UID/environment change in this stage.
     for key in ("Entrypoint","Cmd","User","Env","WorkingDir","ExposedPorts","Volumes","Healthcheck","StopSignal"):
@@ -403,14 +422,179 @@ def validate_local(target, image, service, raw, exit_code, before, after, now, p
                    candidateOnly=True,approval="NOT_APPROVED")
 
 
+
+def publication_identity():
+    # Exact push lease and real checkout; no synthetic PR event or job ID.
+    require(os.environ.get("GITHUB_ACTIONS") == "true"
+            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
+            and os.environ.get("RUNNER_OS") == "Linux"
+            and os.environ.get("RUNNER_ARCH") == "X64"
+            and os.environ.get("GITHUB_REPOSITORY") == "Elmo-Tech/ecommerce_v2_api"
+            and os.environ.get("GITHUB_JOB") == "candidate-build"
+            and os.environ.get("GITHUB_EVENT_NAME") == "push"
+            and os.environ.get("GITHUB_REF") == PUBLISH_BRANCH
+            and os.environ.get("GITHUB_RUN_ATTEMPT") == "1")
+    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+    sha = os.environ["GITHUB_SHA"]
+    require(event["before"] == PUBLISH_PARENT and event["after"] == sha
+            and event["ref"] == PUBLISH_BRANCH and event["deleted"] is False
+            and event["forced"] is False and event["repository"]["full_name"] == "Elmo-Tech/ecommerce_v2_api"
+            and re.fullmatch(r"[a-f0-9]{40}", sha))
+    git = lambda *args: subprocess.check_output(["git", *args], cwd=ROOT, text=True,
+                                                 stderr=subprocess.DEVNULL, timeout=30).strip()
+    require(git("rev-parse", "HEAD") == sha and git("rev-parse", "HEAD^") == PUBLISH_PARENT
+            and git("rev-list", "--count", PUBLISH_PARENT + "..HEAD") == "1"
+            and not git("status", "--porcelain", "--untracked-files=no"))
+    run_id = os.environ["GITHUB_RUN_ID"]
+    require(re.fullmatch(r"[1-9][0-9]{0,19}", run_id))
+    return dict(sourceSha=sha, baseSha=None, checkoutSha=sha, runId=run_id, runAttempt="1")
+
+
+def original_license(source, expected, destination):
+    require(source.is_file() and not source.is_symlink() and 0 < source.stat().st_size <= MIB)
+    raw = source.read_bytes()
+    require(hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest() == expected)
+    with destination.open("xb") as stream:
+        stream.write(raw)
+    destination.chmod(0o644)
+
+
+def notices(service, context):
+    # The four additional reviewed license blobs plus original gosu LICENSE.
+    source = RECIPES / "licenses"
+    dest = context / "notices"
+    dest.mkdir(mode=0o755)
+    dest.chmod(0o755)
+    require({p.name for p in source.iterdir()} == set(LICENSE_BLOBS) | {"postgres-NOTICE.txt", "redis-NOTICE.txt"}
+            and not source.is_symlink())
+    selected = ("go-LICENSE", "go-PATENTS") if service == "postgres" else ("redis-LICENSE.txt", "openssl-LICENSE.txt")
+    for name in selected:
+        original_license(source/name, LICENSE_BLOBS[name], dest/name)
+    if service == "postgres":
+        original_license(GOSU_SNAPSHOT/"LICENSE", GOSU_LICENSE_BLOB, dest/"gosu-LICENSE")
+    note = source/(service+"-NOTICE.txt")
+    require(note.is_file() and not note.is_symlink() and 0 < note.stat().st_size <= 16384)
+    (dest/"NOTICE.txt").write_bytes(note.read_bytes())
+    (dest/"NOTICE.txt").chmod(0o644)
+    return {p.name:sha(p) for p in sorted(dest.iterdir())}
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def package_status(package, credential):
+    require(package in PACKAGE_NAMES.values())
+    url = "https://api.github.com/orgs/Elmo-Tech/packages/container/" + package
+    request = urllib.request.Request(url, headers={"Accept":"application/vnd.github+json",
+        "Authorization":"Bearer "+credential,"X-GitHub-Api-Version":"2022-11-28",
+        "User-Agent":"elmo-f004-test-image-publisher"})
+    try:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+            raw=response.read(256*1024+1)
+            require(response.status==200 and len(raw)<=256*1024)
+            body=json.loads(raw)
+            require(body["name"]==package and body["package_type"]=="container")
+            return 200, body
+    except urllib.error.HTTPError as exc:
+        return exc.code, None
+
+
+def publish_exact(built, scratch, env, report, owned, credential):
+    result={"status":"BLOCKED","stage":"package-preflight","images":{},"preflight":{}}
+    report["publication"]=result
+    require(publication_identity()=={k:report[k] for k in ("sourceSha","baseSha","checkoutSha","runId","runAttempt")}
+            and set(built)==set(PACKAGE_NAMES) and report["nativeCompatibility"]["status"]=="PASSED"
+            and report["nativeCompatibility"]["cleanupVerified"] is True)
+    # No changes to existing packages or their visibility. Fresh names only.
+    for service, package in PACKAGE_NAMES.items():
+        code, body=package_status(package,credential)
+        result["preflight"][service]=code
+        require(code==404 and body is None)
+    result["stage"]="registry-login"
+    actor=os.environ["GITHUB_ACTOR"]
+    require(re.fullmatch(r"[A-Za-z0-9_.\[\]-]{1,100}",actor))
+    login=subprocess.run(["docker","login","ghcr.io","--username",actor,"--password-stdin"],
+        input=credential.encode()+b"\n",cwd=scratch,env=env,stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,timeout=60,check=False)
+    require(login.returncode==0)
+    try:
+        for service,(local,image) in built.items():
+            result["stage"]=service+"-identity"
+            image_id=image["Id"]
+            native=report["nativeCompatibility"]["images"][service]
+            require(report["scans"][service]["status"]=="PASSED"
+                    and report["scans"][service]["imageId"]==image_id
+                    and native["imageId"]==image_id and native["diffIds"]==image["RootFS"]["Layers"])
+            check=docker_inspect(local,scratch,env)
+            require(check["Id"]==image_id and check["RootFS"]==image["RootFS"]
+                    and check["Config"]["Labels"]["org.opencontainers.image.source"]=="https://github.com/Elmo-Tech/ecommerce_v2_api")
+            repository="ghcr.io/elmo-tech/"+PACKAGE_NAMES[service]
+            tag=repository+":f04-"+report["sourceSha"][:12]+"-"+report["runId"]
+            require(docker_inspect(tag,scratch,env,False) is None)
+            item={"tag":tag,"imageId":image_id,"status":"BLOCKED"}
+            result["images"][service]=item
+            command(["docker","tag",image_id,tag],scratch,env,30)
+            owned.append(tag)
+            result["stage"]=service+"-push"
+            pushed=command(["docker","push",tag],scratch,env,420,True,False)
+            item["pushExit"]=pushed.returncode
+            require(pushed.returncode==0)
+            matches=re.findall(r"digest: (sha256:[a-f0-9]{64}) size: [0-9]+",pushed.stdout)
+            require(len(set(matches))==1)
+            digest=matches[0]
+            remote=repository+"@"+digest
+            item["manifestDigest"]=digest
+            item["pinnedRef"]=remote
+            result["stage"]=service+"-manifest"
+            # Obtain real registry manifest bytes from the authenticated registry.
+            raw=subprocess.check_output(["docker","buildx","imagetools","inspect","--raw",remote],
+                cwd=scratch,env=env,stderr=subprocess.DEVNULL,timeout=90)
+            require(0<len(raw)<=MIB)
+            candidates=[raw,raw[:-1]] if raw.endswith(b"\n") else [raw]
+            verified=[v for v in candidates if "sha256:"+hashlib.sha256(v).hexdigest()==digest]
+            require(len(verified)==1)
+            manifest=json.loads(verified[0])
+            require(manifest["schemaVersion"]==2 and manifest["config"]["digest"]==image_id
+                    and len(manifest["layers"])==len(image["RootFS"]["Layers"])
+                    and all(re.fullmatch(r"sha256:[a-f0-9]{64}",layer["digest"]) for layer in manifest["layers"]))
+            item["manifestVerified"]=True
+            result["stage"]=service+"-pull"
+            command(["docker","pull","--platform","linux/amd64",remote],scratch,env,300)
+            owned.append(remote)
+            actual=docker_inspect(remote,scratch,env)
+            require(actual["Id"]==image_id and actual["RootFS"]==image["RootFS"]
+                    and actual["Os"]=="linux" and actual["Architecture"]=="amd64"
+                    and remote in actual["RepoDigests"])
+            item["pulledIdentityVerified"]=True
+            result["stage"]=service+"-private-visibility"
+            for index in range(3):
+                code,package=package_status(PACKAGE_NAMES[service],credential)
+                if code!=404 or index==2:
+                    break
+                time.sleep(2)
+            item["metadataHttpStatus"]=code
+            require(code==200 and package["visibility"]=="private")
+            item.update(status="PUBLISHED_VERIFIED",visibility="private",
+                        layerDigests=[layer["digest"] for layer in manifest["layers"]])
+        result.update(status="PUBLISHED_VERIFIED",stage="complete")
+    finally:
+        # The auth file is private scratch and never uploaded.
+        logout=command(["docker","logout","ghcr.io"],scratch,env,30,False,False)
+        result["logoutExit"]=logout.returncode
+        require(logout.returncode==0)
+
+
 def main():
     out={"schemaVersion":1,"task":"T034","status":"BLOCKED","stage":"identity",
          "candidateApproval":"NOT_APPROVED","diagnosticOnly":True,"builds":{},"scans":{}}
     try:
-        out.update(scanner.identity())
-        event=json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-        require(event["number"]==9 and event["pull_request"]["head"]["repo"]["full_name"]=="Elmo-Tech/ecommerce_v2_api"
-                and event["pull_request"]["head"]["ref"]=="feature/f0-04-code-quality-ci")
+        # The credential is removed from process environment before any build,
+        # scanner, Composer or PHP subprocess; only the publisher receives it.
+        credential=os.environ.pop("F04_GHCR_TOKEN","")
+        require(0<len(credential)<=1024 and "\n" not in credential)
+        out.update(publication_identity())
         require(json.loads(Path(__file__).with_name("exceptions.json").read_text())==[])
         parent=Path(os.environ["RUNNER_TEMP"]).resolve()
         with tempfile.TemporaryDirectory(prefix="f04-t034-build-",dir=parent) as directory:
@@ -433,6 +617,7 @@ def main():
                             gosu_build(scratch,env,context,record)
                         else:
                             redis_packages(scratch,env,context,record)
+                        record["licenseFiles"]=notices(service,context)
                         built[service]=build_image(service,context,scratch,env,out,owned)
                     except (OSError,ValueError,TypeError,KeyError,AttributeError,subprocess.SubprocessError,tarfile.TarError) as exc:
                         record.update(status="BLOCKED",errorClass=type(exc).__name__)
@@ -477,26 +662,30 @@ def main():
                 if set(out["scans"])==set(BASES) and all(item["status"]=="PASSED" for item in out["scans"].values()):
                     out["stage"]="candidate-native"
                     out["nativeCompatibility"]=native_compat.run_candidate_native(scratch,built,out)
+                    if out["nativeCompatibility"]["status"]=="PASSED":
+                        out["stage"]="publish"
+                        publish_exact(built,scratch,env,out,owned,credential)
             finally:
                 # Remove only exact refs created on this disposable runner.
                 clean=True
                 for ref in reversed(owned):
-                    clean &= command(["docker","image","rm",ref],scratch,env,90,False,False).returncode==0
+                    if docker_inspect(ref,scratch,env,False) is not None:
+                        clean &= command(["docker","image","rm",ref],scratch,env,90,False,False).returncode==0
                     clean &= docker_inspect(ref,scratch,env,False) is None
                 out["ownedImageCleanup"]=bool(clean)
                 require(clean)
         require(not scratch.exists())
-        require(scanner.identity()=={k:out[k] for k in ("sourceSha","baseSha","checkoutSha","runId","runAttempt")})
+        require(publication_identity()=={k:out[k] for k in ("sourceSha","baseSha","checkoutSha","runId","runAttempt")})
         out["ownedScratchCleanup"]=True
         out["trackedSourceUnchanged"]=True
         states=[out["scans"].get(service,{}).get("status","BLOCKED") for service in BASES]
         out["status"]="BLOCKED" if "BLOCKED" in states else "FAILED" if "FAILED" in states else (
-            "CANDIDATES_SCAN_AND_NATIVE_PASSED" if out.get("nativeCompatibility",{}).get("status")=="PASSED" else "BLOCKED")
+            "PUBLISHED_VERIFIED" if out.get("publication",{}).get("status")=="PUBLISHED_VERIFIED" else "BLOCKED")
         out["stage"]="complete"
     except (OSError,ValueError,TypeError,KeyError,AttributeError,subprocess.SubprocessError,tarfile.TarError) as exc:
         out["errorClass"]=type(exc).__name__
     print(json.dumps(out,sort_keys=True))
-    return {"CANDIDATES_SCAN_AND_NATIVE_PASSED":0,"FAILED":1,"BLOCKED":2}[out["status"]]
+    return {"PUBLISHED_VERIFIED":0,"FAILED":1,"BLOCKED":2}[out["status"]]
 
 
 if __name__=="__main__":
