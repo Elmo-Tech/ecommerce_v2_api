@@ -167,7 +167,7 @@ jobs:
           start = time.monotonic()
           summary = {'schemaVersion': 1, 'task': 'T016', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
           # Diagnostic-only environment path is never inherited by the launcher.
-          env = {k:v for k,v in os.environ.items() if k not in {'F04_T016_DIR','ACQUISITION_STATUS'}}
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T016_DIR','F04_LANE_STARTED','ACQUISITION_STATUS'}}
           def require(ok):
               if not ok: raise RuntimeError('Diagnostic proof incomplete')
           def git(*args):
@@ -335,7 +335,7 @@ jobs:
           start = time.monotonic()
           summary = {'schemaVersion': 1, 'task': 'T019-launcher', 'runId': os.environ['GITHUB_RUN_ID'], 'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'status': 'BLOCKED', 'stage': 'acquisition'}
           # Diagnostic-only environment path is never inherited by the launcher.
-          env = {k:v for k,v in os.environ.items() if k not in {'F04_T019_DIR','ACQUISITION_STATUS'}}
+          env = {k:v for k,v in os.environ.items() if k not in {'F04_T019_DIR','F04_LANE_STARTED','ACQUISITION_STATUS'}}
           def require(ok):
               if not ok: raise RuntimeError('Diagnostic proof incomplete')
           def git(*args):

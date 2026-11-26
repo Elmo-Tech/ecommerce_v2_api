@@ -139,3 +139,10 @@ jobs:
         changed = deepcopy(actual)
         changed["jobs"]["docs"]["if"] = "always()"
         self.assertIn("LANE_SELECTION", POLICY.aggregate_issues(changed))
+
+    def test_guarded_php_lanes_do_not_inherit_report_timing(self):
+        actual = parse((ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml").read_text())
+        for lane, directory in (("format", "F04_T016_DIR"), ("analysis", "F04_T019_DIR")):
+            scripts = [step.get("run", "") for step in actual["jobs"][lane]["steps"]]
+            expected = "if k not in {'" + directory + "','F04_LANE_STARTED','ACQUISITION_STATUS'}"
+            self.assertEqual(sum(expected in script for script in scripts), 1)
