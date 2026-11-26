@@ -399,10 +399,10 @@ final class LocalDocker
         $pin = OwnedTestRun::image($service);
         $image = $this->jsonLines($this->command([
             'image', 'inspect', '--format', '{{json .Id}}'."\n".'{{json .Os}}'."\n".'{{json .Architecture}}'."\n".'{{json .RepoDigests}}',
-            \Tests\Support\ci\OwnedServicePlan::imageRef($service),
+            OwnedTestRun::imageRef($service),
         ])[0], 4);
         if ($image[0] !== $pin['image_id'] || $image[1] !== 'linux' || $image[2] !== 'amd64'
-            || !is_array($image[3]) || !in_array(\Tests\Support\ci\OwnedServicePlan::imageRef($service), $image[3], true)) {
+            || !is_array($image[3]) || !in_array(OwnedTestRun::imageRef($service), $image[3], true)) {
             self::reject();
         }
     }
@@ -502,7 +502,7 @@ final class LocalDocker
             self::reject();
         }
         [$actualId, $imageId, $imageRef, $labels, $ports, $bindings, $privileged, $network, $mounts, $running] = $container;
-        $expectedRef = \Tests\Support\ci\OwnedServicePlan::imageRef($service);
+        $expectedRef = OwnedTestRun::imageRef($service);
         if ($actualId !== $id || $imageId !== $pin['image_id'] || $imageRef !== $expectedRef
             || $image[0] !== $imageId || $image[1] !== 'linux' || $image[2] !== 'amd64' || !is_array($image[3])
             || $privileged !== false || !in_array($network, ['default', 'bridge'], true)

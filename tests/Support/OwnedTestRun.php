@@ -253,6 +253,18 @@ final class OwnedTestRun
         return self::IMAGES[$service];
     }
 
+    /** Resolve an exact registry reference without Composer or service I/O. */
+    public static function imageRef(string $service): string
+    {
+        $repository = match ($service) {
+            'postgres' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres',
+            'redis' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-redis',
+            default => throw new RuntimeException('Unknown owned service.'),
+        };
+
+        return $repository.'@'.self::image($service)['manifest'];
+    }
+
     public function token(): string
     {
         return $this->runToken;

@@ -116,13 +116,7 @@ final class OwnedServicePlan
 
     public static function imageRef(string $service): string
     {
-        $repository = match ($service) {
-            'postgres' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres',
-            'redis' => 'ghcr.io/elmo-tech/ecommerce-v2-ci-redis',
-            default => throw new RuntimeException('Unknown owned service.'),
-        };
-
-        return $repository.'@'.OwnedTestRun::image($service)['manifest'];
+        return OwnedTestRun::imageRef($service);
     }
 
     /**

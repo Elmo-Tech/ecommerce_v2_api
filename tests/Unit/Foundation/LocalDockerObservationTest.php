@@ -6,7 +6,7 @@ use Tests\Fixtures\FoundationOwnedRunFixture;
 use Tests\Support\LocalDocker;
 
 it('normalizes only exact pinned loopback-bound container observations and rejects unsafe variants without daemon I/O', function (string $case): void {
-    /** @var 'valid'|'wrong image'|'wrong digest'|'wrong architecture'|'wrong reference'|'public port'|'multiple bindings'|'privileged'|'host network'|'shared named volume'|'docker socket mount'|'writable config mount'|'stopped' $case */
+    /** @var 'valid'|'wrong image'|'wrong digest'|'wrong repository'|'wrong architecture'|'wrong reference'|'public port'|'multiple bindings'|'privileged'|'host network'|'shared named volume'|'docker socket mount'|'writable config mount'|'stopped' $case */
 
     $fixture = new FoundationOwnedRunFixture();
     try {
@@ -81,4 +81,48 @@ it('classifies only fixed startup diagnostics without exposing raw secret or pat
     expect(LocalDocker::startupCategory('failed to bind host port: address already in use'))->toBe('port-allocation');
     expect(LocalDocker::startupCategory('unrecognized configuration parameter "synthetic"'))->toBe('invalid-server-option');
     expect(LocalDocker::startupCategory('synthetic-secret-value'))->toBe('unclassified');
+})->group('testing-foundation');
+
+
+it('normalizes running and cleanup observations in a child before Composer autoload', function (): void {
+    $fixture = new FoundationOwnedRunFixture();
+    try {
+        $record = $fixture->record['containers']['postgres'];
+        $directory = $fixture->record['directory'];
+        $reference = 'ghcr.io/elmo-tech/ecommerce-v2-ci-postgres@'.$record['manifest'];
+        $image = [$record['image_id'], 'linux', 'amd64', [$reference]];
+        $container = [
+            $record['id'], $record['image_id'], $reference, $record['labels'],
+            ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => (string) $record['port']]]],
+            ['5432/tcp' => [['HostIp' => '127.0.0.1', 'HostPort' => '']]],
+            false, 'bridge',
+            [['Type' => 'volume', 'Name' => $record['volumes'][0], 'Destination' => '/var/lib/postgresql/data', 'RW' => true]],
+            true,
+        ];
+        $fixture->checkout->write('observation.json', json_encode([$record, $directory, $container, $image], JSON_THROW_ON_ERROR));
+        $fixture->checkout->write('observation-probe.php', <<<'PHP'
+<?php
+
+require_once __DIR__.'/tests/Support/OwnedTestRun.php';
+require_once __DIR__.'/tests/Support/LocalDocker.php';
+
+[$record, $directory, $container, $image] = json_decode(file_get_contents(__DIR__.'/observation.json'), true, flags: JSON_THROW_ON_ERROR);
+if (\Tests\Support\LocalDocker::normalize('postgres', $record['id'], $directory, $container, $image) !== $record) {
+    exit(1);
+}
+$container[4] = [];
+$container[9] = false;
+$record['port'] = null;
+if (\Tests\Support\LocalDocker::normalize('postgres', $record['id'], $directory, $container, $image, true) !== $record
+    || class_exists(\Tests\Support\ci\OwnedServicePlan::class, false)) {
+    exit(2);
+}
+PHP);
+        $process = $fixture->checkout->run(['observation-probe.php']);
+        expect($process->getExitCode())->toBe(0);
+        expect($fixture->checkout->reachedAutoload())->toBeFalse();
+        expect($fixture->checkout->reachedPest())->toBeFalse();
+    } finally {
+        $fixture->close();
+    }
 })->group('testing-foundation');
