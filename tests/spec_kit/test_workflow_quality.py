@@ -75,3 +75,37 @@ jobs:
     def test_actual_spec_kit_workflow(self):
         path = ROOT / ".github/workflows/fnd-01-spec-kit-review.yml"
         self.assertEqual(policy_issues(parse(path.read_text()), False), [])
+
+    def test_native_guarded_commands_are_preserved(self):
+        actual = parse((ROOT / ".github/workflows/f0-01-laravel-bootstrap.yml").read_text())
+        self.assertEqual(POLICY.native_issues(actual), [])
+        for job_id, step_id, field, value, expected in (
+            ("f0-03-integration", "owned_start", "run", "echo skip", "NATIVE_GUARD"),
+            ("f0-03-integration", "owned_setup", "if", "false", "NATIVE_GUARD"),
+            ("f0-03-integration", "owned_cleanup", "run", "echo skip", "NATIVE_CLEANUP"),
+            ("f0-03-integration", "integration_upload", "with", {"path": "integration-raw.xml"}, "NATIVE_REPORTS"),
+            ("bootstrap", "fast_report_cleanup", "run", "echo skip", "REPORT_CLEANUP"),
+        ):
+            with self.subTest(step=step_id):
+                candidate = deepcopy(actual)
+                step = next(s for s in candidate["jobs"][job_id]["steps"] if s.get("id") == step_id)
+                step[field] = value
+                self.assertIn(expected, POLICY.native_issues(candidate))
+        candidate = deepcopy(actual)
+        candidate["jobs"]["f0-03-integration"]["needs"] = "unrelated"
+        self.assertIn("NATIVE_DEPENDENCY", POLICY.native_issues(candidate))
+
+    def test_exact_gate_condition_and_node_toolchain(self):
+        candidate = self.fixture()
+        candidate["jobs"]["gate"]["if"] = "always() && false"
+        self.assertIn("FINAL_GATE", policy_issues(candidate, True))
+        candidate = self.fixture()
+        step = {"uses": "actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+                "with": {"node-version": "24.22.3", "package-manager-cache": "false"}}
+        candidate["jobs"]["check"]["steps"].append(step)
+        self.assertEqual(policy_issues(candidate, True), [])
+        for key, value in (("node-version", "24"), ("package-manager-cache", "true")):
+            changed = deepcopy(candidate)
+            changed["jobs"]["check"]["steps"][-1]["with"][key] = value
+            self.assertIn("NODE_PIN_OR_CACHE", policy_issues(changed, True))
+

@@ -44,7 +44,7 @@ def policy_issues(doc, primary):
             issues.add("DEVELOPMENT_TRIGGER")
         gates = [job for job in jobs.values()
                  if isinstance(job, dict) and job.get("name") == "F0-04 / Quality Gate"]
-        if len(gates) != 1 or "always()" not in gates[0].get("if", ""):
+        if len(gates) != 1 or gates[0].get("if") not in ("always()", "${{ always() }}"):
             issues.add("FINAL_GATE")
     elif "workflow_call" not in triggers:
         issues.add("REUSABLE_SPEC_KIT")
@@ -81,10 +81,67 @@ def policy_issues(doc, primary):
                 step.get("with", {}).get("persist-credentials") != "false"
             ):
                 issues.add("CHECKOUT_CREDENTIALS")
+            if ref.startswith("actions/setup-node@") and (
+                step.get("with", {}).get("node-version") != "24.22.3"
+                or step.get("with", {}).get("package-manager-cache") != "false"
+            ):
+                issues.add("NODE_PIN_OR_CACHE")
             if ref.startswith("actions/upload-artifact@") and (
                 step.get("with", {}).get("retention-days") != "7"
             ):
                 issues.add("ARTIFACT_RETENTION")
+    return sorted(issues)
+
+
+def native_issues(doc):
+    """Protect the existing native harness across the future CI migration."""
+    jobs = doc.get("jobs", {})
+    native_ids = [key for key in ("f0-03-integration", "native-integration") if key in jobs]
+    if len(native_ids) != 1 or "bootstrap" not in jobs:
+        return ["NATIVE_JOBS"]
+    native = jobs[native_ids[0]]
+    fast = jobs["bootstrap"]
+    issues = set()
+    needs = native.get("needs")
+    if not (needs == "bootstrap" or isinstance(needs, list) and "bootstrap" in needs):
+        issues.add("NATIVE_DEPENDENCY")
+    prefix = "php -d zend.exception_ignore_args=1 tests/Support/ci/"
+    def guarded_steps(job, commands):
+        steps = job.get("steps", [])
+        previous = -1
+        for command in commands:
+            matches = [(i, s) for i, s in enumerate(steps) if s.get("run") == prefix + command]
+            if len(matches) != 1 or matches[0][0] <= previous or "if" in matches[0][1]:
+                return False
+            previous = matches[0][0]
+        return True
+    if not guarded_steps(fast, ("run-report.php foundation", "run-report.php fast-all", "run-report.php architecture")):
+        issues.add("FAST_GUARD")
+    if not guarded_steps(native, ("start-owned.php", "setup-owned.php", "run-report.php integration")):
+        issues.add("NATIVE_GUARD")
+    steps = native.get("steps", [])
+    cleanup = [s for s in steps if s.get("id") == "owned_cleanup"]
+    cleanup_command = prefix + "cleanup-owned.php"
+    if (len(cleanup) != 1
+            or cleanup[0].get("if") != ("$" + "{{ always() && steps.run_identity.outcome == 'success' }}")
+            or cleanup[0].get("run", "").splitlines() != ["set -euo pipefail", cleanup_command, cleanup_command]):
+        issues.add("NATIVE_CLEANUP")
+    expected = ("integration-safe.xml", "integration.summary.json")
+    uploads = [s for s in steps if s.get("id") == "integration_upload"]
+    if len(uploads) != 1:
+        issues.add("NATIVE_REPORTS")
+    else:
+        options = uploads[0].get("with", {})
+        paths = options.get("path", "").splitlines()
+        if (paths != ["$" + "{{ env.F03_REPORT_DIR }}/" + name for name in expected]
+                or options.get("if-no-files-found") != "error"
+                or options.get("retention-days") != "7"):
+            issues.add("NATIVE_REPORTS")
+    for job, step_id in ((fast, "fast_report_cleanup"), (native, "integration_report_cleanup")):
+        matches = [s for s in job.get("steps", []) if s.get("id") == step_id]
+        if (len(matches) != 1 or matches[0].get("run") != prefix + "cleanup-reports.php"
+                or "always()" not in matches[0].get("if", "")):
+            issues.add("REPORT_CLEANUP")
     return sorted(issues)
 
 
@@ -96,7 +153,10 @@ def main():
     results = {}
     for name, primary in paths:
         try:
-            results[name] = policy_issues(parse((ROOT / name).read_text()), primary)
+            doc = parse((ROOT / name).read_text())
+            results[name] = policy_issues(doc, primary)
+            if primary:
+                results[name] = sorted(set(results[name] + native_issues(doc)))
         except (OSError, ValueError, TypeError, AttributeError, yaml.YAMLError):
             results[name] = ["WORKFLOW_SHAPE"]
     print(json.dumps(results, sort_keys=True))
