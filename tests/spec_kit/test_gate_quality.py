@@ -204,3 +204,44 @@ class GateQuality(unittest.TestCase):
                 self.assertEqual(result["status"], "PASSED" if good else "FAILED")
                 if not good:
                     self.assertIn("LEDGER_COUNT", {issue["code"] for issue in result["issues"]})
+
+    def test_docs_distinguishes_existing_broken_link_from_new_broken_link(self):
+        checker = self.helper("check-docs.py", "MISSING_DOCS_CHECKER")
+        path = "docs/guides/old.md"
+        repo, identity = self.history(lambda repo: self.write(
+            repo, path, "# Old\n\n[Historic broken](missing.md)\n\nMore prose.\n"))
+        result = checker.check_docs(repo, identity)
+        self.assertEqual(result["status"], "PASSED")
+        self.assertEqual(result["historicalIssues"], 1)
+        repo, identity = self.history(lambda repo: self.write(
+            repo, path, "# Old\n\n[Historic broken](missing.md)\n[New broken](missing.md)\n"))
+        result = checker.check_docs(repo, identity)
+        self.assertEqual(result["status"], "FAILED")
+        self.assertEqual(result["historicalIssues"], 1)
+        self.assertEqual([item["code"] for item in result["issues"]], ["MISSING_LINK_TARGET"])
+
+    def test_docs_decision_marker_must_match_explicit_open_heading(self):
+        checker = self.helper("check-docs.py", "MISSING_DOCS_CHECKER")
+        path = "docs/decisions/OPEN_DECISIONS_AND_MVP_GATES.md"
+        for good in (True, False):
+            with self.subTest(good=good):
+                status = "OPEN" if good else "APPROVED"
+                repo, identity = self.history(lambda repo: self.write(
+                    repo, path, "# Decisions\n\n**Next open:** D-201.\n\n## D-201 — Fixture (" + status + ")\n"))
+                result = checker.check_docs(repo, identity)
+                self.assertEqual(result["status"], "PASSED" if good else "FAILED")
+                if not good:
+                    self.assertIn("DECISION_STATUS", {item["code"] for item in result["issues"]})
+
+    def test_ambiguous_guide_markup_is_not_docs_only(self):
+        classifier = self.helper("classify.py", "MISSING_CLASSIFIER")
+        for content in (
+            "# Reading\n\n[Topic](topic.md#useful-topic)\n",
+            "# Reading\n\n[Topic][t]\n[t]: topic.md\n",
+            "# Reading\n\n[Unclosed](topic.md\n",
+        ):
+            with self.subTest(content=content):
+                repo, identity = self.history(lambda repo: self.write(repo, GUIDE, content))
+                expected = {"docs"} if "[Topic](topic.md#useful-topic)" in content else LANES
+                self.assertEqual(self.required(classifier.classify(repo, identity)), expected)
+
