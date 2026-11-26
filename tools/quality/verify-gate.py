@@ -425,6 +425,10 @@ def spec_report(report, identity, versions):
 def validate_lane(repo, path, lane, identity, decision, canaries):
     raw = read_artifact(path, lane, canaries)
     versions = lane_summary(raw, lane, identity, decision, canaries)
+    validate_payloads(repo, raw, lane, identity, versions, canaries)
+
+
+def validate_payloads(repo, raw, lane, identity, versions, canaries=()):
     def data(name):
         return json_value(raw[name], canaries)
     if lane == "docs":

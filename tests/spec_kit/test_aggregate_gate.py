@@ -400,3 +400,40 @@ class AggregateQuality(unittest.TestCase):
                 self.put(payload, {"status": "PASSED"})
                 self.rehash(directory)
                 self.rejected(c)
+
+
+    def test_lane_seal_requires_real_payload_and_cannot_overwrite(self):
+        c = self.candidate()
+        directory = self.artifact(c[4], "docs", c[1])
+        helper = self.helper("artifact-io.py", "MISSING_ARTIFACT_IO")
+        (directory / "lane.summary.json").unlink()
+        helper.seal(c[0], c[1], "docs", directory, 0.5)
+        self.assertEqual(self.verify(c)["status"], "PASSED")
+        with self.assertRaises(FileExistsError):
+            helper.seal(c[0], c[1], "docs", directory, 0.5)
+        (directory / "lane.summary.json").unlink()
+        self.put(directory / "docs.summary.json", {"status": "PASSED"})
+        with self.assertRaises((ValueError, KeyError)):
+            helper.seal(c[0], c[1], "docs", directory, 0.5)
+        self.assertFalse((directory / "lane.summary.json").exists())
+
+    def test_gate_cleanup_is_exact_and_rejects_unknown_or_linked_entries(self):
+        helper = self.helper("artifact-io.py", "MISSING_ARTIFACT_IO")
+        c = self.candidate()
+        directory = self.artifact(c[4], "docs", c[1])
+        unknown = directory / "unexpected.json"
+        unknown.write_text("{}")
+        with self.assertRaises(ValueError):
+            helper.cleanup_downloads(c[4], c[1])
+        self.assertTrue((directory / "lane.summary.json").is_file())
+        unknown.unlink()
+        link = directory / "docs.summary.json"
+        link.unlink()
+        link.symlink_to(c[0] / fixtures.GUIDE)
+        with self.assertRaises(ValueError):
+            helper.cleanup_downloads(c[4], c[1])
+        self.assertTrue((directory / "lane.summary.json").is_file())
+        self.assertTrue((c[0] / fixtures.GUIDE).is_file())
+        link.unlink()
+        helper.cleanup_downloads(c[4], c[1])
+        self.assertFalse(c[4].exists())
